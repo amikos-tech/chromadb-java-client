@@ -22,6 +22,7 @@ public class TestAPI {
     public void testGetCollection() throws ApiException, IOException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
@@ -32,6 +33,7 @@ public class TestAPI {
     public void testGetCollectionGet() throws ApiException, IOException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
@@ -43,6 +45,7 @@ public class TestAPI {
     public void testCreateCollection() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection resp = client.createCollection("test-collection", null, true, ef);
@@ -53,6 +56,7 @@ public class TestAPI {
     public void testDeleteCollection() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
@@ -69,6 +73,7 @@ public class TestAPI {
     public void testCreateUpsert() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -85,6 +90,7 @@ public class TestAPI {
     public void testCreateAdd() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -101,6 +107,7 @@ public class TestAPI {
     public void testQuery() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -118,6 +125,7 @@ public class TestAPI {
     public void testQueryExample() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -137,6 +145,7 @@ public class TestAPI {
     public void testReset() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
