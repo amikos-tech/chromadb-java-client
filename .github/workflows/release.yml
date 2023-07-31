@@ -36,7 +36,7 @@ jobs:
       - name: Install chromadb
         run: |
           set -e
-          helm install chromadb chromadb/chromadb --set chromadb.isPersistent=${{ matrix.isPersistent }} --set chromadb.allowReset=${{ matrix.allowReset }}
+          helm install chromadb chromadb/chromadb
       - name: Wait for deployment to be ready
         run: |
           set -e
