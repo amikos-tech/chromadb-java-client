@@ -330,6 +330,33 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>net.nicoulaj.maven.plugins</groupId>
+                <artifactId>checksum-maven-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>files</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <algorithms>
+                                <algorithm>MD5</algorithm>
+                                <algorithm>SHA-512</algorithm>
+                            </algorithms>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>**/*.jar</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
