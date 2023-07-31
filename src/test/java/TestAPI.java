@@ -61,8 +61,8 @@ public class TestAPI {
 
     @Test
     public void testCreateUpsert() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -77,8 +77,8 @@ public class TestAPI {
 
     @Test
     public void testCreateAdd() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -93,8 +93,8 @@ public class TestAPI {
 
     @Test
     public void testQuery() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
@@ -110,8 +110,8 @@ public class TestAPI {
 
     @Test
     public void testQueryExample() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
