@@ -6,7 +6,7 @@
 
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.0-SNAPSHOT</version>
     <description>
         Chroma Vector DB Java Client
     </description>
@@ -24,16 +24,21 @@
         <url>https://amikos.tech</url>
     </organization>
 
-    <distributionManagement>
+<!--    <distributionManagement>-->
 <!--        <repository>-->
-<!--            <id>ossrh</id>-->
-<!--            <name>Central Repository OSSRH</name>-->
-<!--            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>-->
+<!--            <id>github</id>-->
+<!--            <name>GitHub Packages</name>-->
+<!--            <url>https://maven.pkg.github.com/amikos-tech/chromadb-java-client</url>-->
 <!--        </repository>-->
+<!--    </distributionManagement>-->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/amikos-tech/chromadb-java-client</url>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
     <properties>
