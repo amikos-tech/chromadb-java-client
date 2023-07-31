@@ -73,6 +73,7 @@ jobs:
           mvn \
                 --no-transfer-progress \
                 --batch-mode \
+                -Dgpg.passphrase=${GPG_PASSPHRASE} \
                 -DskipTests \
                 clean deploy
         env:
