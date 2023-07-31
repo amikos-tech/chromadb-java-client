@@ -1,7 +1,8 @@
 name: release
 
 on:
-  push:
+  release:
+    types: [created]
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
@@ -39,7 +40,7 @@ jobs:
       - name: Install chromadb
         run: |
           set -e
-          helm install chromadb chromadb/chromadb
+          helm install chromadb chromadb/chromadb --set chromadb.allowReset=true
       - name: Wait for deployment to be ready
         id: wait-and-set
         run: |
