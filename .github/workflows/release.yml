@@ -17,6 +17,12 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
           cache: maven
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
       - name: start minikube
         id: minikube
         uses: medyagh/setup-minikube@latest
