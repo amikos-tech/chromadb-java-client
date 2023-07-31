@@ -4,8 +4,6 @@ on:
   release:
     types: [created]
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -21,57 +19,29 @@ jobs:
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
-
-      - name: Install Helm
-        uses: azure/setup-helm@v1
-        with:
-          version: v3.4.0
-
-      - name: start minikube
-        id: minikube
-        uses: medyagh/setup-minikube@latest
-        with:
-          kubernetes-version: 1.27.3
-      - name: Add helm repo
-        run: |
-          set -e
-          helm repo add chromadb https://amikos-tech.github.io/chromadb-chart/
-          helm repo update
-      - name: Install chromadb
-        run: |
-          set -e
-          helm install chromadb chromadb/chromadb --set chromadb.allowReset=true
-      - name: Wait for deployment to be ready
-        id: wait-and-set
-        run: |
-          set -e
-          kubectl wait \
-          --for=condition=ready pod \
-          --selector=app.kubernetes.io/name=chromadb \
-          --timeout=120s
-          echo "chroma-url=$(minikube service chromadb --url)" >> $GITHUB_OUTPUT
-      - name: Hearthbeat
-        run: |
-          set -e
-          kubectl get svc -A
-          curl $(minikube service chromadb --url)/api/v1
-      - name: Build with Maven
-        run: mvn clean package
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CHROMA_URL: ${{steps.wait-and-set.outputs.chroma-url}}
-#      - name: Publish package
-#        run: mvn --batch-mode deploy
-#        env:
-#          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-#          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
       - id: install-secret-key
         name: Install gpg secret key
         run: |
           # Install gpg secret key
-          cat <(echo -e "${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY }}") | gpg --batch --import
+          cat <(echo -e "${GPG_KEY}") | gpg --batch --import
           # Verify gpg secret key
           gpg --list-secret-keys --keyid-format LONG
+        env:
+          GPG_KEY: ${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY }}
+      - name: Version bump
+        run: |
+          mvn \
+                --no-transfer-progress \
+                --batch-mode \
+                -Dgpg.skip=true \
+                -DskipTests \
+                versions:set \
+                -DnewVersion=${{  github.ref_name }}
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add pom.xml
+          git commit -m "Increment version to ${{  github.ref_name }}" -a
+          git push
       - name: Publish package
         run: |
           mvn \
@@ -79,7 +49,7 @@ jobs:
                 --batch-mode \
                 -Dgpg.passphrase=${GPG_PASSPHRASE} \
                 -DskipTests \
-                clean deploy
+                clean package deploy
         env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
