@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>tech.amikos</groupId>
+    <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
     <version>0.1.0</version>
     <description>
@@ -292,6 +292,8 @@
                         </goals>
                         <configuration>
                             <gpgArguments>
+                                <arg>--default-key</arg>
+                                <arg>DD5BCE1C142A7AA14A6CF199B761E38FFB537E30</arg>
                                 <arg>--pinentry-mode</arg>
                                 <arg>loopback</arg>
                             </gpgArguments>
