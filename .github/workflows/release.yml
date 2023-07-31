@@ -38,12 +38,14 @@ jobs:
           set -e
           helm install chromadb chromadb/chromadb
       - name: Wait for deployment to be ready
+        id: wait-and-set
         run: |
           set -e
           kubectl wait \
           --for=condition=ready pod \
           --selector=app.kubernetes.io/name=chromadb \
           --timeout=120s
+          echo "chroma-url=$(minikube service chromadb --url)" >> $GITHUB_OUTPUT
       - name: Hearthbeat
         run: |
           set -e
@@ -53,4 +55,4 @@ jobs:
         run: mvn clean package
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CHROMA_URL: $(minikube service chromadb --url)
+          CHROMA_URL: ${{steps.wait-and-set.outputs.chroma-url}}
