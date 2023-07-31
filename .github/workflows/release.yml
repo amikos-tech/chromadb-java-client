@@ -17,7 +17,34 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
           cache: maven
+      - name: start minikube
+        id: minikube
+        uses: medyagh/setup-minikube@latest
+        with:
+          kubernetes-version: 1.27.3
+      - name: Add helm repo
+        run: |
+          set -e
+          helm repo add chromadb https://amikos-tech.github.io/chromadb-chart/
+          helm repo update
+      - name: Install chromadb
+        run: |
+          set -e
+          helm install chromadb chromadb/chromadb --set chromadb.isPersistent=${{ matrix.isPersistent }} --set chromadb.allowReset=${{ matrix.allowReset }}
+      - name: Wait for deployment to be ready
+        run: |
+          set -e
+          kubectl wait \
+          --for=condition=ready pod \
+          --selector=app.kubernetes.io/name=chromadb \
+          --timeout=120s
+      - name: Hearthbeat
+        run: |
+          set -e
+          kubectl get svc -A
+          curl $(minikube service chromadb --url)/api/v1
       - name: Build with Maven
         run: mvn clean package
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CHROMA_URL: $(minikube service chromadb --url)

@@ -14,13 +14,13 @@ public class TestAPI {
 
     @Test
     public void testHeartbeat() throws ApiException, IOException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         System.out.println(client.heartbeat());
     }
 
     @Test
     public void testGetCollection() throws ApiException, IOException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -30,7 +30,7 @@ public class TestAPI {
 
     @Test
     public void testGetCollectionGet() throws ApiException, IOException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -41,7 +41,7 @@ public class TestAPI {
 
     @Test
     public void testCreateCollection() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -51,7 +51,7 @@ public class TestAPI {
 
     @Test
     public void testDeleteCollection() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -61,7 +61,7 @@ public class TestAPI {
 
     @Test
     public void testCreateUpsert() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -77,7 +77,7 @@ public class TestAPI {
 
     @Test
     public void testCreateAdd() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -93,7 +93,7 @@ public class TestAPI {
 
     @Test
     public void testQuery() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
@@ -110,7 +110,7 @@ public class TestAPI {
 
     @Test
     public void testQueryExample() throws ApiException {
-        Client client = new Client("http://localhost:8000");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
