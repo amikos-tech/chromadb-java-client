@@ -73,8 +73,8 @@ jobs:
           mvn \
                 --no-transfer-progress \
                 --batch-mode \
-                -Dgpg.passphrase="${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY_PASSWORD }}" \
                 -DskipTests \
                 clean deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY_PASSWORD }}
