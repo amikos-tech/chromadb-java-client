@@ -9,6 +9,8 @@ import tech.amikos.chromadb.handler.ApiException;
 import java.io.IOException;
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
+
 public class TestAPI {
 
 
@@ -125,5 +127,22 @@ public class TestAPI {
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
         LinkedTreeMap<String, Object> qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
         System.out.println(qr);
+    }
+
+    @Test
+    public void testReset() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        client.reset();
+
+        try {
+            client.getCollection("test-collection", ef);
+        } catch (ApiException e) {
+            assertEquals(e.getCode(), 500);
+        }
     }
 }

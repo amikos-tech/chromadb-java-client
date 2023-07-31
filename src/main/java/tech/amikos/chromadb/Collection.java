@@ -27,7 +27,7 @@ public class Collection {
 
     private EmbeddingFunction embeddingFunction;
 
-    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) {
+    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
         this.api = api;
         this.collectionName = collectionName;
         this.embeddingFunction = embeddingFunction;
@@ -37,11 +37,11 @@ public class Collection {
             this.collectionId = resp.get("id").toString();
             this.metadata = (LinkedTreeMap<String, Object>) resp.get("metadata");
         } catch (ApiException e) {
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
-    public static Collection getInstance(DefaultApi api, String collectionName) {
+    public static Collection getInstance(DefaultApi api, String collectionName) throws ApiException {
         return new Collection(api, collectionName, null);
     }
 

@@ -22,7 +22,7 @@ public class Client {
         api = new DefaultApi(apiClient);
     }
 
-    public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) {
+    public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
         return new Collection(api, collectionName, embeddingFunction);
     }
 
@@ -40,14 +40,18 @@ public class Client {
     }
 
     public Collection deleteCollection(String collectionName) throws ApiException {
-        Collection collection = Collection.getInstance(api,collectionName);
+        Collection collection = Collection.getInstance(api, collectionName);
         collection.delete();
         return collection;
     }
 
-    public Collection upsert(String collectionName, EmbeddingFunction ef) {
+    public Collection upsert(String collectionName, EmbeddingFunction ef) throws ApiException {
         Collection collection = getCollection(collectionName, ef);
 //        collection.upsert();
         return collection;
+    }
+
+    public Boolean reset() throws ApiException {
+        return api.reset();
     }
 }
