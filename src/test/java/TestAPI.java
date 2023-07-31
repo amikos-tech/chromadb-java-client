@@ -22,8 +22,8 @@ public class TestAPI {
 
     @Test
     public void testGetCollection() throws ApiException, IOException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
@@ -32,8 +32,8 @@ public class TestAPI {
 
     @Test
     public void testGetCollectionGet() throws ApiException, IOException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
@@ -43,8 +43,8 @@ public class TestAPI {
 
     @Test
     public void testCreateCollection() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection resp = client.createCollection("test-collection", null, true, ef);
@@ -53,12 +53,18 @@ public class TestAPI {
 
     @Test
     public void testDeleteCollection() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
         client.deleteCollection("test-collection");
+
+        try {
+            client.getCollection("test-collection", ef);
+        } catch (ApiException e) {
+            assertEquals(e.getCode(), 500);
+        }
     }
 
     @Test
