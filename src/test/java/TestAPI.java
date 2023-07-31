@@ -1,5 +1,4 @@
 import com.google.gson.internal.LinkedTreeMap;
-import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.Test;
 import tech.amikos.chromadb.Client;
 import tech.amikos.chromadb.Collection;
@@ -22,8 +21,8 @@ public class TestAPI {
     @Test
     public void testGetCollection() throws ApiException, IOException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
         System.out.println(client.getCollection("test-collection", ef));
@@ -32,8 +31,8 @@ public class TestAPI {
     @Test
     public void testGetCollectionGet() throws ApiException, IOException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
         System.out.println(client.getCollection("test-collection", ef).get());
@@ -43,8 +42,8 @@ public class TestAPI {
     @Test
     public void testCreateCollection() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection resp = client.createCollection("test-collection", null, true, ef);
         System.out.println(resp);
@@ -53,8 +52,8 @@ public class TestAPI {
     @Test
     public void testDeleteCollection() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
         client.deleteCollection("test-collection");
@@ -63,8 +62,8 @@ public class TestAPI {
     @Test
     public void testCreateUpsert() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
@@ -79,8 +78,8 @@ public class TestAPI {
     @Test
     public void testCreateAdd() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
@@ -95,8 +94,8 @@ public class TestAPI {
     @Test
     public void testQuery() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
@@ -112,8 +111,8 @@ public class TestAPI {
     @Test
     public void testQueryExample() throws ApiException {
         Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();

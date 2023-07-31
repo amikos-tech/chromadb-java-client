@@ -1,9 +1,5 @@
-import com.google.gson.Gson;
-import io.github.cdimascio.dotenv.Dotenv;
-import tech.amikos.openai.CreateEmbeddingRequest;
-import okhttp3.Call;
-import okhttp3.Response;
 import org.junit.Test;
+import tech.amikos.openai.CreateEmbeddingRequest;
 import tech.amikos.openai.CreateEmbeddingResponse;
 import tech.amikos.openai.OpenAIClient;
 
@@ -52,24 +48,26 @@ public class TestOpenAIEmbeddings {
 
     @Test
     public void testCreateEmbedding() {
-        Dotenv dotenv = Dotenv.load();
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
         req.input(new CreateEmbeddingRequest.Input("Hello, my name is John. I am a Data Scientist."));
         System.out.println(req.json());
         OpenAIClient client = new OpenAIClient();
-        CreateEmbeddingResponse response = client.apiKey(dotenv.get("OPENAI_API_KEY"))
+        CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
         System.out.println(response);
     }
 
     @Test
     public void testCreateEmbeddingListOfStrings() {
-        Dotenv dotenv = Dotenv.load();
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
         req.input(new CreateEmbeddingRequest.Input(new String[]{"Hello, my name is John. I am a Data Scientist.", "Hello, my name is John. I am a Data Scientist."}));
         System.out.println(req.json());
         OpenAIClient client = new OpenAIClient();
-        CreateEmbeddingResponse response = client.apiKey(dotenv.get("OPENAI_API_KEY"))
+        CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
         System.out.println(response);
     }
