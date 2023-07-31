@@ -27,15 +27,20 @@ public class Collection {
 
     private EmbeddingFunction embeddingFunction;
 
-    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
+    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) {
         this.api = api;
         this.collectionName = collectionName;
         this.embeddingFunction = embeddingFunction;
+
+    }
+
+    public Collection fetch() throws ApiException {
         try {
             LinkedTreeMap<String, ?> resp = (LinkedTreeMap<String, ?>) api.getCollection(collectionName);
             this.collectionName = resp.get("name").toString();
             this.collectionId = resp.get("id").toString();
             this.metadata = (LinkedTreeMap<String, Object>) resp.get("metadata");
+            return this;
         } catch (ApiException e) {
             throw e;
         }
@@ -107,7 +112,7 @@ public class Collection {
         return api.add(req, this.collectionId);
     }
 
-    public LinkedTreeMap<String, Object> query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) {
+    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) {
         QueryEmbedding body = new QueryEmbedding();
         body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.createEmbedding(queryTexts));
         body.nResults(nResults);
@@ -119,9 +124,51 @@ public class Collection {
             body.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
         }
         try {
-            return (LinkedTreeMap<String, Object>) api.getNearestNeighbors(body, this.collectionId);
+            Gson gson = new Gson();
+            String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
+            return new Gson().fromJson(json, QueryResponse.class);
         } catch (ApiException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static class QueryResponse {
+        @SerializedName("documents")
+        private List<List<String>> documents;
+        @SerializedName("embeddings")
+        private List<List<Float>> embeddings;
+        @SerializedName("ids")
+        private List<List<String>> ids;
+        @SerializedName("metadatas")
+        private List<List<Map<String, Object>>> metadatas;
+        @SerializedName("distances")
+        private List<List<Float>> distances;
+
+        public List<List<String>> getDocuments() {
+            return documents;
+        }
+
+        public List<List<Float>> getEmbeddings() {
+            return embeddings;
+        }
+
+        public List<List<String>> getIds() {
+            return ids;
+        }
+
+        public List<List<Map<String, Object>>> getMetadatas() {
+            return metadatas;
+        }
+
+        public List<List<Float>> getDistances() {
+            return distances;
+        }
+
+        @Override
+        public String toString() {
+            return new Gson().toJson(this);
+        }
+
+
     }
 }

@@ -117,7 +117,7 @@ public class TestAPI {
         }});
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
-        LinkedTreeMap<String, Object> qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
+        Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
         System.out.println(qr);
     }
 
@@ -137,7 +137,7 @@ public class TestAPI {
             put("type", "spy");
         }});
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-        LinkedTreeMap<String, Object> qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+        Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
         System.out.println(qr);
     }
 
@@ -191,8 +191,22 @@ public class TestAPI {
         metadata.add(new HashMap<String, String>() {{
             put("type", "spy");
         }});
-        collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-        LinkedTreeMap<String, Object> qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+        List<String> texts = Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy.");
+        collection.add(null, metadata, texts, Arrays.asList("1", "2"));
+        Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+        assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
         System.out.println(qr);
+    }
+
+    @Test
+    public void testListCollections() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        client.reset();
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        client.createCollection("test-collection", null, true, ef);
+        assertEquals(client.listCollections().size(), 1);
+        System.out.println(client.listCollections());
     }
 }

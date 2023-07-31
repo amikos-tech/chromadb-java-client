@@ -7,7 +7,9 @@ import tech.amikos.chromadb.handler.DefaultApi;
 import tech.amikos.chromadb.model.CreateCollection;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * ChromaDB Client
@@ -23,7 +25,7 @@ public class Client {
     }
 
     public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
-        return new Collection(api, collectionName, embeddingFunction);
+        return new Collection(api, collectionName, embeddingFunction).fetch();
     }
 
     public Map<String, BigDecimal> heartbeat() throws ApiException {
@@ -33,10 +35,15 @@ public class Client {
     public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction) throws ApiException {
         CreateCollection req = new CreateCollection();
         req.setName(collectionName);
-        req.setMetadata(metadata);
+        Map<String, String> _metadata = metadata;
+        if (metadata == null || metadata.isEmpty() || !metadata.containsKey("embedding_function")) {
+            _metadata = new LinkedTreeMap<>();
+            _metadata.put("embedding_function", embeddingFunction.getClass().getName());
+        }
+        req.setMetadata(_metadata);
         req.setGetOrCreate(createOrGet);
         LinkedTreeMap resp = (LinkedTreeMap) api.createCollection(req);
-        return new Collection(api, (String) resp.get("name"), embeddingFunction);
+        return new Collection(api, (String) resp.get("name"), embeddingFunction).fetch();
     }
 
     public Collection deleteCollection(String collectionName) throws ApiException {
@@ -53,5 +60,17 @@ public class Client {
 
     public Boolean reset() throws ApiException {
         return api.reset();
+    }
+
+    public List<Collection> listCollections() throws ApiException {
+        List<LinkedTreeMap> apiResponse = (List<LinkedTreeMap>) api.listCollections();
+        return apiResponse.stream().map((LinkedTreeMap m) -> {
+            try {
+                return getCollection((String) m.get("name"), null);
+            } catch (ApiException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }).collect(Collectors.toList());
     }
 }
