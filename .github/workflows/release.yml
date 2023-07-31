@@ -61,3 +61,20 @@ jobs:
 #        env:
 #          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
 #          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          # Install gpg secret key
+          cat <(echo -e "${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY }}") | gpg --batch --import
+          # Verify gpg secret key
+          gpg --list-secret-keys --keyid-format LONG
+      - name: Publish package
+        run: |
+          mvn \
+                --no-transfer-progress \
+                --batch-mode \
+                -Dgpg.passphrase=${{ secrets.AMIKOS_OSS_GPG_SECRET_KEY_PASSWORD }} \
+                -DskipTests \
+                clean deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
