@@ -10,6 +10,9 @@ on:
 
 jobs:
   integration-test:
+    strategy:
+      matrix:
+        chroma-version: [ 0.4.3, 0.4.4 ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,7 +22,6 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
           cache: maven
-
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -38,7 +40,7 @@ jobs:
       - name: Install chromadb
         run: |
           set -e
-          helm install chromadb chromadb/chromadb --set chromadb.allowReset=true
+          helm install chromadb chromadb/chromadb --set chromadb.allowReset=true,chromadb.apiVersion=${{ matrix.chroma-version }}
       - name: Wait for deployment to be ready
         id: wait-and-set
         run: |
