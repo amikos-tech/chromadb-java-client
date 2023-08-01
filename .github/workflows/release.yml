@@ -4,6 +4,9 @@ on:
   release:
     types: [created]
     branches: [ "main" ]
+  push:
+    branches:
+      - develop
 
 jobs:
   build:
