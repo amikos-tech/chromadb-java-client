@@ -38,12 +38,6 @@ jobs:
                 -DskipTests \
                 versions:set \
                 -DnewVersion=${{  github.ref_name }}
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git checkout -b ${{  github.ref_name }}
-          git add pom.xml
-          git commit -m "Increment version to ${{  github.ref_name }}" -a
-          git push origin HEAD:${{  github.ref_name }}
       - name: Publish package
         run: |
           mvn \
