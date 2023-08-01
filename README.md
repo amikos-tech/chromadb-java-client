@@ -2,7 +2,7 @@
 
 This is a very basic/naive implementation in Java of the Chroma Vector Database API.
 
-This client works with Chroma Version `0.4.3`
+This client works with Chroma Versions `0.4.3+`
 
 ## Features
 
@@ -35,23 +35,22 @@ This client works with Chroma Version `0.4.3`
 
 ## TODO
 
-- [ ] Add support for other embedding functions
-- [ ] Push the package to Maven
+- [x] Push the package to Maven
   Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
 - [ ] Fluent API - make it easier for users to make use of the library
+- [ ] Support for PaLM API
+- [ ] Support for Sentence Transformers with Hugging Face API
 
 ## Usage
 
-Clone the repository and install the package locally:
+Add Maven dependency:
 
-```bash
-git clone git@github.com:amikos-tech/chromadb-java-client.git
-```
-
-Install dependencies:
-
-```bash
-mvn clean compile
+```xml
+<dependency>
+    <groupId>io.github.amikos-tech</groupId>
+    <artifactId>chromadb-java-client</artifactId>
+    <version>0.1.1</version>
+</dependency>
 ```
 
 Ensure you have a running instance of Chroma running. We recommend one of the two following options:
@@ -60,43 +59,40 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
 
-Run tests:
-
-| **Important**: Since we are using the OpenAI API, you need to set the `OPENAI_API_KEY` environment variable. Simply
-create `.env` file in the root of the repository.
-
-```bash
-mvn test
-```
-
-## Example
+### Example
 
 ```java
+package tech.amikos;
+
 import com.google.gson.internal.LinkedTreeMap;
-import io.github.cdimascio.dotenv.Dotenv;
 import tech.amikos.chromadb.Client;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.EmbeddingFunction;
 import tech.amikos.chromadb.OpenAIEmbeddingFunction;
-import tech.amikos.chromadb.handler.ApiException;
 
-class TestApi {
-    public void testQueryExample() throws ApiException {
-        Client client = new Client("http://localhost:8000");
-        Dotenv dotenv = Dotenv.load();
-        String apiKey = dotenv.get("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "scientist");
-        }});
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "spy");
-        }});
-        collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-        LinkedTreeMap<String, Object> qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-        System.out.println(qr);
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            String apiKey = System.getenv("OPENAI_API_KEY");
+            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+            Collection collection = client.createCollection("test-collection", null, true, ef);
+            List<Map<String, String>> metadata = new ArrayList<>();
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "scientist");
+            }});
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "spy");
+            }});
+            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
+            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            System.out.println(qr);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e);
+        }
     }
 }
 ```
@@ -104,7 +100,7 @@ class TestApi {
 The above should output:
 
 ```bash
-{ids=[[2, 1]], distances=[[0.28461432651150426, 0.5096168232841949]], metadatas=[[{key=value}, {key=value}]], embeddings=null, documents=[[Hello, my name is Bond. I am a Spy., Hello, my name is John. I am a Data Scientist.]]}
+{"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.28461432,0.50961685]]}
 ```
 
 ## Development Notes
