@@ -43,7 +43,7 @@ jobs:
           git checkout -b ${{  github.ref_name }}
           git add pom.xml
           git commit -m "Increment version to ${{  github.ref_name }}" -a
-          git push origin ${{  github.ref_name }}
+          git push origin HEAD:${{  github.ref_name }}
       - name: Publish package
         run: |
           mvn \
