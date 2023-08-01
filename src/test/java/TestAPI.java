@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 public class TestAPI {
 
@@ -340,6 +341,7 @@ public class TestAPI {
     public void testCollectionCreateIndex() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        assumeTrue(client.version().equalsIgnoreCase("0.4.3"));
         client.reset();
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);

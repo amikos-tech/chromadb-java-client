@@ -143,6 +143,7 @@ public class Collection {
         return delete(null, null, whereDocument);
     }
 
+    @Deprecated
     public Boolean createIndex() throws ApiException {
         return (Boolean) api.createIndex(this.collectionId);
     }
