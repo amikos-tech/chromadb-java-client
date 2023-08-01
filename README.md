@@ -2,12 +2,43 @@
 
 This is a very basic/naive implementation in Java of the Chroma Vector Database API.
 
-| Important: For now it only supports OpenAI embeddings.
+This client works with Chroma Version `0.4.3`
+
+## Features
+
+### Embeddings Support
+
+- [x] OpenAI API
+- [x] Cohere API (including Multi-language support)
+- [ ] Sentence Transformers
+- [ ] PaLM API
+- [ ] Custom Embedding Function
+
+### Feature Parity with ChromaDB API
+
+- [x] Reset
+- [x] Heartbeat
+- [x] List Collections
+- [ ] Raw SQL
+- [x] Get Version
+- [x] Create Collection
+- [x] Delete Collection
+- [x] Collection Add
+- [x] Collection Get (partial without additional parameters)
+- [x] Collection Count
+- [x] Collection Query
+- [x] Collection Modify
+- [x] Collection Update
+- [x] Collection Upsert
+- [x] Collection Create Index
+- [x] Collection Delete - delete documents in collection
 
 ## TODO
 
 - [ ] Add support for other embedding functions
-- [ ] Push the package to Maven Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
+- [ ] Push the package to Maven
+  Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
+- [ ] Fluent API - make it easier for users to make use of the library
 
 ## Usage
 

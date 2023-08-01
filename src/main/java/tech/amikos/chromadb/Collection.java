@@ -3,17 +3,12 @@ package tech.amikos.chromadb;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.internal.LinkedTreeMap;
-import com.google.gson.reflect.TypeToken;
-import okhttp3.Call;
-import okhttp3.Response;
 import tech.amikos.chromadb.handler.ApiException;
 import tech.amikos.chromadb.handler.DefaultApi;
-import tech.amikos.chromadb.model.AddEmbedding;
-import tech.amikos.chromadb.model.GetEmbedding;
-import tech.amikos.chromadb.model.QueryEmbedding;
+import tech.amikos.chromadb.model.*;
 
-import java.lang.reflect.Type;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Collection {
@@ -32,6 +27,18 @@ public class Collection {
         this.collectionName = collectionName;
         this.embeddingFunction = embeddingFunction;
 
+    }
+
+    public String getName() {
+        return collectionName;
+    }
+
+    public String getId() {
+        return collectionId;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
     }
 
     public Collection fetch() throws ApiException {
@@ -59,28 +66,20 @@ public class Collection {
                 '}';
     }
 
-    public HashMap<String, Object> get() {
-        try {
-            Call r = api.getCall(new GetEmbedding(), this.collectionId, null, null);
-            Response c = r.execute();
-
-
-            // Define the Type for the HashMap
-            Type type = new TypeToken<HashMap<String, Object>>() {
-            }.getType();
-
-            // Parse the JSON string to a HashMap
-            HashMap<String, Object> hashMap = gson.fromJson(c.body().string(), type);
-            return hashMap;
-        } catch (ApiException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public GetResult get(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+        GetEmbedding req = new GetEmbedding();
+        req.ids(ids).where(where).whereDocument(whereDocument);
+        Gson gson = new Gson();
+        String json = gson.toJson(api.get(req, this.collectionId));
+        return new Gson().fromJson(json, GetResult.class);
     }
 
-    public void delete() throws ApiException {
-        api.deleteCollection(this.collectionName);
+    public GetResult get() throws ApiException {
+        return this.get(null, null, null);
+    }
+
+    public Object delete() throws ApiException {
+        return this.delete(null, null, null);
     }
 
     public Object upsert(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
@@ -112,7 +111,74 @@ public class Collection {
         return api.add(req, this.collectionId);
     }
 
-    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) {
+    public Integer count() throws ApiException {
+        return api.count(this.collectionId);
+    }
+
+    public Object delete(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+        DeleteEmbedding req = new DeleteEmbedding();
+        req.setIds(ids);
+        if (where != null) {
+            req.where(where.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+        }
+        if (whereDocument != null) {
+            req.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+        }
+        return api.delete(req, this.collectionId);
+    }
+
+    public Object deleteWithIds(List<String> ids) throws ApiException {
+        return delete(ids, null, null);
+    }
+
+    public Object deleteWhere(Map<String, String> where) throws ApiException {
+        return delete(null, where, null);
+    }
+
+    public Object deleteWhereWhereDocuments(Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+        return delete(null, where, whereDocument);
+    }
+
+    public Object deleteWhereDocuments(Map<String, Object> whereDocument) throws ApiException {
+        return delete(null, null, whereDocument);
+    }
+
+    public Boolean createIndex() throws ApiException {
+        return (Boolean) api.createIndex(this.collectionId);
+    }
+
+    public Object update(String newName, Map<String, Object> newMetadata) throws ApiException {
+        UpdateCollection req = new UpdateCollection();
+        if (newName != null) {
+            req.setNewName(newName);
+        }
+        if (newMetadata != null && embeddingFunction != null) {
+            if (!newMetadata.containsKey("embedding_function")) {
+                newMetadata.put("embedding_function", embeddingFunction.getClass().getName());
+            }
+            req.setNewMetadata(newMetadata);
+        }
+        Object resp = api.updateCollection(req, this.collectionId);
+        this.collectionName = newName;
+        this.fetch(); //do we really need to fetch?
+        return resp;
+    }
+
+    public Object updateEmbeddings(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+        UpdateEmbedding req = new UpdateEmbedding();
+        List<List<Float>> _embeddings = embeddings;
+        if (_embeddings == null) {
+            _embeddings = this.embeddingFunction.createEmbedding(documents);
+        }
+        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setDocuments(documents);
+        req.setMetadatas((List<Object>) (Object) metadatas);
+        req.setIds(ids);
+        return api.update(req, this.collectionId);
+    }
+
+
+    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ApiException {
         QueryEmbedding body = new QueryEmbedding();
         body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.createEmbedding(queryTexts));
         body.nResults(nResults);
@@ -123,13 +189,9 @@ public class Collection {
         if (whereDocument != null) {
             body.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
         }
-        try {
-            Gson gson = new Gson();
-            String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
-            return new Gson().fromJson(json, QueryResponse.class);
-        } catch (ApiException e) {
-            throw new RuntimeException(e);
-        }
+        Gson gson = new Gson();
+        String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
+        return new Gson().fromJson(json, QueryResponse.class);
     }
 
     public static class QueryResponse {
@@ -170,5 +232,37 @@ public class Collection {
         }
 
 
+    }
+
+    public static class GetResult {
+        @SerializedName("documents")
+        private List<String> documents;
+        @SerializedName("embeddings")
+        private List<Float> embeddings;
+        @SerializedName("ids")
+        private List<String> ids;
+        @SerializedName("metadatas")
+        private List<Map<String, Object>> metadatas;
+
+        public List<String> getDocuments() {
+            return documents;
+        }
+
+        public List<Float> getEmbeddings() {
+            return embeddings;
+        }
+
+        public List<String> getIds() {
+            return ids;
+        }
+
+        public List<Map<String, Object>> getMetadatas() {
+            return metadatas;
+        }
+
+        @Override
+        public String toString() {
+            return new Gson().toJson(this);
+        }
     }
 }

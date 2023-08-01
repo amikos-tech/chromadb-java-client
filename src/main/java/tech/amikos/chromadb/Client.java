@@ -48,7 +48,7 @@ public class Client {
 
     public Collection deleteCollection(String collectionName) throws ApiException {
         Collection collection = Collection.getInstance(api, collectionName);
-        collection.delete();
+        api.deleteCollection(collectionName);
         return collection;
     }
 
@@ -68,9 +68,13 @@ public class Client {
             try {
                 return getCollection((String) m.get("name"), null);
             } catch (ApiException e) {
-                e.printStackTrace();
+                e.printStackTrace(); //this is not great as we're swallowing the exception
             }
             return null;
         }).collect(Collectors.toList());
+    }
+
+    public String version() throws ApiException {
+        return api.version();
     }
 }

@@ -7,7 +7,7 @@ import tech.amikos.chromadb.handler.ApiException;
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class TestAPI {
 
@@ -209,4 +209,201 @@ public class TestAPI {
         assertEquals(client.listCollections().size(), 1);
         System.out.println(client.listCollections());
     }
+
+    @Test
+    public void testCollectionCount() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        System.out.println(collection.count());
+    }
+
+    @Test
+    public void testCollectionDeleteIds() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        System.out.println(collection.deleteWithIds(Arrays.asList("1")));
+        System.out.println(collection.get());
+    }
+
+    @Test
+    public void testCollectionDeleteWhere() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        Map<String, String> where = new HashMap<>();
+        where.put("key", "value");
+        System.out.println(collection.deleteWhere(where));
+        System.out.println(collection.get());
+        assertTrue(collection.count() == 0);
+    }
+
+    @Test
+    public void testCollectionDeleteWhereNoMatch() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        Map<String, String> where = new HashMap<>();
+        where.put("key", "value2");
+        System.out.println(collection.deleteWhere(where));
+        System.out.println(collection.get());
+        assertTrue(collection.count() == 1);
+    }
+
+    @Test
+    public void testCollectionDeleteWhereDocuments() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        Map<String, Object> whereDocuments = new HashMap<>();
+        whereDocuments.put("$contains", "John");
+        System.out.println(collection.deleteWhereDocuments(whereDocuments));
+        System.out.println(collection.get());
+        assertTrue(collection.count() == 0);
+
+    }
+
+    @Test
+    public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        Map<String, Object> whereDocuments = new HashMap<>();
+        whereDocuments.put("$contains", "Mohn");
+        System.out.println(collection.deleteWhereDocuments(whereDocuments));
+        System.out.println(collection.get());
+        assertTrue(collection.count() == 1);
+    }
+
+    @Test
+    public void testCollectionCreateIndex() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        System.out.println(collection.createIndex());
+    }
+
+    @Test
+    public void testVersion() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String version = client.version();
+        System.out.println(version);
+        assertNotNull(version);
+    }
+
+
+    @Test
+    public void testUpdateCollection() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        collection.update("test-collection2", null);
+        System.out.println(collection);
+        assertEquals(collection.getName(), "test-collection2");
+    }
+
+    @Test
+    public void testCollectionUpdateEmbeddings() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(collection.get());
+
+    }
+
+
 }
