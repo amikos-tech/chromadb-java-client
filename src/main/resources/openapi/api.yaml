@@ -217,7 +217,7 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema: {} #TODO add actual GetResult Body
         '422':
           description: Validation Error
           content:
@@ -269,7 +269,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                type: integer
         '422':
           description: Validation Error
           content:
@@ -321,7 +322,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                type: boolean
         '422':
           description: Validation Error
           content:
