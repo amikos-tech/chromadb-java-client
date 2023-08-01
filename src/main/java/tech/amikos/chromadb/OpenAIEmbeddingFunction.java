@@ -23,7 +23,16 @@ public class OpenAIEmbeddingFunction implements EmbeddingFunction {
         OpenAIClient client = new OpenAIClient();
         CreateEmbeddingResponse response = client.apiKey(this.openAIAPIKey)
                 .createEmbedding(req);
-//        return response.getEmbeddings();
+        return response.getData().stream().map(emb -> emb.getEmbedding()).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<List<Float>> createEmbedding(List<String> documents, String model) {
+        CreateEmbeddingRequest req = new CreateEmbeddingRequest().model(model);
+        req.input(new CreateEmbeddingRequest.Input(documents.toArray(new String[0])));
+        OpenAIClient client = new OpenAIClient();
+        CreateEmbeddingResponse response = client.apiKey(this.openAIAPIKey)
+                .createEmbedding(req);
         return response.getData().stream().map(emb -> emb.getEmbedding()).collect(Collectors.toList());
     }
 }

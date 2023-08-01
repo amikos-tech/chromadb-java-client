@@ -27,7 +27,7 @@
     <scm>
         <connection>scm:git:git://github.com/amikos-tech/chromadb-java-client.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:amikos-tech/chromadb-java-client.git</developerConnection>
-        <url>https://github.com/amikos-tech/chromadb-java-client/tree/master</url>
+        <url>https://github.com/amikos-tech/chromadb-java-client/tree/main</url>
     </scm><licenses>
     <license>
         <name>MIT</name>
