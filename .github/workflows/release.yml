@@ -5,8 +5,8 @@ on:
     types: [created]
     branches: [ "main" ]
   push:
-    branches:
-      - develop
+    tags:
+      - *
 
 jobs:
   build:
