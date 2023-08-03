@@ -35,6 +35,25 @@ public class TestAPI {
         assertTrue(client.getCollection("test-collection", ef).get() != null);
     }
 
+    @Test
+    public void testGetCollectionGetWithData() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp);
+        System.out.println(client.getCollection("test-collection", ef).get());
+        assertTrue(client.getCollection("test-collection", ef).get() != null);
+    }
+
+
 
     @Test
     public void testCreateCollection() throws ApiException {
@@ -90,7 +109,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateUpsert() throws ApiException {
+    public void testUpsert() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
@@ -313,6 +332,27 @@ public class TestAPI {
     }
 
     @Test
+    public void testCollectionDeleteMultipleIds() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        Object resp1 = collection.add(null, metadata, Arrays.asList("Hello, my name is Bohmn. I am a Data Analyst."), Arrays.asList("2ac"));
+        System.out.println(resp);
+        System.out.println(collection.get());
+        System.out.println(collection.deleteWithIds(Arrays.asList("1","2ac")));
+        System.out.println(collection.get());
+        assertTrue(collection.get().getDocuments().size() == 0);
+    }
+
+    @Test
     public void testCollectionDeleteWhere() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
@@ -446,7 +486,8 @@ public class TestAPI {
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         System.out.println(resp);
         System.out.println(collection.get());
-        collection.update("test-collection2", null);
+        Object resp_update = collection.update("test-collection2", null);
+        System.out.println(resp_update);
         System.out.println(collection);
         assertEquals(collection.getName(), "test-collection2");
     }
@@ -466,7 +507,8 @@ public class TestAPI {
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         System.out.println(resp);
         System.out.println(collection.get());
-        collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
+        Object resp_update = collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
+        System.out.println(resp_update);
         System.out.println(collection.get());
 
     }
