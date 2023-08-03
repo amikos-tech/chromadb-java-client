@@ -49,6 +49,30 @@ public class TestAPI {
     }
 
     @Test
+    public void testCreateCollectionWithCosineDistanceFunction() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.COSINE);
+        System.out.println(collection);
+        assertEquals(collection.getName(), "test-collection");
+    }
+
+    @Test
+    public void testCreateCollectionWithIPDistanceFunction() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.IP);
+        System.out.println(collection);
+        assertEquals(collection.getName(), "test-collection");
+    }
+
+    @Test
     public void testDeleteCollection() throws ApiException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
@@ -109,6 +133,44 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
+        Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
+        System.out.println(qr);
+        assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
+    }
+
+    @Test
+    public void testQueryWithCosine() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.COSINE);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key", "value");
+        }});
+        collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
+        Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
+        System.out.println(qr);
+        assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
+    }
+
+    @Test
+    public void testQueryWithIP() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.IP);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
