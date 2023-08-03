@@ -33,6 +33,16 @@ public class Client {
     }
 
     public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction) throws ApiException {
+        return this.createCollection(collectionName, metadata, createOrGet, embeddingFunction, DistanceFunction.L2);
+    }
+
+    public static enum DistanceFunction {
+        L2,
+        COSINE,
+        IP
+    }
+
+    public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction, DistanceFunction distanceFunction) throws ApiException {
         CreateCollection req = new CreateCollection();
         req.setName(collectionName);
         Map<String, String> _metadata = metadata;
@@ -40,9 +50,11 @@ public class Client {
             _metadata = new LinkedTreeMap<>();
             _metadata.put("embedding_function", embeddingFunction.getClass().getName());
         }
+        _metadata.put("hnsw:space", distanceFunction.toString().toLowerCase());
         req.setMetadata(_metadata);
         req.setGetOrCreate(createOrGet);
         LinkedTreeMap resp = (LinkedTreeMap) api.createCollection(req);
+        System.out.println(resp);
         return new Collection(api, (String) resp.get("name"), embeddingFunction).fetch();
     }
 
