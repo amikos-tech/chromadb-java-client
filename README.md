@@ -59,6 +59,17 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
 
+
+**The Setup (Cloud-native):**
+
+```bash
+minikube start --profile chromaj
+minikube profile chromaj
+helm repo add chroma https://amikos-tech.github.io/chromadb-chart/
+helm repo update
+helm install chroma chroma/chromadb --set chromadb.allowReset=true,chromadb.apiVersion=0.4.4
+```
+
 ### Example OpenAI Embedding Function
 
 In this example we rely on `tech.amikos.chromadb.OpenAIEmbeddingFunction` to generate embeddings for our documents.
