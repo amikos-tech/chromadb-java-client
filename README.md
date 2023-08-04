@@ -8,30 +8,30 @@ This client works with Chroma Versions `0.4.3+`
 
 ### Embeddings Support
 
-- [x] OpenAI API
-- [x] Cohere API (including Multi-language support)
-- [ ] Sentence Transformers
-- [ ] PaLM API
-- [ ] Custom Embedding Function
+- ✅ OpenAI API
+- ✅ Cohere API (including Multi-language support)
+- ✅ Sentence Transformers (HuggingFace Inference API)
+- 🚫 PaLM API
+- 🚫 Custom Embedding Function
 
 ### Feature Parity with ChromaDB API
 
-- [x] Reset
-- [x] Heartbeat
-- [x] List Collections
-- [ ] Raw SQL
-- [x] Get Version
-- [x] Create Collection
-- [x] Delete Collection
-- [x] Collection Add
-- [x] Collection Get (partial without additional parameters)
-- [x] Collection Count
-- [x] Collection Query
-- [x] Collection Modify
-- [x] Collection Update
-- [x] Collection Upsert
-- [x] Collection Create Index
-- [x] Collection Delete - delete documents in collection
+- ✅ Reset
+- ✅ Heartbeat
+- ✅ List Collections
+- 🚫 Raw SQL
+- ✅ Get Version
+- ✅ Create Collection
+- ✅ Delete Collection
+- ✅ Collection Add
+- ✅ Collection Get (partial without additional parameters)
+- ✅ Collection Count
+- ✅ Collection Query
+- ✅ Collection Modify
+- ✅ Collection Update
+- ✅ Collection Upsert
+- ✅ Collection Create Index
+- ✅ Collection Delete - delete documents in collection
 
 ## TODO
 
