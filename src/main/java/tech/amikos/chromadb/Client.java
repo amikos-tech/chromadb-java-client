@@ -19,28 +19,49 @@ public class Client {
 
     DefaultApi api;
 
-    public Client(String basePath) {
+    private Client(String basePath) {
         apiClient.setBasePath(basePath);
         api = new DefaultApi(apiClient);
     }
 
-    public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
-        return new Collection(api, collectionName, embeddingFunction).fetch();
+    public static Client newClient(String basePath){
+        return new Client(basePath);
+    }
+
+    public Boolean reset() throws ApiException {
+        return api.reset();
+    }
+
+    public String version() throws ApiException {
+        return api.version();
     }
 
     public Map<String, BigDecimal> heartbeat() throws ApiException {
         return api.heartbeat();
     }
 
+    public List<Collection> listCollections() throws ApiException {
+        List<LinkedTreeMap> apiResponse = (List<LinkedTreeMap>) api.listCollections();
+        return apiResponse.stream().map((LinkedTreeMap m) -> {
+            try {
+                return getCollection((String) m.get("name"), null);
+            } catch (ApiException e) {
+                e.printStackTrace(); //this is not great as we're swallowing the exception
+            }
+            return null;
+        }).collect(Collectors.toList());
+    }
+
+
+    public Collection newCollection(){
+        return new Collection(api,this,null,null);
+    }
+
+
     public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction) throws ApiException {
         return this.createCollection(collectionName, metadata, createOrGet, embeddingFunction, DistanceFunction.L2);
     }
 
-    public static enum DistanceFunction {
-        L2,
-        COSINE,
-        IP
-    }
 
     public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction, DistanceFunction distanceFunction) throws ApiException {
         CreateCollection req = new CreateCollection();
@@ -58,6 +79,25 @@ public class Client {
         return new Collection(api, (String) resp.get("name"), embeddingFunction).fetch();
     }
 
+
+
+
+
+    public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
+        return new Collection(api, collectionName, embeddingFunction).fetch();
+    }
+
+
+
+
+
+    public static enum DistanceFunction {
+        L2,
+        COSINE,
+        IP
+    }
+
+
     public Collection deleteCollection(String collectionName) throws ApiException {
         Collection collection = Collection.getInstance(api, collectionName);
         api.deleteCollection(collectionName);
@@ -70,9 +110,7 @@ public class Client {
         return collection;
     }
 
-    public Boolean reset() throws ApiException {
-        return api.reset();
-    }
+
 
     public List<Collection> listCollections() throws ApiException {
         List<LinkedTreeMap> apiResponse = (List<LinkedTreeMap>) api.listCollections();

@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 public class Collection {
     static Gson gson = new Gson();
     DefaultApi api;
+
+    Client client;
     String collectionName;
 
     String collectionId;
@@ -22,11 +24,27 @@ public class Collection {
 
     private EmbeddingFunction embeddingFunction;
 
-    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) {
+
+    public Collection(DefaultApi api,String collectionName, EmbeddingFunction embeddingFunction) {
         this.api = api;
         this.collectionName = collectionName;
         this.embeddingFunction = embeddingFunction;
 
+    }
+
+    public Collection(DefaultApi api,Client client, String collectionName, EmbeddingFunction embeddingFunction) {
+        this.api = api;
+        this.client = client;
+        this.collectionName = collectionName;
+        this.embeddingFunction = embeddingFunction;
+
+    }
+
+
+
+    public Collection name(String collectionName){
+        this.collectionName = collectionName;
+        return this;
     }
 
     public String getName() {
@@ -37,8 +55,25 @@ public class Collection {
         return collectionId;
     }
 
+    public Collection metadata(String key,Object value){
+        metadata.put(key,value);
+        return this;
+    }
     public Map<String, Object> getMetadata() {
         return metadata;
+    }
+
+    public Collection ef(EmbeddingFunction embeddingFunction){
+        this.embeddingFunction = embeddingFunction;
+        return this;
+    }
+
+    public Collection createOrGet(){
+        return client.createCollection(this.collectionName,this.metadata,true,this.embeddingFunction);
+    }
+
+    public Collection create(){
+        return client.createCollection(this.collectionName,this.metadata,false,this.embeddingFunction);
     }
 
     public Collection fetch() throws ApiException {
@@ -54,7 +89,7 @@ public class Collection {
     }
 
     public static Collection getInstance(DefaultApi api, String collectionName) throws ApiException {
-        return new Collection(api, collectionName, null);
+        return new Collection(api,collectionName, null);
     }
 
     @Override
