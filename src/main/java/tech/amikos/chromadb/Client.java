@@ -24,6 +24,13 @@ public class Client {
         api = new DefaultApi(apiClient);
     }
 
+
+    public static enum DistanceFunction {
+        L2,
+        COSINE,
+        IP
+    }
+
     public static Client newClient(String basePath){
         return new Client(basePath);
     }
@@ -89,12 +96,10 @@ public class Client {
 
 
 
-
-
-    public static enum DistanceFunction {
-        L2,
-        COSINE,
-        IP
+    public Collection upsertCollection(String collectionName, EmbeddingFunction ef) throws ApiException {
+        Collection collection = getCollection(collectionName, ef);
+//        collection.upsert();
+        return collection;
     }
 
 
@@ -104,27 +109,7 @@ public class Client {
         return collection;
     }
 
-    public Collection upsert(String collectionName, EmbeddingFunction ef) throws ApiException {
-        Collection collection = getCollection(collectionName, ef);
-//        collection.upsert();
-        return collection;
-    }
 
 
 
-    public List<Collection> listCollections() throws ApiException {
-        List<LinkedTreeMap> apiResponse = (List<LinkedTreeMap>) api.listCollections();
-        return apiResponse.stream().map((LinkedTreeMap m) -> {
-            try {
-                return getCollection((String) m.get("name"), null);
-            } catch (ApiException e) {
-                e.printStackTrace(); //this is not great as we're swallowing the exception
-            }
-            return null;
-        }).collect(Collectors.toList());
-    }
-
-    public String version() throws ApiException {
-        return api.version();
-    }
 }

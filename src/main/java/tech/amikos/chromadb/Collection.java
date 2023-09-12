@@ -55,7 +55,7 @@ public class Collection {
         return collectionId;
     }
 
-    public Collection metadata(String key,Object value){
+    public Collection metadata(String key,String value){
         metadata.put(key,value);
         return this;
     }
@@ -88,6 +88,32 @@ public class Collection {
         }
     }
 
+    public Object update(){
+        return this.update(this.collectionName,this.metadata);
+    }
+    public Object update(String newName, Map<String, Object> newMetadata) throws ApiException {
+        UpdateCollection req = new UpdateCollection();
+        if (newName != null) {
+            req.setNewName(newName);
+        }
+        if (newMetadata != null && embeddingFunction != null) {
+            if (!newMetadata.containsKey("embedding_function")) {
+                newMetadata.put("embedding_function", embeddingFunction.getClass().getName());
+            }
+            req.setNewMetadata(newMetadata);
+        }
+        Object resp = api.updateCollection(req, this.collectionId);
+        this.collectionName = newName;
+        this.fetch(); //do we really need to fetch?
+        return resp;
+    }
+
+    public Collection remove(){
+        return client.deleteCollection(this.collectionName);
+    }
+
+
+
     public static Collection getInstance(DefaultApi api, String collectionName) throws ApiException {
         return new Collection(api,collectionName, null);
     }
@@ -101,36 +127,10 @@ public class Collection {
                 '}';
     }
 
-    public GetResult get(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
-        GetEmbedding req = new GetEmbedding();
-        req.ids(ids).where(where).whereDocument(whereDocument);
-        Gson gson = new Gson();
-        String json = gson.toJson(api.get(req, this.collectionId));
-        return new Gson().fromJson(json, GetResult.class);
-    }
 
-    public GetResult get() throws ApiException {
-        return this.get(null, null, null);
+    public Embedding newEmbedding(){
+        return new Embedding(this);
     }
-
-    public Object delete() throws ApiException {
-        return this.delete(null, null, null);
-    }
-
-    public Object upsert(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
-        AddEmbedding req = new AddEmbedding();
-        List<List<Float>> _embeddings = embeddings;
-        if (_embeddings == null) {
-            _embeddings = this.embeddingFunction.createEmbedding(documents);
-        }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
-        req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
-        req.setDocuments(documents);
-        req.incrementIndex(true);
-        req.setIds(ids);
-        return api.upsert(req, this.collectionId);
-    }
-
 
     public Object add(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
         AddEmbedding req = new AddEmbedding();
@@ -146,8 +146,48 @@ public class Collection {
         return api.add(req, this.collectionId);
     }
 
-    public Integer count() throws ApiException {
-        return api.count(this.collectionId);
+    public GetResult get() throws ApiException {
+        return this.get(null, null, null);
+    }
+
+    public GetResult get(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+        GetEmbedding req = new GetEmbedding();
+        req.ids(ids).where(where).whereDocument(whereDocument);
+        Gson gson = new Gson();
+        String json = gson.toJson(api.get(req, this.collectionId));
+        return new Gson().fromJson(json, GetResult.class);
+    }
+
+
+    public Object upsert(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+        AddEmbedding req = new AddEmbedding();
+        List<List<Float>> _embeddings = embeddings;
+        if (_embeddings == null) {
+            _embeddings = this.embeddingFunction.createEmbedding(documents);
+        }
+        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
+        req.setDocuments(documents);
+        req.incrementIndex(true);
+        req.setIds(ids);
+        return api.upsert(req, this.collectionId);
+    }
+
+    public Object updateEmbeddings(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+        UpdateEmbedding req = new UpdateEmbedding();
+        List<List<Float>> _embeddings = embeddings;
+        if (_embeddings == null) {
+            _embeddings = this.embeddingFunction.createEmbedding(documents);
+        }
+        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setDocuments(documents);
+        req.setMetadatas((List<Object>) (Object) metadatas);
+        req.setIds(ids);
+        return api.update(req, this.collectionId);
+    }
+
+    public Object delete() throws ApiException {
+        return this.delete(null, null, null);
     }
 
     public Object delete(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
@@ -178,41 +218,17 @@ public class Collection {
         return delete(null, null, whereDocument);
     }
 
+    public Integer count() throws ApiException {
+        return api.count(this.collectionId);
+    }
     @Deprecated
     public Boolean createIndex() throws ApiException {
         return (Boolean) api.createIndex(this.collectionId);
     }
 
-    public Object update(String newName, Map<String, Object> newMetadata) throws ApiException {
-        UpdateCollection req = new UpdateCollection();
-        if (newName != null) {
-            req.setNewName(newName);
-        }
-        if (newMetadata != null && embeddingFunction != null) {
-            if (!newMetadata.containsKey("embedding_function")) {
-                newMetadata.put("embedding_function", embeddingFunction.getClass().getName());
-            }
-            req.setNewMetadata(newMetadata);
-        }
-        Object resp = api.updateCollection(req, this.collectionId);
-        this.collectionName = newName;
-        this.fetch(); //do we really need to fetch?
-        return resp;
+    public Query newQuery(){
+        return new Query();
     }
-
-    public Object updateEmbeddings(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
-        UpdateEmbedding req = new UpdateEmbedding();
-        List<List<Float>> _embeddings = embeddings;
-        if (_embeddings == null) {
-            _embeddings = this.embeddingFunction.createEmbedding(documents);
-        }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
-        req.setDocuments(documents);
-        req.setMetadatas((List<Object>) (Object) metadatas);
-        req.setIds(ids);
-        return api.update(req, this.collectionId);
-    }
-
 
     public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ApiException {
         QueryEmbedding body = new QueryEmbedding();
