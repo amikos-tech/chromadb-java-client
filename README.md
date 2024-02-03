@@ -19,7 +19,6 @@ This client works with Chroma Versions `0.4.3+`
 - [x] Reset
 - [x] Heartbeat
 - [x] List Collections
-- [ ] Raw SQL
 - [x] Get Version
 - [x] Create Collection
 - [x] Delete Collection
@@ -40,6 +39,7 @@ This client works with Chroma Versions `0.4.3+`
 - [ ] Fluent API - make it easier for users to make use of the library
 - [ ] Support for PaLM API
 - [x] Support for Sentence Transformers with Hugging Face API
+- [ ] Authentication ⚒️
 
 ## Usage
 
@@ -81,7 +81,7 @@ public class Main {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String apiKey = System.getenv("OPENAI_API_KEY");
-            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey,"text-embedding-3-small");
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{
