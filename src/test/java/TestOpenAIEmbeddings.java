@@ -6,6 +6,8 @@ import tech.amikos.openai.OpenAIClient;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 public class TestOpenAIEmbeddings {
 
 
@@ -70,5 +72,18 @@ public class TestOpenAIEmbeddings {
         CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
         System.out.println(response);
+    }
+
+    @Test
+    public void testCreateEmbeddingsWithModels() {
+        Utils.loadEnvFile(".env");
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        CreateEmbeddingRequest req = new CreateEmbeddingRequest().model("text-embedding-3-large");
+        req.input(new CreateEmbeddingRequest.Input("Hello, my name is John. I am a Data Scientist."));
+        System.out.println(req.json());
+        OpenAIClient client = new OpenAIClient();
+        CreateEmbeddingResponse response = client.apiKey(apiKey)
+                .createEmbedding(req);
+        assertEquals(3072, response.getData().get(0).getEmbedding().size());
     }
 }

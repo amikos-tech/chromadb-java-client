@@ -19,7 +19,6 @@ This client works with Chroma Versions `0.4.3+`
 - ✅ Reset
 - ✅ Heartbeat
 - ✅ List Collections
-- 🚫 Raw SQL
 - ✅ Get Version
 - ✅ Create Collection
 - ✅ Delete Collection
@@ -40,6 +39,7 @@ This client works with Chroma Versions `0.4.3+`
 - [ ] Fluent API - make it easier for users to make use of the library
 - [ ] Support for PaLM API
 - [x] Support for Sentence Transformers with Hugging Face API
+- [ ] Authentication ⚒️
 
 ## Usage
 
@@ -58,7 +58,6 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - Official documentation - https://docs.trychroma.com/usage-guide#running-chroma-in-clientserver-mode
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
-
 
 **The Setup (Cloud-native):**
 
@@ -92,7 +91,7 @@ public class Main {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String apiKey = System.getenv("OPENAI_API_KEY");
-            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey,"text-embedding-3-small");
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{

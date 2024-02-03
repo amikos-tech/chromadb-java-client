@@ -62,6 +62,10 @@ public class CreateEmbeddingRequest {
         this.user = user;
     }
 
+    public CreateEmbeddingRequest(String model) {
+        this.model = model;
+    }
+
     public CreateEmbeddingRequest model(String model) {
         this.model = model;
         return this;

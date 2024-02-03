@@ -19,7 +19,6 @@ public class TestAPI {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Map<String, BigDecimal> hb = client.heartbeat();
-        System.out.println(hb);
         assertTrue(hb.containsKey("nanosecond heartbeat"));
     }
 
@@ -31,7 +30,6 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
-        System.out.println(client.getCollection("test-collection", ef).get());
         assertTrue(client.getCollection("test-collection", ef).get() != null);
     }
 
@@ -48,9 +46,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(client.getCollection("test-collection", ef).get());
-        assertTrue(client.getCollection("test-collection", ef).get() != null);
+        assertNotNull(client.getCollection("test-collection", ef).get());
     }
 
 
@@ -63,7 +59,6 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
-        System.out.println(collection);
         assertEquals(collection.getName(), "test-collection");
     }
 
@@ -75,7 +70,6 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.COSINE);
-        System.out.println(collection);
         assertEquals(collection.getName(), "test-collection");
     }
 
@@ -87,7 +81,6 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef, Client.DistanceFunction.IP);
-        System.out.println(collection);
         assertEquals(collection.getName(), "test-collection");
     }
 
@@ -121,9 +114,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.upsert(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 1);
+        assertEquals(1, (int) collection.count());
     }
 
     @Test
@@ -141,7 +132,7 @@ public class TestAPI {
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         System.out.println(resp);
         System.out.println(collection.get());
-        assertTrue(collection.count() == 1);
+        assertEquals(1, (int) collection.count());
     }
 
     @Test
@@ -159,7 +150,6 @@ public class TestAPI {
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
-        System.out.println(qr);
         assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
     }
 
@@ -178,7 +168,6 @@ public class TestAPI {
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
-        System.out.println(qr);
         assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
     }
 
@@ -197,7 +186,6 @@ public class TestAPI {
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
-        System.out.println(qr);
         assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
     }
 
@@ -218,7 +206,6 @@ public class TestAPI {
         }});
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-        System.out.println(qr);
         assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
     }
 
@@ -255,7 +242,7 @@ public class TestAPI {
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         System.out.println(resp);
         System.out.println(collection.get());
-        assertTrue(collection.get().getDocuments().size() == 1);
+        assertEquals(1, collection.get().getDocuments().size());
     }
 
     @Test
@@ -277,7 +264,6 @@ public class TestAPI {
         collection.add(null, metadata, texts, Arrays.asList("1", "2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
         assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
-        System.out.println(qr);
     }
 
     @Test
@@ -289,7 +275,6 @@ public class TestAPI {
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
         assertEquals(client.listCollections().size(), 1);
-        System.out.println(client.listCollections());
     }
 
     @Test
@@ -305,10 +290,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        System.out.println(collection.count());
-        assertTrue(collection.count() == 1);
+        assertEquals(1, (int) collection.count());
     }
 
     @Test
@@ -324,11 +306,8 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        System.out.println(collection.deleteWithIds(Arrays.asList("1")));
-        System.out.println(collection.get());
-        assertTrue(collection.get().getDocuments().size() == 0);
+        collection.deleteWithIds(Arrays.asList("1"));
+        assertEquals(0, collection.get().getDocuments().size());
     }
 
     @Test
@@ -349,7 +328,7 @@ public class TestAPI {
         System.out.println(collection.get());
         System.out.println(collection.deleteWithIds(Arrays.asList("1","2ac")));
         System.out.println(collection.get());
-        assertTrue(collection.get().getDocuments().size() == 0);
+        assertEquals(0, collection.get().getDocuments().size());
     }
 
     @Test
@@ -365,13 +344,10 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         Map<String, String> where = new HashMap<>();
         where.put("key", "value");
-        System.out.println(collection.deleteWhere(where));
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 0);
+        collection.deleteWhere(where);
+        assertEquals(0, (int) collection.count());
     }
 
     @Test
@@ -387,13 +363,10 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         Map<String, String> where = new HashMap<>();
         where.put("key", "value2");
-        System.out.println(collection.deleteWhere(where));
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 1);
+        collection.deleteWhere(where);
+        assertEquals(1, (int) collection.count());
     }
 
     @Test
@@ -409,13 +382,10 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         Map<String, Object> whereDocuments = new HashMap<>();
         whereDocuments.put("$contains", "John");
-        System.out.println(collection.deleteWhereDocuments(whereDocuments));
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 0);
+        collection.deleteWhereDocuments(whereDocuments);
+        assertEquals(0, (int) collection.count());
 
     }
 
@@ -432,33 +402,12 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         Map<String, Object> whereDocuments = new HashMap<>();
         whereDocuments.put("$contains", "Mohn");
-        System.out.println(collection.deleteWhereDocuments(whereDocuments));
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 1);
+        collection.deleteWhereDocuments(whereDocuments);
+        assertEquals(1, (int) collection.count());
     }
 
-    @Test
-    public void testCollectionCreateIndex() throws ApiException {
-        Utils.loadEnvFile(".env");
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        assumeTrue(client.version().equalsIgnoreCase("0.4.3"));
-        client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("key", "value");
-        }});
-        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        System.out.println(collection.createIndex());
-    }
 
     @Test
     public void testVersion() throws ApiException {
@@ -484,11 +433,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        Object resp_update = collection.update("test-collection2", null);
-        System.out.println(resp_update);
-        System.out.println(collection);
+        collection.update("test-collection2", null);
         assertEquals(collection.getName(), "test-collection2");
     }
 
@@ -505,11 +450,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        Object resp_update = collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp_update);
-        System.out.println(collection.get());
+        collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
 
     }
 
@@ -526,9 +467,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        assertTrue(collection.count() == 1);
+        assertEquals(1, (int) collection.count());
     }
 
     @Test
@@ -550,7 +489,6 @@ public class TestAPI {
         collection.add(null, metadata, texts, Arrays.asList("1", "2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
         assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
-        System.out.println(qr);
     }
 
 
