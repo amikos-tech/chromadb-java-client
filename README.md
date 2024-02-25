@@ -6,10 +6,20 @@ This client works with Chroma Versions `0.4.3+`
 
 ## Features
 
+### New and Noteworthy
+
+- Multi-tenancy support - from v0.4.15 ChromaDB introduced multi-tenancy feature. It is now fully supported.
+- Latest API support
+- Collection Builder (see below for example)
+- Where and WhereDocument filter builder (see below for example)
+- Metadata builder (see below for example)
+- Improved API ergonomics
+
 ### Embeddings Support
 
 - [x] OpenAI API
 - [x] Cohere API (including Multi-language support)
+- [x] Hugging Inference API
 - [ ] Sentence Transformers
 - [ ] PaLM API
 - [ ] Custom Embedding Function
@@ -58,6 +68,10 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - Official documentation - https://docs.trychroma.com/usage-guide#running-chroma-in-clientserver-mode
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
+
+### Where Filters
+
+
 
 ### Example OpenAI Embedding Function
 

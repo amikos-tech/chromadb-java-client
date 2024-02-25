@@ -1,15 +1,18 @@
-import com.google.gson.internal.LinkedTreeMap;
 import org.junit.Test;
-import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
+import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.handler.ApiException;
+import tech.amikos.chromadb.ids.UUIDv4IdGenerator;
+import tech.amikos.chromadb.model.AddEmbedding;
+import tech.amikos.chromadb.model.Database;
+import tech.amikos.chromadb.model.GetEmbedding;
+import tech.amikos.chromadb.model.Tenant;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.Assert.*;
-import static org.junit.Assume.*;
 
 public class TestAPI {
 
@@ -23,6 +26,51 @@ public class TestAPI {
     }
 
     @Test
+    public void testCreateTenant() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        client.createTenant("test-tenant");
+        Tenant tenant = client.getTenant("test-tenant");
+        assertEquals("test-tenant", tenant.getName());
+    }
+
+    @Test
+    public void testGetTenant() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        Tenant tenant = client.getTenant("default_tenant");
+        assertEquals("default_tenant", tenant.getName());
+    }
+
+    @Test
+    public void testCreateDatabaseWithDefaultActiveTenant() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        client.createDatabase("test-database");
+        Database db = client.getDatabase("test-database");
+        assertEquals("test-database", db.getName());
+        assertEquals("default_tenant", db.getTenant());
+        assertNotNull(db.getId());
+    }
+
+    @Test
+    public void testCreateDatabaseOtherTenant() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String newTenant = "my-custom-tenant";
+        client.createTenant(newTenant);
+        client.createDatabase("test-database", newTenant);
+        Database db = client.getDatabase("test-database", newTenant);
+        assertEquals("test-database", db.getName());
+        assertEquals(newTenant, db.getTenant());
+        assertNotNull(db.getId());
+    }
+
+    @Test
     public void testGetCollectionGet() throws ApiException, IOException {
         Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
@@ -30,7 +78,137 @@ public class TestAPI {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         client.createCollection("test-collection", null, true, ef);
-        assertTrue(client.getCollection("test-collection", ef).get() != null);
+        assertNotNull(client.getCollection("test-collection", ef).get());
+    }
+
+    @Test
+    public void testGetCollectionGetWithWhere() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).get(new GetEmbedding().where(
+                WhereBuilder.create().eq("key", "value").build()
+        ));
+        assertNotNull(resp);
+        assertEquals(1, resp.getIds().size());
+
+    }
+
+    @Test
+    public void testGetCollectionGetWithWhereDocument() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).get(new GetEmbedding().whereDocument(
+                WhereDocumentBuilder.create().contains("John").build()
+        ));
+        assertNotNull(resp);
+        assertEquals(1, resp.getIds().size());
+        assertTrue(resp.getDocuments().get(0).contains("John"));
+    }
+
+    @Test
+    public void testGetCollectionGetWithWhereAndWhereDocument() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        whereDocument(WhereDocumentBuilder.create().contains("John").build())
+                        .where(WhereBuilder.create().eq("key", "value").build())
+                );
+        assertNotNull(resp);
+        assertEquals(1, resp.getIds().size());
+        assertTrue(resp.getDocuments().get(0).contains("John"));
+    }
+
+    @Test
+    public void testGetCollectionWithInclude() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        include(Arrays.asList(GetEmbedding.IncludeEnum.DOCUMENTS, GetEmbedding.IncludeEnum.EMBEDDINGS))
+                );
+        assertNotNull(resp);
+        assertEquals(2, resp.getIds().size());
+        assertNotNull(resp.getDocuments());
+        assertNotNull(resp.getEmbeddings());
+        assertEquals(2, resp.getDocuments().size());
+        assertEquals(2, resp.getEmbeddings().size());
+    }
+
+    @Test
+    public void testGetCollectionWithIds() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        ids(Arrays.asList("1"))
+                );
+        assertNotNull(resp);
+        assertEquals(1, resp.getIds().size());
+        assertNotNull(resp.getDocuments());
+        assertNull(resp.getEmbeddings());//by default embeddings are not included
+        assertEquals(1, resp.getDocuments().size());
+    }
+
+    @Test
+    public void testGetCollectionGetAll() throws ApiException, IOException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        collection.add(new AddEmbedding().ids(Arrays.asList("1", "2")).metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").build(),
+                MetadataBuilder.create().forValue("key", "value2").build()
+        )).documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+        Collection.GetResult resp = client.getCollection("test-collection", ef)
+                .get(new GetEmbedding());
+        assertNotNull(resp);
+        assertEquals(2, resp.getIds().size());
+        assertNotNull(resp.getDocuments());
+        assertNull(resp.getEmbeddings());//by default embeddings are not included
+        assertEquals(2, resp.getDocuments().size());
     }
 
 
@@ -43,6 +221,55 @@ public class TestAPI {
         EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
         Collection collection = client.createCollection("test-collection", null, true, ef);
         assertEquals(collection.getName(), "test-collection");
+    }
+
+    @Test
+    public void testCreateCollectionWithMetadata() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollection("test-collection", MetadataBuilder.create().forValue("test", "test").build(), true, ef);
+
+        Collection afterCreate = client.getCollection("test-collection", ef);
+        assertEquals(afterCreate.getName(), "test-collection");
+        assertTrue("Metadata should contain key test", afterCreate.getMetadata().containsKey("test"));
+        assertTrue(afterCreate.getMetadata().containsValue("test"));
+    }
+
+    @Test
+    public void testCreateCollectionWithBuilder() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollectionWithBuilder("test-collection")
+                .withCreateOrGet(true).withMetadata("test", "test")
+                .withEmbeddingFunction(ef)
+                .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+                .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+                .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+                .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+                .withIdGenerator(new UUIDv4IdGenerator())
+                .withDocument("This is UUIDv4 id gnerated document.")
+                .create();
+        assertNotNull(collection);
+        Collection afterCreate = client.getCollection("test-collection", ef);
+        assertEquals(afterCreate.getName(), "test-collection");
+        assertTrue("Metadata should contain key test", afterCreate.getMetadata().containsKey("test"));
+        assertTrue("Metadata should contain hnsw:space", afterCreate.getMetadata().containsKey("hnsw:space"));
+        assertEquals("Distance function should be cosine", afterCreate.getMetadata().get("hnsw:space"), HnswDistanceFunction.COSINE.getValue());
+        assertTrue(afterCreate.getMetadata().containsValue("test"));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        include(Arrays.asList(GetEmbedding.IncludeEnum.DOCUMENTS, GetEmbedding.IncludeEnum.EMBEDDINGS))
+                );
+        assertNotNull(resp);
+        assertEquals(4, resp.getIds().size());
+        assertNotNull(resp.getDocuments());
+        assertNotNull(resp.getEmbeddings());
     }
 
     @Test
@@ -91,8 +318,6 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         assertEquals(1, (int) collection.count());
     }
 
@@ -165,8 +390,6 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
         assertEquals(1, collection.get().getDocuments().size());
     }
 
@@ -319,7 +542,6 @@ public class TestAPI {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         String version = client.version();
-        System.out.println(version);
         assertNotNull(version);
     }
 
@@ -395,5 +617,15 @@ public class TestAPI {
         assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
     }
 
+    @Test
+    public void testCountCollections() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        client.reset();
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        client.createCollection("test-collection", null, true, ef);
+        assertEquals(client.countCollections(), Integer.valueOf(1));
+    }
 
 }

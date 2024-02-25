@@ -17,7 +17,6 @@ public class TestOpenAIEmbeddings {
         req.model("text-ada");
         req.user("user-1234567890");
         req.input(new CreateEmbeddingRequest.Input("Hello, my name is John. I am a Data Scientist."));
-        System.out.println(req.json());
     }
 
     @Test
@@ -26,7 +25,6 @@ public class TestOpenAIEmbeddings {
         req.model("text-ada");
         req.user("user-1234567890");
         req.input(new CreateEmbeddingRequest.Input(new String[]{"Hello, my name is John. I am a Data Scientist.", "Hello, my name is John. I am a Data Scientist."}));
-        System.out.println(req.json());
     }
 
     @Test
@@ -35,7 +33,6 @@ public class TestOpenAIEmbeddings {
         req.model("text-ada");
         req.user("user-1234567890");
         req.input(new CreateEmbeddingRequest.Input(new Integer[]{1, 2, 3, 4, 5}));
-        System.out.println(req.json());
     }
 
     @Test
@@ -45,7 +42,6 @@ public class TestOpenAIEmbeddings {
         req.user("user-1234567890");
         List<Integer[]> list = Arrays.asList(new Integer[]{1, 2, 3}, new Integer[]{4, 5, 6});
         req.input(new CreateEmbeddingRequest.Input(list));
-        System.out.println(req.json());
     }
 
     @Test
@@ -54,11 +50,9 @@ public class TestOpenAIEmbeddings {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
         req.input(new CreateEmbeddingRequest.Input("Hello, my name is John. I am a Data Scientist."));
-        System.out.println(req.json());
         OpenAIClient client = new OpenAIClient();
         CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
-        System.out.println(response);
     }
 
     @Test
@@ -67,11 +61,9 @@ public class TestOpenAIEmbeddings {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
         req.input(new CreateEmbeddingRequest.Input(new String[]{"Hello, my name is John. I am a Data Scientist.", "Hello, my name is John. I am a Data Scientist."}));
-        System.out.println(req.json());
         OpenAIClient client = new OpenAIClient();
         CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
-        System.out.println(response);
     }
 
     @Test
@@ -80,7 +72,6 @@ public class TestOpenAIEmbeddings {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest().model("text-embedding-3-large");
         req.input(new CreateEmbeddingRequest.Input("Hello, my name is John. I am a Data Scientist."));
-        System.out.println(req.json());
         OpenAIClient client = new OpenAIClient();
         CreateEmbeddingResponse response = client.apiKey(apiKey)
                 .createEmbedding(req);
