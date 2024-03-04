@@ -45,7 +45,7 @@ public class OpenAIEmbeddingFunction implements EmbeddingFunction {
     }
 
 
-    public EFBuilder Instance() {
+    public static EFBuilder Instance() {
         return new EFBuilder();
     }
 
