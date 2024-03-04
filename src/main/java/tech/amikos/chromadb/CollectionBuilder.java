@@ -22,6 +22,8 @@ public class CollectionBuilder {
     private IdGenerator idGenerator;
     private Map<String, Pair<String, List<Float>>> idsDocumentsEmbeddings = null;
 
+    private List<Record> records = new ArrayList<>();
+
     private CollectionBuilder() {
     }
 
@@ -71,159 +73,164 @@ public class CollectionBuilder {
         return this;
     }
 
-    /**
-     * Add embedding to the collection
-     *
-     * @param id        id of the embedding
-     * @param document  document of the embedding
-     * @param embedding embedding to add
-     */
-    private void addEmbedding(String id, String document, List<Float> embedding) {
-        if (this.idsDocumentsEmbeddings == null) {
-            this.idsDocumentsEmbeddings = new HashMap<>();
-        }
-        Pair<String, List<Float>> pair = new Pair<>(document, embedding);
-        this.idsDocumentsEmbeddings.put(id, pair);
-    }
-
-    /**
-     * Add document with its Id to the collection. Existing Id will be overwritten.
-     *
-     * @param document document to add
-     * @param id       id of the document
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withDocument(String document, String id) {
-        this.addEmbedding(id, document, null);
+    public CollectionBuilder withRecord(Record record) {
+        this.records.add(record);
         return this;
     }
-
-    /**
-     * Add document with its Id and Embedding to the collection. Existing Id will be overwritten.
-     *
-     * @param document  document to add
-     * @param embedding embedding of the document
-     * @param id        id of the document
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withDocument(String document, List<Float> embedding, String id) {
-        this.addEmbedding(id, document, embedding);
-        return this;
-    }
-
-    /**
-     * Add document to the collection. Id will be generated using the Id Generator.
-     *
-     * @param document document to add
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withDocument(String document) {
-        if (document == null) {
-            throw new IllegalArgumentException("Cannot add document without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
-        }
-        String id = this.idGenerator.generateForDocument(document);
-        this.addEmbedding(id, document, null);
-        return this;
-    }
-
-    /**
-     * Add embedding to the collection. Id will be generated using the Id Generator.
-     *
-     * @param embedding embedding to add
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withEmbedding(List<Float> embedding) {
-        if (embedding == null) {
-            throw new IllegalArgumentException("Cannot add embedding without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
-        }
-        String id = this.idGenerator.generateForDocument(embedding.toString());
-        this.addEmbedding(id, null, embedding);
-        return this;
-    }
-
-    /**
-     * Add embedding with its Id to the collection. Existing Id will be overwritten.
-     *
-     * @param embedding embedding to add
-     * @param id        id of the embedding
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withEmbedding(List<Float> embedding, String id) {
-        this.addEmbedding(id, null, embedding);
-        return this;
-    }
-
-    /**
-     * Add documents to the collection. Ids will be generated using the Id Generator.
-     *
-     * @param documents documents to add
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withDocuments(List<String> documents) {
-        if (idGenerator == null) {
-            throw new IllegalArgumentException("Cannot add documents without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
-        }
-        for (String document : documents) {
-            this.withDocument(document);
-        }
-        return this;
-    }
-
-    /**
-     * Add documents with their Ids to the collection. Existing Ids will be overwritten.
-     *
-     * @param documents documents to add
-     * @param ids       ids of the documents
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withDocuments(List<String> documents, List<String> ids) {
-        if (documents == null || ids == null) {
-            throw new IllegalArgumentException("Documents and Ids must be provided");
-        }
-        if (documents.size() != ids.size()) {
-            throw new IllegalArgumentException("Documents and Ids must be of the same size");
-        }
-        for (int i = 0; i < documents.size(); i++) {
-            this.withDocument(documents.get(i), ids.get(i));
-        }
-        return this;
-    }
-
-    /**
-     * Add embeddings to the collection. Ids will be generated using the Id Generator.
-     *
-     * @param embeddings embeddings to add
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withEmbeddings(List<List<Float>> embeddings) {
-        if (idGenerator == null) {
-            throw new IllegalArgumentException("Cannot add embeddings without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
-        }
-        for (List<Float> embedding : embeddings) {
-            this.withEmbedding(embedding);
-        }
-        return this;
-    }
-
-    /**
-     * Add embeddings with their Ids to the collection. Existing Ids will be overwritten.
-     *
-     * @param embeddings embeddings to add
-     * @param ids        ids of the embeddings
-     * @return {@link CollectionBuilder}
-     */
-    public CollectionBuilder withEmbeddings(List<List<Float>> embeddings, List<String> ids) {
-        if (embeddings == null || ids == null) {
-            throw new IllegalArgumentException("Embeddings and Ids must be provided");
-        }
-        if (embeddings.size() != ids.size()) {
-            throw new IllegalArgumentException("Embeddings and Ids must be of the same size");
-        }
-        for (int i = 0; i < embeddings.size(); i++) {
-            this.withEmbedding(embeddings.get(i), ids.get(i));
-        }
-        return this;
-    }
+//
+//    /**
+//     * Add embedding to the collection
+//     *
+//     * @param id        id of the embedding
+//     * @param document  document of the embedding
+//     * @param embedding embedding to add
+//     */
+//    private void addEmbedding(String id, String document, List<Float> embedding) {
+//        if (this.idsDocumentsEmbeddings == null) {
+//            this.idsDocumentsEmbeddings = new HashMap<>();
+//        }
+//        Pair<String, List<Float>> pair = new Pair<>(document, embedding);
+//        this.idsDocumentsEmbeddings.put(id, pair);
+//    }
+//
+//    /**
+//     * Add document with its Id to the collection. Existing Id will be overwritten.
+//     *
+//     * @param document document to add
+//     * @param id       id of the document
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withDocument(String document, String id) {
+//        this.addEmbedding(id, document, null);
+//        return this;
+//    }
+//
+//    /**
+//     * Add document with its Id and Embedding to the collection. Existing Id will be overwritten.
+//     *
+//     * @param document  document to add
+//     * @param embedding embedding of the document
+//     * @param id        id of the document
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withDocument(String document, List<Float> embedding, String id) {
+//        this.addEmbedding(id, document, embedding);
+//        return this;
+//    }
+//
+//    /**
+//     * Add document to the collection. Id will be generated using the Id Generator.
+//     *
+//     * @param document document to add
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withDocument(String document) {
+//        if (document == null) {
+//            throw new IllegalArgumentException("Cannot add document without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
+//        }
+//        String id = this.idGenerator.generateForDocument(document);
+//        this.addEmbedding(id, document, null);
+//        return this;
+//    }
+//
+//    /**
+//     * Add embedding to the collection. Id will be generated using the Id Generator.
+//     *
+//     * @param embedding embedding to add
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withEmbedding(List<Float> embedding) {
+//        if (embedding == null) {
+//            throw new IllegalArgumentException("Cannot add embedding without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
+//        }
+//        String id = this.idGenerator.generateForDocument(embedding.toString());
+//        this.addEmbedding(id, null, embedding);
+//        return this;
+//    }
+//
+//    /**
+//     * Add embedding with its Id to the collection. Existing Id will be overwritten.
+//     *
+//     * @param embedding embedding to add
+//     * @param id        id of the embedding
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withEmbedding(List<Float> embedding, String id) {
+//        this.addEmbedding(id, null, embedding);
+//        return this;
+//    }
+//
+//    /**
+//     * Add documents to the collection. Ids will be generated using the Id Generator.
+//     *
+//     * @param documents documents to add
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withDocuments(List<String> documents) {
+//        if (idGenerator == null) {
+//            throw new IllegalArgumentException("Cannot add documents without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
+//        }
+//        for (String document : documents) {
+//            this.withDocument(document);
+//        }
+//        return this;
+//    }
+//
+//    /**
+//     * Add documents with their Ids to the collection. Existing Ids will be overwritten.
+//     *
+//     * @param documents documents to add
+//     * @param ids       ids of the documents
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withDocuments(List<String> documents, List<String> ids) {
+//        if (documents == null || ids == null) {
+//            throw new IllegalArgumentException("Documents and Ids must be provided");
+//        }
+//        if (documents.size() != ids.size()) {
+//            throw new IllegalArgumentException("Documents and Ids must be of the same size");
+//        }
+//        for (int i = 0; i < documents.size(); i++) {
+//            this.withDocument(documents.get(i), ids.get(i));
+//        }
+//        return this;
+//    }
+//
+//    /**
+//     * Add embeddings to the collection. Ids will be generated using the Id Generator.
+//     *
+//     * @param embeddings embeddings to add
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withEmbeddings(List<List<Float>> embeddings) {
+//        if (idGenerator == null) {
+//            throw new IllegalArgumentException("Cannot add embeddings without Id Generator. Please specify Id Generator with '.withIdGenerator()' method.");
+//        }
+//        for (List<Float> embedding : embeddings) {
+//            this.withEmbedding(embedding);
+//        }
+//        return this;
+//    }
+//
+//    /**
+//     * Add embeddings with their Ids to the collection. Existing Ids will be overwritten.
+//     *
+//     * @param embeddings embeddings to add
+//     * @param ids        ids of the embeddings
+//     * @return {@link CollectionBuilder}
+//     */
+//    public CollectionBuilder withEmbeddings(List<List<Float>> embeddings, List<String> ids) {
+//        if (embeddings == null || ids == null) {
+//            throw new IllegalArgumentException("Embeddings and Ids must be provided");
+//        }
+//        if (embeddings.size() != ids.size()) {
+//            throw new IllegalArgumentException("Embeddings and Ids must be of the same size");
+//        }
+//        for (int i = 0; i < embeddings.size(); i++) {
+//            this.withEmbedding(embeddings.get(i), ids.get(i));
+//        }
+//        return this;
+//    }
 
     /**
      * Add metadata key-value pair to the collection
@@ -373,6 +380,20 @@ public class CollectionBuilder {
         return null;
     }
 
+    private void validateRecords(){
+        Map<Record,String> invalidRecordsList = new HashMap<>();
+        records.stream().forEach(record -> {
+            if (record.getEmbedding() != null && record.getEmbedding().size() != 0) {
+                if (embeddingFunction == null) {
+                    invalidRecordsList.put(record, "Embedding function is required to add documents where embeddings are not provided.");
+                }
+                if (embeddingFunction.getDimensions() != record.getEmbedding().size()) {
+                    invalidRecordsList.put(record, "Embedding dimensions do not match the embedding function dimensions");
+                }
+            }
+        });
+    }
+
     public Collection create() throws ApiException {
         if (this.name == null) {
             throw new IllegalArgumentException("Collection name is required");
@@ -382,7 +403,7 @@ public class CollectionBuilder {
         }
         Collection collection = this.client.createCollection(this.name, this.metadataBuilder.build(), this.createOrGet, this.embeddingFunction);
 
-        Triple<List<String>, List<String>, List<List<Float>>> triple = this.validateEmbeddings();
+        this.validateRecords();
         if (triple != null) {
             collection.add(new AddEmbedding().ids(triple.getFirst()).documents(triple.getSecond()).embeddings(Arrays.asList(triple.getThird().toArray())));
         }

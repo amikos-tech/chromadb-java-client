@@ -59,7 +59,7 @@ Add Maven dependency:
 <dependency>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.3</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -69,8 +69,63 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
 
-### Where Filters
+### Collection Builder
 
+In `0.2.0` we introduced a `CollectionBuilder` to make it easier to create collections.
+
+```java
+Collection collection = client.createCollectionWithBuilder("test-collection")
+                .withCreateOrGet(true).withMetadata("test", "test")
+                .withEmbeddingFunction(ef)
+                .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+                .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+                .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+                .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+                .withIdGenerator(new UUIDv4IdGenerator())
+                .withDocument("This is UUIDv4 id generated document.")
+                .create();
+```
+
+### Where and WhereDocument Filters Builders
+
+Since `0.2.0` we also support `Where` and `WhereDocument` builders to make it easier to build filters.
+
+The `Where` builder supports the following methods:
+
+- `eq` - equals (equivalent of Chroma's `$eq`)
+- `ne` - not equals (equivalent of Chroma's `$ne`)
+- `gt` - greater than (equivalent of Chroma's `$gt`)
+- `gte` - greater than or equals (equivalent of Chroma's `$gte`)
+- `lt` - less than (equivalent of Chroma's `$lt`)
+- `lte` - less than or equals (equivalent of Chroma's `$lte`)
+- `in` - in (equivalent of Chroma's `$in`)
+- `nin` - not in (equivalent of Chroma's `$nin`)
+- `and` - logical and (equivalent of Chroma's `$and`). This method takes a list of `Where` filters
+- `or` - or (equivalent of Chroma's `$or`). This method takes a list of `Where` filters
+
+The `WhereDocument` builder supports the following methods:
+
+- `contains` - contains (equivalent of Chroma's `$contains`)
+- `notContains` - not contains (equivalent of Chroma's `$not_contains`)
+
+```java
+Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        whereDocument(WhereDocumentBuilder.create().contains("John").build())
+                        .where(WhereBuilder.create().eq("key", "value").build())
+                );
+```
+
+### Metadata Builder
+
+```java
+collection.add(new AddEmbedding()
+        .ids(Arrays.asList("1", "2"))
+        .metadatas(Arrays.asList(
+                MetadataBuilder.create().forValue("key", "value").forValue("int_key",1).build(),
+                MetadataBuilder.create().forValue("key", "value2").build()))
+        .documents(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Another document")));
+```
 
 
 ### Example OpenAI Embedding Function
@@ -96,16 +151,17 @@ public class Main {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String apiKey = System.getenv("OPENAI_API_KEY");
             EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey,"text-embedding-3-small");
-            Collection collection = client.createCollection("test-collection", null, true, ef);
-            List<Map<String, String>> metadata = new ArrayList<>();
-            metadata.add(new HashMap<String, String>() {{
-                put("type", "scientist");
-            }});
-            metadata.add(new HashMap<String, String>() {{
-                put("type", "spy");
-            }});
-            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            Collection collection = client.createCollectionWithBuilder("test-collection")
+                  .withCreateOrGet(true).withMetadata("test", "test")
+                  .withEmbeddingFunction(ef)
+                  .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+                  .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+                  .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+                  .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+                  .withIdGenerator(new UUIDv4IdGenerator())
+                  .withDocument("This is UUIDv4 id generated document.")
+                  .create();
+            Collection.QueryResponse qr = collection.query(new QueryEmbedding().queryTexts(Arrays.asList("who is named John?")).nResults(10));
             System.out.println(qr);
         } catch (Exception e) {
             e.printStackTrace();
@@ -143,16 +199,17 @@ public class Main {
       client.reset();
       String apiKey = System.getenv("COHERE_API_KEY");
       EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
-      Collection collection = client.createCollection("test-collection", null, true, ef);
-      List<Map<String, String>> metadata = new ArrayList<>();
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "scientist");
-      }});
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "spy");
-      }});
-      collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-      Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+      Collection collection = client.createCollectionWithBuilder("test-collection")
+              .withCreateOrGet(true).withMetadata("test", "test")
+              .withEmbeddingFunction(ef)
+              .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+              .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+              .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+              .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+              .withIdGenerator(new UUIDv4IdGenerator())
+              .withDocument("This is UUIDv4 id generated document.")
+              .create();
+      Collection.QueryResponse qr = collection.query(new QueryEmbedding().queryTexts(Arrays.asList("Who is the spy")).nResults(10));
       System.out.println(qr);
     } catch (Exception e) {
       e.printStackTrace();
@@ -191,16 +248,17 @@ public class Main {
       client.reset();
       String apiKey = System.getenv("HF_API_KEY");
       EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
-      Collection collection = client.createCollection("test-collection", null, true, ef);
-      List<Map<String, String>> metadata = new ArrayList<>();
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "scientist");
-      }});
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "spy");
-      }});
-      collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-      Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+      Collection collection = client.createCollectionWithBuilder("test-collection")
+              .withCreateOrGet(true).withMetadata("test", "test")
+              .withEmbeddingFunction(ef)
+              .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+              .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+              .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+              .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+              .withIdGenerator(new UUIDv4IdGenerator())
+              .withDocument("This is UUIDv4 id generated document.")
+              .create();
+      Collection.QueryResponse qr = collection.query(new QueryEmbedding().queryTexts(Arrays.asList("Who is the spy")).nResults(10));
       System.out.println(qr);
     } catch (Exception e) {
       e.printStackTrace();

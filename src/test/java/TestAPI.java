@@ -3,10 +3,7 @@ import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.handler.ApiException;
 import tech.amikos.chromadb.ids.UUIDv4IdGenerator;
-import tech.amikos.chromadb.model.AddEmbedding;
-import tech.amikos.chromadb.model.Database;
-import tech.amikos.chromadb.model.GetEmbedding;
-import tech.amikos.chromadb.model.Tenant;
+import tech.amikos.chromadb.model.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -253,10 +250,41 @@ public class TestAPI {
                 .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
                 .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
                 .withIdGenerator(new UUIDv4IdGenerator())
-                .withDocument("This is UUIDv4 id gnerated document.")
+                .withDocument("This is UUIDv4 id generated document.")
                 .create();
         assertNotNull(collection);
         Collection afterCreate = client.getCollection("test-collection", ef);
+        assertEquals(afterCreate.getName(), "test-collection");
+        assertTrue("Metadata should contain key test", afterCreate.getMetadata().containsKey("test"));
+        assertTrue("Metadata should contain hnsw:space", afterCreate.getMetadata().containsKey("hnsw:space"));
+        assertEquals("Distance function should be cosine", afterCreate.getMetadata().get("hnsw:space"), HnswDistanceFunction.COSINE.getValue());
+        assertTrue(afterCreate.getMetadata().containsValue("test"));
+        Collection.GetResult resp = client.getCollection("test-collection", ef).
+                get(new GetEmbedding().
+                        include(Arrays.asList(GetEmbedding.IncludeEnum.DOCUMENTS, GetEmbedding.IncludeEnum.EMBEDDINGS))
+                );
+        assertNotNull(resp);
+        assertEquals(4, resp.getIds().size());
+        assertNotNull(resp.getDocuments());
+        assertNotNull(resp.getEmbeddings());
+    }
+    @Test
+    public void testCollectionGetWithWhereOperationEq() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollectionWithBuilder("test-collection")
+                .withCreateOrGet(true).withMetadata("test", "test")
+                .withEmbeddingFunction(ef)
+                .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+                .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+                .withDocument("Hello, my name is Bond. I am a Spy.","2")
+                .create();
+        assertNotNull(collection);
+        Collection afterCreate = client.getCollection("test-collection", ef);
+        afterCreate.get(new GetEmbedding().where(WhereBuilder.create().eq("id", "1")));
         assertEquals(afterCreate.getName(), "test-collection");
         assertTrue("Metadata should contain key test", afterCreate.getMetadata().containsKey("test"));
         assertTrue("Metadata should contain hnsw:space", afterCreate.getMetadata().containsKey("hnsw:space"));
@@ -336,6 +364,27 @@ public class TestAPI {
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
         Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
+        assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
+    }
+
+    @Test
+    public void testQueryRequest() throws ApiException {
+        Utils.loadEnvFile(".env");
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        Collection collection = client.createCollectionWithBuilder("test-collection")
+                .withCreateOrGet(true).withMetadata("test", "test")
+                .withEmbeddingFunction(ef)
+                .withHNSWDistanceFunction(HnswDistanceFunction.COSINE)
+                .withDocument("Hello, my name is John. I am a Data Scientist.", "1")
+                .withEmbedding(ef.createEmbedding(Collections.singletonList("This is just an embedding.")).get(0), "2")
+                .withDocument("Hello, my name is Bond. I am a Spy.", ef.createEmbedding(Collections.singletonList("Hello, my name is Bond. I am a Spy")).get(0), "3")
+                .withIdGenerator(new UUIDv4IdGenerator())
+                .withDocument("This is UUIDv4 id generated document.")
+                .create();
+        Collection.QueryResponse qr = collection.query(new QueryEmbedding().queryTexts(Arrays.asList("who is named John?")).nResults(10));
         assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
     }
 
