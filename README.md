@@ -36,10 +36,10 @@ This client works with Chroma Versions `0.4.3+`
 
 - [x] Push the package to Maven
   Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
-- [ ] Fluent API - make it easier for users to make use of the library
+- ⚒️ Fluent API - make it easier for users to make use of the library 
 - [ ] Support for PaLM API
 - [x] Support for Sentence Transformers with Hugging Face API
-- [ ] Authentication ⚒️
+- ⚒️ Authentication ⚒️
 
 ## Usage
 
@@ -49,7 +49,7 @@ Add Maven dependency:
 <dependency>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.3</version>
+    <version>0.1.4</version>
 </dependency>
 ```
 
@@ -107,6 +107,28 @@ The above should output:
 {"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.28461432,0.50961685]]}
 ```
 
+#### Custom OpenAI Endpoint
+
+For endpoints compatible with OpenAI Embeddings API (e.g. [ollama](https://github.com/ollama/ollama)), you can use the following:
+
+> Note: We have added a builder to help with the configuration of the OpenAIEmbeddingFunction
+
+```java
+EmbeddingFunction ef = OpenAIEmbeddingFunction.Instance()
+        .withOpenAIAPIKey(apiKey)
+        .withModelName("llama2")
+        .withApiEndpoint("http://localhost:11434/api/embedding") // not really custom, but just to test the method
+        .build();
+```
+
+Quick Start Guide with Ollama:
+
+```bash
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+docker exec -it ollama ollama run llama2 # press Ctrl+D to exit after model downloads successfully
+# test it
+curl http://localhost:11434/api/embeddings -d '{\n  "model": "llama2",\n  "prompt": "Here is an article about llamas..."\n}'
+```
 
 ### Example Cohere Embedding Function
 
