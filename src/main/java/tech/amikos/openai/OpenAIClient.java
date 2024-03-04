@@ -10,8 +10,8 @@ public class OpenAIClient {
     private String baseUrl = "https://api.openai.com/v1/";
     private String apiKey;
 
-    private OkHttpClient client = new OkHttpClient();
-    private Gson gson = new Gson();
+    private final OkHttpClient client = new OkHttpClient();
+    private final Gson gson = new Gson();
     MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     public OpenAIClient() {
@@ -53,9 +53,8 @@ public class OpenAIClient {
 
             return gson.fromJson(responseData, CreateEmbeddingResponse.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
 
