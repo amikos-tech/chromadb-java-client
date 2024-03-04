@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class OpenAIClient {
 
-    private String baseUrl = "https://api.openai.com/v1/";
+    private String baseUrl = "https://api.openai.com/v1/embeddings";
     private String apiKey;
 
     private final OkHttpClient client = new OkHttpClient();
@@ -25,6 +25,9 @@ public class OpenAIClient {
     }
 
     public OpenAIClient baseUrl(String baseUrl) {
+        if (baseUrl == null){ //early exit if null (we default)
+            return this;
+        }
         this.baseUrl = baseUrl;
         return this;
     }
@@ -38,7 +41,7 @@ public class OpenAIClient {
 
     public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
         Request request = new Request.Builder()
-                .url(this.baseUrl + "embeddings")
+                .url(this.baseUrl)
                 .post(RequestBody.create(req.json(), JSON))
                 .addHeader("Accept", "application/json")
                 .addHeader("Content-Type", "application/json")
