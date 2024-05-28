@@ -6,7 +6,7 @@
     <name>Chroma Vector DB Java Client Library</name>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
     <description>
         Chroma Vector DB Java Client
     </description>
