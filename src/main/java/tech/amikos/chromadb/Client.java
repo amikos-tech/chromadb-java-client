@@ -41,6 +41,16 @@ public class Client {
                 .build());
     }
 
+    /**
+     * Set the default headers for the client to be sent with every request
+     * @param headers
+     */
+    public void setDefaultHeaders(Map<String, String> headers) {
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            apiClient.addDefaultHeader(entry.getKey(), entry.getValue());
+        }
+    }
+
     public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
         return new Collection(api, collectionName, embeddingFunction).fetch();
     }
