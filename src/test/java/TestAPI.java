@@ -1,4 +1,6 @@
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.gson.internal.LinkedTreeMap;
+import org.junit.Rule;
 import org.junit.Test;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
@@ -8,10 +10,15 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
 public class TestAPI {
+
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(8001);
 
 
     @Test
@@ -396,4 +403,38 @@ public class TestAPI {
     }
 
 
+    @Test
+    public void testTimeoutOk() throws ApiException, IOException {
+        // Setup WireMock to stub the HTTP request
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
+
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://localhost:8001");
+        client.setTimeout(3);
+        Map<String, BigDecimal> hb = client.heartbeat();
+        assertTrue(hb.containsKey("nanosecond heartbeat"));
+    }
+
+    @Test(expected = ApiException.class)
+    public void testTimeoutExpires() throws ApiException, IOException{
+        // Setup WireMock to stub the HTTP request
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
+
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://localhost:8001");
+        client.setTimeout(1);
+        try {
+            client.heartbeat();
+        } catch (ApiException e) {
+            assertTrue(e.getMessage().contains("Read timed out"));
+            throw e;
+        }
+
+    }
 }
