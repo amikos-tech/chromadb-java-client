@@ -16,12 +16,29 @@ import java.util.stream.Collectors;
  */
 public class Client {
     final ApiClient apiClient = new ApiClient();
-
+    private int timeout = 60;
     DefaultApi api;
 
     public Client(String basePath) {
         apiClient.setBasePath(basePath);
         api = new DefaultApi(apiClient);
+        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder()
+                .readTimeout(this.timeout, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(this.timeout, java.util.concurrent.TimeUnit.SECONDS)
+                .build());
+        api.getApiClient().setUserAgent("Chroma-JavaClient/0.1.x");
+    }
+
+    /**
+     * Set the timeout for the client
+     * @param timeout timeout in seconds
+     */
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder()
+                .readTimeout(this.timeout, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(this.timeout, java.util.concurrent.TimeUnit.SECONDS)
+                .build());
     }
 
     public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
