@@ -11,6 +11,10 @@
         Chroma Vector DB Java Client
     </description>
     <url>https://github.com/amikos-tech/chromadb-java-client</url>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/amikos-tech/chromadb-java-client/issues</url>
+    </issueManagement>
     <developers>
         <developer>
             <id>tazarov</id>
