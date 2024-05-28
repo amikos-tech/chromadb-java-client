@@ -405,14 +405,13 @@ public class TestAPI {
 
     @Test
     public void testTimeoutOk() throws ApiException, IOException {
-        // Setup WireMock to stub the HTTP request
         stubFor(get(urlEqualTo("/api/v1/heartbeat"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
 
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://localhost:8001");
+        Client client = new Client("http://127.0.0.1:8001");
         client.setTimeout(3);
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
@@ -420,19 +419,19 @@ public class TestAPI {
 
     @Test(expected = ApiException.class)
     public void testTimeoutExpires() throws ApiException, IOException{
-        // Setup WireMock to stub the HTTP request
         stubFor(get(urlEqualTo("/api/v1/heartbeat"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
 
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://localhost:8001");
+        Client client = new Client("http://127.0.0.1:8001");
         client.setTimeout(1);
         try {
             client.heartbeat();
         } catch (ApiException e) {
             assertTrue(e.getMessage().contains("Read timed out"));
+            System.out.println("Contains: "+ e.getMessage().contains("Read timed out"));
             throw e;
         }
 
