@@ -211,7 +211,6 @@ public class Main {
       Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
       System.out.println(qr);
     } catch (Exception e) {
-      e.printStackTrace();
       System.out.println(e);
     }
   }
@@ -222,6 +221,88 @@ The above should output:
 
 ```bash
 {"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.9073759,1.6440368]]}
+```
+
+### Example Auth
+
+> Note: This is a workaround until the client overhaul is completed
+
+**Basic Auth**:
+
+```java
+package tech.amikos;
+
+import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.Collection;
+
+import java.util.*;
+
+public class Main {
+  public static void main(String[] args) {
+    try {
+      Client client = new Client(System.getenv("CHROMA_URL"));
+      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+      client.setDefaultHeaders(new HashMap<>() {{
+          put("Authorization", "Basic " + encodedString);
+      }});
+      // your code here
+    } catch (Exception e) {
+      System.out.println(e);
+    }
+  }
+}
+```
+
+**Static Auth - Authorization**:
+
+```java
+package tech.amikos;
+
+import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.Collection;
+
+import java.util.*;
+
+public class Main {
+  public static void main(String[] args) {
+    try {
+      Client client = new Client(System.getenv("CHROMA_URL"));
+      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+      client.setDefaultHeaders(new HashMap<>() {{
+          put("Authorization", "Bearer test-token");
+      }});
+      // your code here
+    } catch (Exception e) {
+      System.out.println(e);
+    }
+  }
+}
+```
+
+**Static Auth - X-Chroma-Token**:
+
+```java
+package tech.amikos;
+
+import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.Collection;
+
+import java.util.*;
+
+public class Main {
+  public static void main(String[] args) {
+    try {
+      Client client = new Client(System.getenv("CHROMA_URL"));
+      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+      client.setDefaultHeaders(new HashMap<>() {{
+          put("X-Chroma-Token", "test-token");
+      }});
+      // your code here
+    } catch (Exception e) {
+      System.out.println(e);
+    }
+  }
+}
 ```
 
 ## Development Notes

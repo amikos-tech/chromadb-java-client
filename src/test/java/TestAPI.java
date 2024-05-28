@@ -435,4 +435,78 @@ public class TestAPI {
         }
 
     }
+
+
+    @Test
+    public void testClientHeaders() throws ApiException, IOException {
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}")));
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://127.0.0.1:8001");
+        client.setDefaultHeaders(new HashMap<String, String>() {{
+            put("Your-Header-Key", "Your-Expected-Header-Value");
+        }});
+        Map<String, BigDecimal> hb = client.heartbeat();
+        assertTrue(hb.containsKey("nanosecond heartbeat"));
+        // Verify that a GET request was made with a specific header
+        verify(getRequestedFor(urlEqualTo("/api/v1/heartbeat"))
+                .withHeader("Your-Header-Key", equalTo("Your-Expected-Header-Value")));
+    }
+
+    @Test
+    public void testClientAuthorizationBasicHeader() throws ApiException, IOException {
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}")));
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://127.0.0.1:8001");
+        String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+        client.setDefaultHeaders(new HashMap<String, String>() {{
+            put("Authorization", "Basic "+encodedString);
+        }});
+        Map<String, BigDecimal> hb = client.heartbeat();
+        assertTrue(hb.containsKey("nanosecond heartbeat"));
+        // Verify that a GET request was made with a specific header
+        verify(getRequestedFor(urlEqualTo("/api/v1/heartbeat"))
+                .withHeader("Authorization", equalTo("Basic "+encodedString)));
+    }
+
+    @Test
+    public void testClientAuthorizationBearerHeader() throws ApiException, IOException {
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}")));
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://127.0.0.1:8001");
+        client.setDefaultHeaders(new HashMap<String, String>() {{
+            put("Authorization", "Bearer test-token");
+        }});
+        Map<String, BigDecimal> hb = client.heartbeat();
+        assertTrue(hb.containsKey("nanosecond heartbeat"));
+        // Verify that a GET request was made with a specific header
+        verify(getRequestedFor(urlEqualTo("/api/v1/heartbeat"))
+                .withHeader("Authorization", equalTo("Bearer test-token")));
+    }
+
+    @Test
+    public void testClientXChromaTokenHeader() throws ApiException, IOException {
+        stubFor(get(urlEqualTo("/api/v1/heartbeat"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"nanosecond heartbeat\": 123456789}")));
+        Utils.loadEnvFile(".env");
+        Client client = new Client("http://127.0.0.1:8001");
+        client.setDefaultHeaders(new HashMap<String, String>() {{
+            put("X-Chroma-Token", "test-token");
+        }});
+        Map<String, BigDecimal> hb = client.heartbeat();
+        assertTrue(hb.containsKey("nanosecond heartbeat"));
+        // Verify that a GET request was made with a specific header
+        verify(getRequestedFor(urlEqualTo("/api/v1/heartbeat"))
+                .withHeader("X-Chroma-Token", equalTo("test-token")));
+    }
 }
