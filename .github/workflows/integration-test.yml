@@ -57,7 +57,7 @@ jobs:
           kubectl get svc -A
           curl $(minikube service chromadb --url)/api/v1
       - name: Test with Maven
-        run: mvn clean test
+        run: mvn --batch-mode clean test
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
