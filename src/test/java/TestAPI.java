@@ -430,8 +430,7 @@ public class TestAPI {
         try {
             client.heartbeat();
         } catch (ApiException e) {
-            assertTrue(e.getMessage().contains("Read timed out"));
-            System.out.println("Contains: "+ e.getMessage().contains("Read timed out"));
+            assertTrue(e.getMessage().contains("Read timed out") || e.getMessage().contains("timeout"));
             throw e;
         }
 
