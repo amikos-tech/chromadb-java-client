@@ -115,7 +115,7 @@ public class Collection {
         return api.count(this.collectionId);
     }
 
-    public Object delete(List<String> ids, Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+    public Object delete(List<String> ids, Map<String, Object> where, Map<String, Object> whereDocument) throws ApiException {
         DeleteEmbedding req = new DeleteEmbedding();
         req.setIds(ids);
         if (where != null) {
@@ -131,11 +131,11 @@ public class Collection {
         return delete(ids, null, null);
     }
 
-    public Object deleteWhere(Map<String, String> where) throws ApiException {
+    public Object deleteWhere(Map<String, Object> where) throws ApiException {
         return delete(null, where, null);
     }
 
-    public Object deleteWhereWhereDocuments(Map<String, String> where, Map<String, Object> whereDocument) throws ApiException {
+    public Object deleteWhereWhereDocuments(Map<String, Object> where, Map<String, Object> whereDocument) throws ApiException {
         return delete(null, where, whereDocument);
     }
 
@@ -175,16 +175,16 @@ public class Collection {
     }
 
 
-    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, String> where, Map<String, String> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ApiException {
+    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, Object> where, Map<String, Object> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ApiException {
         QueryEmbedding body = new QueryEmbedding();
         body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.createEmbedding(queryTexts));
         body.nResults(nResults);
         body.include(include);
         if (where != null) {
-            body.where(where.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+            body.where(where.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
         if (whereDocument != null) {
-            body.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+            body.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
         Gson gson = new Gson();
         String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
