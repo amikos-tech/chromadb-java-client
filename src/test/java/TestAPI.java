@@ -270,12 +270,13 @@ public class TestAPI {
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         Map<String, Object> where = new HashMap<>();
         List<Map<String,String>> conditions = new ArrayList<>();
-        conditions.add(new HashMap<String, String>() {{
-            put("key1", "value1");
-        }});
-        conditions.add(new HashMap<String, String>() {{
-            put("key2", "value2");
-        }});
+        Map<String, String> condition1 = new HashMap<>();
+        condition1.put("key1", "value1");
+        conditions.add(condition1);
+
+        Map<String, String> condition2 = new HashMap<>();
+        condition2.put("key2", "value2");
+        conditions.add(condition2);
         where.put("$or", conditions);
         collection.deleteWhere(where);
         assertEquals(0, (int) collection.count());

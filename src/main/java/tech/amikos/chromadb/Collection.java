@@ -119,10 +119,10 @@ public class Collection {
         DeleteEmbedding req = new DeleteEmbedding();
         req.setIds(ids);
         if (where != null) {
-            req.where(where.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+            req.where(where.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
         if (whereDocument != null) {
-            req.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue())));
+            req.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
         return api.delete(req, this.collectionId);
     }
