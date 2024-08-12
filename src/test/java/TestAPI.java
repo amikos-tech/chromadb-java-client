@@ -251,8 +251,33 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        Map<String, String> where = new HashMap<>();
+        Map<String, Object> where = new HashMap<>();
         where.put("key", "value");
+        collection.deleteWhere(where);
+        assertEquals(0, (int) collection.count());
+    }
+
+    @Test
+    public void testCollectionDeleteLogicalOrWhere() throws ApiException, EFException {
+        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        client.reset();
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
+        Collection collection = client.createCollection("test-collection", null, true, ef);
+        List<Map<String, String>> metadata = new ArrayList<>();
+        metadata.add(new HashMap<String, String>() {{
+            put("key1", "value1");
+        }});
+        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
+        Map<String, Object> where = new HashMap<>();
+        List<Map<String,String>> conditions = new ArrayList<>();
+        Map<String, String> condition1 = new HashMap<>();
+        condition1.put("key1", "value1");
+        conditions.add(condition1);
+
+        Map<String, String> condition2 = new HashMap<>();
+        condition2.put("key2", "value2");
+        conditions.add(condition2);
+        where.put("$or", conditions);
         collection.deleteWhere(where);
         assertEquals(0, (int) collection.count());
     }
@@ -268,7 +293,7 @@ public class TestAPI {
             put("key", "value");
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        Map<String, String> where = new HashMap<>();
+        Map<String, Object> where = new HashMap<>();
         where.put("key", "value2");
         collection.deleteWhere(where);
         assertEquals(1, (int) collection.count());
