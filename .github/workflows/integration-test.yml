@@ -29,5 +29,4 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
-          CHROMA_URL: ${{steps.wait-and-set.outputs.chroma-url}}
           CHROMA_VERSION: ${{ matrix.chroma-version }}
