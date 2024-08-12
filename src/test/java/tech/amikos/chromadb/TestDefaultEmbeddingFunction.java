@@ -1,7 +1,7 @@
-import ai.onnxruntime.OrtException;
+package tech.amikos.chromadb;
+
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
-import tech.amikos.chromadb.EmbeddingFunction;
-import tech.amikos.chromadb.DefaultEmbeddingFunction;
 
 import java.util.Arrays;
 import java.util.List;
@@ -810,7 +810,12 @@ public class TestDefaultEmbeddingFunction {
     @Test
     public void testDownloadModel() throws Exception {
         // delete directory if exists
+        if (DefaultEmbeddingFunction.MODEL_CACHE_DIR.toFile().exists()) {
+            FileUtils.deleteDirectory(DefaultEmbeddingFunction.MODEL_CACHE_DIR.toFile());
+        }
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
+
+        assertTrue(DefaultEmbeddingFunction.MODEL_CACHE_DIR.toFile().exists());
 
     }
 
