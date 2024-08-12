@@ -1,7 +1,9 @@
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.gson.internal.LinkedTreeMap;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.testcontainers.chromadb.ChromaDBContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.handler.ApiException;
@@ -13,52 +15,68 @@ import java.util.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static org.junit.Assert.*;
-import static org.junit.Assume.*;
 
 public class TestAPI {
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(8001);
+    static ChromaDBContainer chromaContainer;
+
+    @BeforeClass
+    public static void setupChromaDB() throws Exception {
+        try {
+            Utils.loadEnvFile(".env");
+            String chromaVersion = System.getenv("CHROMA_VERSION");
+            if (chromaVersion == null) {
+                chromaVersion = "0.4.24";
+            }
+            chromaContainer = new ChromaDBContainer("chromadb/chroma:" + chromaVersion).withEnv("ALLOW_RESET", "TRUE");
+            chromaContainer.start();
+            chromaContainer.waitingFor(Wait.forHttp("/api/v1/heartbeat").forStatusCode(200));
+            System.setProperty("CHROMA_URL", chromaContainer.getEndpoint());
+        } catch (Exception e) {
+            System.err.println("ChromaDBContainer failed to start");
+            throw e;
+        }
+    }
+
+    public static void tearDownChromaDB() {
+        chromaContainer.stop();
+    }
 
 
     @Test
-    public void testHeartbeat() throws ApiException, IOException {
-        Utils.loadEnvFile(".env");
+    public void testHeartbeat() throws ApiException, IOException, InterruptedException {
+        System.out.println(chromaContainer.isRunning());
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
     }
 
     @Test
-    public void testGetCollectionGet() throws ApiException, IOException {
-        Utils.loadEnvFile(".env");
+    public void testGetCollectionGet() throws ApiException, IOException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
         assertTrue(client.getCollection("test-collection", ef).get() != null);
     }
 
 
     @Test
-    public void testCreateCollection() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCreateCollection() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         assertEquals(collection.getName(), "test-collection");
     }
 
     @Test
-    public void testDeleteCollection() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testDeleteCollection() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
         client.deleteCollection("test-collection");
 
@@ -70,12 +88,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateUpsert() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCreateUpsert() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -86,12 +102,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateAdd() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCreateAdd() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -104,12 +118,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testQuery() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testQuery() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -122,12 +134,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testQueryExample() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testQueryExample() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -142,12 +152,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testReset() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testReset() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         client.reset();
@@ -160,12 +168,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateAddCohere() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCreateAddCohere() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("COHERE_API_KEY");
-        EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -178,12 +184,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testQueryExampleCohere() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testQueryExampleCohere() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("COHERE_API_KEY");
-        EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -199,23 +203,19 @@ public class TestAPI {
     }
 
     @Test
-    public void testListCollections() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testListCollections() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         client.reset();
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
         assertEquals(client.listCollections().size(), 1);
     }
 
     @Test
-    public void testCollectionCount() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionCount() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -226,12 +226,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteIds() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionDeleteIds() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -243,12 +241,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhere() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionDeleteWhere() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -262,12 +258,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereNoMatch() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionDeleteWhereNoMatch() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -281,12 +275,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereDocuments() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionDeleteWhereDocuments() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -301,12 +293,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -322,22 +312,18 @@ public class TestAPI {
 
     @Test
     public void testVersion() throws ApiException {
-        Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         String version = client.version();
-        System.out.println(version);
         assertNotNull(version);
     }
 
 
     @Test
-    public void testUpdateCollection() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testUpdateCollection() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -349,12 +335,10 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionUpdateEmbeddings() throws ApiException {
-        Utils.loadEnvFile(".env");
+    public void testCollectionUpdateEmbeddings() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
-        String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey);
+        EmbeddingFunction ef = new DefaultEmbeddingFunction();
         Collection collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
@@ -367,7 +351,6 @@ public class TestAPI {
 
     @Test
     public void testCreateAddHF() throws ApiException {
-        Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
@@ -383,7 +366,6 @@ public class TestAPI {
 
     @Test
     public void testQueryExampleHF() throws ApiException {
-        Utils.loadEnvFile(".env");
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
@@ -418,7 +400,7 @@ public class TestAPI {
     }
 
     @Test(expected = ApiException.class)
-    public void testTimeoutExpires() throws ApiException, IOException{
+    public void testTimeoutExpires() throws ApiException, IOException {
         stubFor(get(urlEqualTo("/api/v1/heartbeat"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
@@ -465,13 +447,13 @@ public class TestAPI {
         Client client = new Client("http://127.0.0.1:8001");
         String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
         client.setDefaultHeaders(new HashMap<String, String>() {{
-            put("Authorization", "Basic "+encodedString);
+            put("Authorization", "Basic " + encodedString);
         }});
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
         // Verify that a GET request was made with a specific header
         verify(getRequestedFor(urlEqualTo("/api/v1/heartbeat"))
-                .withHeader("Authorization", equalTo("Basic "+encodedString)));
+                .withHeader("Authorization", equalTo("Basic " + encodedString)));
     }
 
     @Test
