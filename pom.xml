@@ -228,7 +228,7 @@
                             <!--                                            <additionalProperty>ignoreImportMappings=false</additionalProperty>-->
                             <!--                                        </additionalProperties>-->
                             <importMappings>
-                                <importMapping>CreateEmbeddingRequest=tech.amikos.openai.CreateEmbeddingRequest
+                                <importMapping>CreateEmbeddingRequest=tech.amikos.chromadb.embeddings.openai.CreateEmbeddingRequest
                                 </importMapping>
                             </importMappings>
                             <generateApiTests>false</generateApiTests>

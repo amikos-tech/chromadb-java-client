@@ -1,11 +1,8 @@
-package tech.amikos.chromadb;
+package tech.amikos.chromadb.embeddings.openai;
 
-import tech.amikos.openai.CreateEmbeddingRequest;
-import tech.amikos.openai.CreateEmbeddingResponse;
-import tech.amikos.openai.OpenAIClient;
+import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class OpenAIEmbeddingFunction implements EmbeddingFunction {

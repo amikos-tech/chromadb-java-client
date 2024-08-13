@@ -1,10 +1,11 @@
 package tech.amikos.chromadb.embeddings.cohere;
 
 import org.junit.Test;
+import tech.amikos.chromadb.Utils;
 
 import static org.junit.Assert.*;
 
-public class TestCohereClient {
+public class TestCohereEmbeddings {
 
     @Test
     public void testEmbeddings() {
