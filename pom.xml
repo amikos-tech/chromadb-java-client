@@ -6,7 +6,7 @@
     <name>Chroma Vector DB Java Client Library</name>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
     <description>
         Chroma Vector DB Java Client
     </description>
@@ -27,7 +27,6 @@
         <name>Amikos Tech OOD</name>
         <url>https://amikos.tech</url>
     </organization>
-
     <scm>
         <connection>scm:git:git://github.com/amikos-tech/chromadb-java-client.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:amikos-tech/chromadb-java-client.git</developerConnection>
