@@ -2,12 +2,17 @@ package tech.amikos.chromadb.embeddings.ollama;
 
 import com.google.gson.Gson;
 import okhttp3.*;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OllamaEmbeddingFunction implements EmbeddingFunction {
     private final static URL DEFAULT_EMBED_ENDPOINT;
@@ -37,6 +42,7 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
 
     /**
      * The model defaults to "nomic-embed-text"
+     *
      * @param embedApiUrl - The embedding endpoint URL
      */
     public OllamaEmbeddingFunction(URL embedApiUrl) {
@@ -45,6 +51,7 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
 
     /**
      * The embedding URL defaults to "http://localhost:11434/api/embed"
+     *
      * @param defaultModel - the default model to use for embedding requests without a specific model
      */
     public OllamaEmbeddingFunction(String defaultModel) {
@@ -53,8 +60,7 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
 
 
     /**
-     *
-     * @param embedApiUrl - The embedding endpoint URL
+     * @param embedApiUrl  - The embedding endpoint URL
      * @param defaultModel - the default model to use for embedding requests without a specific model
      */
     public OllamaEmbeddingFunction(URL embedApiUrl, String defaultModel) {
@@ -62,7 +68,7 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
         this.defaultModel = defaultModel;
     }
 
-    private CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
+    private CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) throws EFException {
         Request request = new Request.Builder()
                 .url(this.embedApiUrl)
                 .post(RequestBody.create(req.json(), JSON))
@@ -78,19 +84,24 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
 
             return gson.fromJson(responseData, CreateEmbeddingResponse.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new EFException(e);
         }
     }
 
     @Override
-    public List<List<Float>> createEmbedding(List<String> documents) {
-        CreateEmbeddingResponse response = createEmbedding(new CreateEmbeddingRequest().model(defaultModel).input(documents.toArray(new String[0])));
-        return response.getEmbeddings();
+    public Embedding embedQuery(String query) throws EFException {
+        CreateEmbeddingResponse response = createEmbedding(new CreateEmbeddingRequest().model(defaultModel).input(new String[]{query}));
+        return new Embedding(response.getEmbeddings().get(0));
     }
 
     @Override
-    public List<List<Float>> createEmbedding(List<String> documents, String model) {
-        CreateEmbeddingResponse response = createEmbedding(new CreateEmbeddingRequest().model(defaultModel).input(documents.toArray(new String[0])).model(model));
-        return response.getEmbeddings();
+    public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+        CreateEmbeddingResponse response = createEmbedding(new CreateEmbeddingRequest().model(defaultModel).input(documents.toArray(new String[0])));
+        return response.getEmbeddings().stream().map(Embedding::new).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Embedding> embedDocuments(String[] documents) throws EFException {
+        return embedDocuments(Arrays.asList(documents));
     }
 }

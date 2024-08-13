@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
-import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 
 import java.io.IOException;
@@ -90,7 +89,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateUpsert() throws ApiException, EFException {
+    public void testCreateUpsert() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -104,7 +103,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateAdd() throws ApiException, EFException {
+    public void testCreateAdd() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -120,7 +119,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testQuery() throws ApiException, EFException {
+    public void testQuery() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -136,7 +135,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testQueryExample() throws ApiException, EFException {
+    public void testQueryExample() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -170,41 +169,6 @@ public class TestAPI {
     }
 
     @Test
-    public void testCreateAddCohere() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        client.reset();
-        EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("key", "value");
-        }});
-        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        System.out.println(resp);
-        System.out.println(collection.get());
-        assertEquals(1, collection.get().getDocuments().size());
-    }
-
-    @Test
-    public void testQueryExampleCohere() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        client.reset();
-        EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "scientist");
-        }});
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "spy");
-        }});
-        List<String> texts = Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy.");
-        collection.add(null, metadata, texts, Arrays.asList("1", "2"));
-        Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-        assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
-    }
-
-    @Test
     public void testListCollections() throws ApiException, EFException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
@@ -214,7 +178,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionCount() throws ApiException, EFException {
+    public void testCollectionCount() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -228,7 +192,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteIds() throws ApiException, EFException {
+    public void testCollectionDeleteIds() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -243,7 +207,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhere() throws ApiException, EFException {
+    public void testCollectionDeleteWhere() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -260,7 +224,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteLogicalOrWhere() throws ApiException, EFException {
+    public void testCollectionDeleteLogicalOrWhere() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -271,7 +235,7 @@ public class TestAPI {
         }});
         Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         Map<String, Object> where = new HashMap<>();
-        List<Map<String,String>> conditions = new ArrayList<>();
+        List<Map<String, String>> conditions = new ArrayList<>();
         Map<String, String> condition1 = new HashMap<>();
         condition1.put("key1", "value1");
         conditions.add(condition1);
@@ -285,7 +249,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereNoMatch() throws ApiException, EFException {
+    public void testCollectionDeleteWhereNoMatch() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -302,7 +266,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereDocuments() throws ApiException, EFException {
+    public void testCollectionDeleteWhereDocuments() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -320,7 +284,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException, EFException {
+    public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -347,7 +311,7 @@ public class TestAPI {
 
 
     @Test
-    public void testUpdateCollection() throws ApiException, EFException {
+    public void testUpdateCollection() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -362,7 +326,7 @@ public class TestAPI {
     }
 
     @Test
-    public void testCollectionUpdateEmbeddings() throws ApiException, EFException {
+    public void testCollectionUpdateEmbeddings() throws ApiException, ChromaException {
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
@@ -375,42 +339,6 @@ public class TestAPI {
         collection.updateEmbeddings(null, null, Arrays.asList("Hello, my name is Bonh. I am a Data Scientist."), Arrays.asList("1"));
 
     }
-
-    @Test
-    public void testCreateAddHF() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        client.reset();
-        String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
-        EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("key", "value");
-        }});
-        Object resp = collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
-        assertEquals(1, (int) collection.count());
-    }
-
-    @Test
-    public void testQueryExampleHF() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
-        client.reset();
-        String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
-        EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
-        Collection collection = client.createCollection("test-collection", null, true, ef);
-        List<Map<String, String>> metadata = new ArrayList<>();
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "scientist");
-        }});
-        metadata.add(new HashMap<String, String>() {{
-            put("type", "spy");
-        }});
-        List<String> texts = Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy.");
-        collection.add(null, metadata, texts, Arrays.asList("1", "2"));
-        Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-        assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
-    }
-
 
     @Test
     public void testTimeoutOk() throws ApiException, IOException {

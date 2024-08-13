@@ -5,6 +5,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,11 +42,19 @@ public class TestOllamaEmbeddings {
     }
 
     @Test
-    public void testOllamaEmbedding() throws MalformedURLException {
+    public void testOllamaEmbedDocuments() throws MalformedURLException, EFException {
         OllamaEmbeddingFunction ef = new OllamaEmbeddingFunction(new URL(System.getProperty("OLLAMA_URL")));
-        List<List<Float>> results = ef.createEmbedding(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, I am Jane and I am an ML researcher."));
+        List<Embedding> results = ef.embedDocuments(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, I am Jane and I am an ML researcher."));
         assertEquals(2, results.size());
-        assertEquals(768, results.get(0).size());
+        assertEquals(768, results.get(0).getDimensions());
+    }
+
+    @Test
+    public void testOllamaEmbedQuery() throws MalformedURLException, EFException {
+        OllamaEmbeddingFunction ef = new OllamaEmbeddingFunction(new URL(System.getProperty("OLLAMA_URL")));
+        Embedding results = ef.embedQuery("Hello, I am Jane and I am an ML researcher.");
+        assertNotNull(results);
+        assertEquals(768, results.getDimensions());
     }
 
 

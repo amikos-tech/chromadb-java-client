@@ -1,6 +1,8 @@
 package tech.amikos.chromadb.embeddings.openai;
 
 import org.junit.Test;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.Utils;
 
 import java.util.Arrays;
@@ -50,7 +52,7 @@ public class TestOpenAIEmbeddings {
     }
 
     @Test
-    public void testCreateEmbedding() {
+    public void testCreateEmbedding() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
@@ -64,7 +66,7 @@ public class TestOpenAIEmbeddings {
     }
 
     @Test
-    public void testCreateEmbeddingListOfStrings() {
+    public void testCreateEmbeddingListOfStrings() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest();
@@ -79,7 +81,7 @@ public class TestOpenAIEmbeddings {
     }
 
     @Test
-    public void testCreateEmbeddingsWithModels() {
+    public void testCreateEmbeddingsWithModels() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest().model("text-embedding-3-large");
@@ -91,43 +93,43 @@ public class TestOpenAIEmbeddings {
     }
 
     @Test
-    public void testEFBuilder() {
+    public void testEFBuilder() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        List<List<Float>> embeddings = OpenAIEmbeddingFunction.Instance()
+        List<Embedding> embeddings = OpenAIEmbeddingFunction.Instance()
                 .withOpenAIAPIKey(apiKey)
                 .withModelName("text-embedding-3-small")
                 .build()
-                .createEmbedding(Arrays.asList("Hello, my name is John. I am a Data Scientist."));
+                .embedDocuments(Arrays.asList("Hello, my name is John. I am a Data Scientist."));
         assertNotNull(embeddings);
-        assertEquals(1536, embeddings.get(0).size());
+        assertEquals(1536, embeddings.get(0).getDimensions());
     }
 
     @Test
-    public void testEFBuilderWithCustomURL() {
+    public void testEFBuilderWithCustomURL() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
-        List<List<Float>> embeddings = OpenAIEmbeddingFunction.Instance()
+        List<Embedding> embeddings = OpenAIEmbeddingFunction.Instance()
                 .withOpenAIAPIKey(apiKey)
                 .withModelName("text-embedding-3-small")
                 .withApiEndpoint("https://api.openai.com/v1/embeddings") // not really custom, but just to test the method
                 .build()
-                .createEmbedding(Arrays.asList("Hello, my name is John. I am a Data Scientist."));
+                .embedDocuments(Arrays.asList("Hello, my name is John. I am a Data Scientist."));
         assertNotNull(embeddings);
-        assertEquals(1536, embeddings.get(0).size());
+        assertEquals(1536, embeddings.get(0).getDimensions());
     }
 
 
     @Test
-    public void testCreateEmbeddingsWithModelsAndCustomURL() {
+    public void testEmbedQuery() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
         CreateEmbeddingRequest req = new CreateEmbeddingRequest().model("text-embedding-3-small");
 
         OpenAIEmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey, "text-embedding-3-small", "https://api.openai.com/v1/embeddings");
 
-        List<List<Float>> embeddings = ef.createEmbedding(Arrays.asList("Hello, my name is John. I am a Data Scientist."));
+        Embedding embeddings = ef.embedQuery("Hello, my name is John. I am a Data Scientist.");
         assertNotNull(embeddings);
-        assertEquals(1536, embeddings.get(0).size());
+        assertEquals(1536, embeddings.getDimensions());
     }
 }

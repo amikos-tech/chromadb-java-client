@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings.hf;
 
 import com.google.gson.Gson;
 import okhttp3.*;
+import tech.amikos.chromadb.EFException;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,7 +47,7 @@ public class HuggingFaceClient {
         return this.apiKey;
     }
 
-    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
+    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) throws EFException {
         Request request = new Request.Builder()
                 .url(this.baseUrl + this.modelId)
                 .post(RequestBody.create(req.json(), JSON))
@@ -65,9 +66,8 @@ public class HuggingFaceClient {
 
             return new CreateEmbeddingResponse(parsedResponse);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new EFException(e);
         }
-        return null;
     }
 
 }
