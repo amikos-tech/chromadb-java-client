@@ -1,7 +1,6 @@
+package tech.amikos.chromadb.embeddings.cohere;
+
 import org.junit.Test;
-import tech.amikos.cohere.CohereClient;
-import tech.amikos.cohere.CreateEmbeddingRequest;
-import tech.amikos.cohere.CreateEmbeddingResponse;
 
 import static org.junit.Assert.*;
 

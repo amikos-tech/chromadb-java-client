@@ -1,4 +1,4 @@
-package tech.amikos.cohere;
+package tech.amikos.chromadb.embeddings.cohere;
 
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
