@@ -8,8 +8,11 @@ This client works with Chroma Versions `0.4.3+`
 
 ### Embeddings Support
 
-- [x] OpenAI API
-- [x] Cohere API (including Multi-language support)
+- ✅ Default Embedding Function (all-mini-lm model)
+- ✅ OpenAI Embedding Function
+- ✅ Cohere Embedding Function
+- ✅ HuggingFace Embedding Function
+- ✅ Ollama Embedding Function
 - [ ] Sentence Transformers
 - [ ] PaLM API
 - [ ] Custom Embedding Function
@@ -36,7 +39,7 @@ This client works with Chroma Versions `0.4.3+`
 
 - [x] Push the package to Maven
   Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
-- ⚒️ Fluent API - make it easier for users to make use of the library 
+- ⚒️ Fluent API - make it easier for users to make use of the library
 - [ ] Support for PaLM API
 - [x] Support for Sentence Transformers with Hugging Face API
 - ⚒️ Authentication ⚒️
@@ -46,10 +49,11 @@ This client works with Chroma Versions `0.4.3+`
 Add Maven dependency:
 
 ```xml
+
 <dependency>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
 </dependency>
 ```
 
@@ -58,6 +62,43 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - Official documentation - https://docs.trychroma.com/usage-guide#running-chroma-in-clientserver-mode
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
+
+### Default Embedding Function
+
+Since version `0.1.6` the library also offers a built-in default embedding function which does not rely on any external
+API to generate embeddings and works in the same way it works in core Chroma Python package.
+
+```java
+package tech.amikos;
+
+import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.Collection;
+
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            client.reset();
+            EmbeddingFunction ef = new DefaultEmbeddingFunction();
+            Collection collection = client.createCollection("test-collection", null, true, ef);
+            List<Map<String, String>> metadata = new ArrayList<>();
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "scientist");
+            }});
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "spy");
+            }});
+            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
+            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            System.out.println(qr);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+```
 
 ### Example OpenAI Embedding Function
 
@@ -81,7 +122,7 @@ public class Main {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String apiKey = System.getenv("OPENAI_API_KEY");
-            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey,"text-embedding-3-small");
+            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey, "text-embedding-3-small");
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{
@@ -109,7 +150,8 @@ The above should output:
 
 #### Custom OpenAI Endpoint
 
-For endpoints compatible with OpenAI Embeddings API (e.g. [ollama](https://github.com/ollama/ollama)), you can use the following:
+For endpoints compatible with OpenAI Embeddings API (e.g. [ollama](https://github.com/ollama/ollama)), you can use the
+following:
 
 > Note: We have added a builder to help with the configuration of the OpenAIEmbeddingFunction
 
@@ -145,28 +187,28 @@ import tech.amikos.chromadb.Collection;
 import java.util.*;
 
 public class Main {
-  public static void main(String[] args) {
-    try {
-      Client client = new Client(System.getenv("CHROMA_URL"));
-      client.reset();
-      String apiKey = System.getenv("COHERE_API_KEY");
-      EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
-      Collection collection = client.createCollection("test-collection", null, true, ef);
-      List<Map<String, String>> metadata = new ArrayList<>();
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "scientist");
-      }});
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "spy");
-      }});
-      collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-      Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-      System.out.println(qr);
-    } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println(e);
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            client.reset();
+            String apiKey = System.getenv("COHERE_API_KEY");
+            EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
+            Collection collection = client.createCollection("test-collection", null, true, ef);
+            List<Map<String, String>> metadata = new ArrayList<>();
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "scientist");
+            }});
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "spy");
+            }});
+            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
+            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            System.out.println(qr);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e);
+        }
     }
-  }
 }
 ```
 
@@ -175,8 +217,6 @@ The above should output:
 ```bash
 {"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[5112.614,10974.804]]}
 ```
-
-
 
 ### Example Hugging Face Sentence Transformers Embedding Function
 
@@ -193,27 +233,27 @@ import tech.amikos.chromadb.Collection;
 import java.util.*;
 
 public class Main {
-  public static void main(String[] args) {
-    try {
-      Client client = new Client(System.getenv("CHROMA_URL"));
-      client.reset();
-      String apiKey = System.getenv("HF_API_KEY");
-      EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
-      Collection collection = client.createCollection("test-collection", null, true, ef);
-      List<Map<String, String>> metadata = new ArrayList<>();
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "scientist");
-      }});
-      metadata.add(new HashMap<String, String>() {{
-        put("type", "spy");
-      }});
-      collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-      Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
-      System.out.println(qr);
-    } catch (Exception e) {
-      System.out.println(e);
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            client.reset();
+            String apiKey = System.getenv("HF_API_KEY");
+            EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
+            Collection collection = client.createCollection("test-collection", null, true, ef);
+            List<Map<String, String>> metadata = new ArrayList<>();
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "scientist");
+            }});
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "spy");
+            }});
+            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
+            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            System.out.println(qr);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
-  }
 }
 ```
 
@@ -221,6 +261,44 @@ The above should output:
 
 ```bash
 {"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.9073759,1.6440368]]}
+```
+
+### Ollama Embedding Function
+
+In this example we rely on `tech.amikos.chromadb.embeddings.ollama.OllamaEmbeddingFunction` to generate embeddings for
+our documents.
+
+```java
+package tech.amikos;
+
+import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.embeddings.ollama.OllamaEmbeddingFunction;
+import tech.amikos.chromadb.Collection;
+
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            client.reset();
+            EmbeddingFunction ef = new OllamaEmbeddingFunction();
+            Collection collection = client.createCollection("test-collection", null, true, ef);
+            List<Map<String, String>> metadata = new ArrayList<>();
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "scientist");
+            }});
+            metadata.add(new HashMap<String, String>() {{
+                put("type", "spy");
+            }});
+            collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
+            Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+            System.out.println(qr);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
 ```
 
 ### Example Auth
@@ -238,18 +316,18 @@ import tech.amikos.chromadb.Collection;
 import java.util.*;
 
 public class Main {
-  public static void main(String[] args) {
-    try {
-      Client client = new Client(System.getenv("CHROMA_URL"));
-      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
-      client.setDefaultHeaders(new HashMap<>() {{
-          put("Authorization", "Basic " + encodedString);
-      }});
-      // your code here
-    } catch (Exception e) {
-      System.out.println(e);
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+            client.setDefaultHeaders(new HashMap<>() {{
+                put("Authorization", "Basic " + encodedString);
+            }});
+            // your code here
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
-  }
 }
 ```
 
@@ -264,18 +342,18 @@ import tech.amikos.chromadb.Collection;
 import java.util.*;
 
 public class Main {
-  public static void main(String[] args) {
-    try {
-      Client client = new Client(System.getenv("CHROMA_URL"));
-      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
-      client.setDefaultHeaders(new HashMap<>() {{
-          put("Authorization", "Bearer test-token");
-      }});
-      // your code here
-    } catch (Exception e) {
-      System.out.println(e);
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+            client.setDefaultHeaders(new HashMap<>() {{
+                put("Authorization", "Bearer test-token");
+            }});
+            // your code here
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
-  }
 }
 ```
 
@@ -290,18 +368,18 @@ import tech.amikos.chromadb.Collection;
 import java.util.*;
 
 public class Main {
-  public static void main(String[] args) {
-    try {
-      Client client = new Client(System.getenv("CHROMA_URL"));
-      String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
-      client.setDefaultHeaders(new HashMap<>() {{
-          put("X-Chroma-Token", "test-token");
-      }});
-      // your code here
-    } catch (Exception e) {
-      System.out.println(e);
+    public static void main(String[] args) {
+        try {
+            Client client = new Client(System.getenv("CHROMA_URL"));
+            String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
+            client.setDefaultHeaders(new HashMap<>() {{
+                put("X-Chroma-Token", "test-token");
+            }});
+            // your code here
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
-  }
 }
 ```
 
