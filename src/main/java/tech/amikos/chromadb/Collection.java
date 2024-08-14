@@ -192,7 +192,7 @@ public class Collection {
 
     public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, Object> where, Map<String, Object> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ChromaException {
         QueryEmbedding body = new QueryEmbedding();
-        body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.embedDocuments(queryTexts));
+        body.queryEmbeddings(this.embeddingFunction.embedDocuments(queryTexts).stream().map(Embedding::asArray).collect(Collectors.toList()));
         body.nResults(nResults);
         body.include(include);
         if (where != null) {
