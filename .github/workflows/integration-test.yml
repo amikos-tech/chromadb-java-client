@@ -23,8 +23,6 @@ jobs:
           brew install colima
           sudo colima start
           sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
       - name: Set up JDK 8
         uses: actions/setup-java@v3
         with:
