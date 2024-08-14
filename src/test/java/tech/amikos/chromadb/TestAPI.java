@@ -1,11 +1,13 @@
+package tech.amikos.chromadb;
+
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import tech.amikos.chromadb.*;
-import tech.amikos.chromadb.Collection;
+import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 
 import java.io.IOException;

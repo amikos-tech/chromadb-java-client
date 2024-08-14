@@ -1,4 +1,4 @@
-package tech.amikos.chromadb;
+package tech.amikos.chromadb.embeddings;
 
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
@@ -11,6 +11,8 @@ import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.impl.transforms.clip.ClipByValue;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.shade.guava.primitives.Floats;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.io.*;
 import java.net.URL;

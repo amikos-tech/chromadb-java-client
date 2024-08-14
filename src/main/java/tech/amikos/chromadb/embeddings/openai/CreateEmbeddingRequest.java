@@ -1,4 +1,4 @@
-package tech.amikos.openai;
+package tech.amikos.chromadb.embeddings.openai;
 
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;

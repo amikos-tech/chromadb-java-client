@@ -1,12 +1,8 @@
-package tech.amikos.chromadb;
+package tech.amikos.chromadb.embeddings.cohere;
 
-import tech.amikos.cohere.CohereClient;
-import tech.amikos.cohere.CreateEmbeddingRequest;
-import tech.amikos.cohere.CreateEmbeddingResponse;
+import tech.amikos.chromadb.EmbeddingFunction;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class CohereEmbeddingFunction implements EmbeddingFunction {
 

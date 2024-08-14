@@ -1,4 +1,4 @@
-package tech.amikos.hf;
+package tech.amikos.chromadb.embeddings.hf;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
