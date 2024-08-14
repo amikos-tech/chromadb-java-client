@@ -43,13 +43,13 @@ public class TestAPI {
     }
 
     public static void tearDownChromaDB() {
+        System.out.println(chromaContainer.getLogs());
         chromaContainer.stop();
     }
 
 
     @Test
     public void testHeartbeat() throws ApiException, IOException, InterruptedException {
-        System.out.println(chromaContainer.isRunning());
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
