@@ -20,6 +20,9 @@ public class CreateEmbeddingRequest {
     @SerializedName("compression_codebook")
     private String compressionCodebook;
 
+    @SerializedName("input_type")
+    private String inputType = "search_document";
+
     public enum TruncateMode {
         NONE,
         START,
@@ -56,6 +59,11 @@ public class CreateEmbeddingRequest {
 
     public CreateEmbeddingRequest compressionCodebook(String compressionCodebook) {
         this.compressionCodebook = compressionCodebook;
+        return this;
+    }
+
+    public CreateEmbeddingRequest inputType(String inputType) {
+        this.inputType = inputType;
         return this;
     }
 
