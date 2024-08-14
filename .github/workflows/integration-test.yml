@@ -16,6 +16,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v3
+      - name: Install Docker
+        if: startsWith(matrix.runner, 'macos')
+        run: |
+          brew install docker
+          brew install colima
+          colima start
       - name: Set up JDK 8
         uses: actions/setup-java@v3
         with:
