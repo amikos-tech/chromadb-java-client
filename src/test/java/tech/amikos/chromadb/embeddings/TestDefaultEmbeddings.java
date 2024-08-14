@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
+import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.util.Arrays;
@@ -800,11 +801,11 @@ public class TestDefaultEmbeddings {
     @Test
     public void testDefaultEmbeddingFunction() throws Exception {
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        List<List<Float>> result = ef.createEmbedding(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, I am Jane and I am an ML researcher."));
+        List<Embedding> result = ef.embedDocuments(Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, I am Jane and I am an ML researcher."));
         assertEquals(2, result.size());
-        assertEquals(384, result.get(0).size());
+        assertEquals(384, result.get(0).getDimensions());
         for (int i = 0; i < result.size(); i++) {
-            assertTrue(compareFloatArrays(result.get(i).stream().mapToDouble(Float::doubleValue).mapToObj(d -> (float) d).toArray(Float[]::new), groundThruth[i], 1e-5f));
+            assertTrue(compareFloatArrays(result.get(i).asList().toArray(new Float[0]), groundThruth[i], 1e-5f));
         }
     }
 

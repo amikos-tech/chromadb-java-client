@@ -3,7 +3,7 @@ package tech.amikos.chromadb;
 /**
  * This exception encapsulates all exceptions thrown by the EmbeddingFunction class.
  */
-public class EFException extends Exception {
+public class EFException extends ChromaException {
     public EFException(String message) {
         super(message);
     }

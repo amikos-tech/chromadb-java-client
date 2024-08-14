@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings.cohere;
 
 import com.google.gson.Gson;
 import okhttp3.*;
+import tech.amikos.chromadb.EFException;
 
 import java.io.IOException;
 
@@ -43,7 +44,7 @@ public class CohereClient {
         return this.apiKey;
     }
 
-    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
+    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) throws EFException {
         Request request = new Request.Builder()
                 .url(this.baseUrl + apiVersion + "/embed")
                 .post(RequestBody.create(req.json(), JSON))
@@ -61,9 +62,8 @@ public class CohereClient {
 
             return gson.fromJson(responseData, CreateEmbeddingResponse.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new EFException(e);
         }
-        return null;
     }
 
 }

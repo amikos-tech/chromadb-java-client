@@ -4,6 +4,7 @@ import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import ai.onnxruntime.*;
 
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.tar.*;
@@ -12,6 +13,7 @@ import org.nd4j.linalg.api.ops.impl.transforms.clip.ClipByValue;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.shade.guava.primitives.Floats;
 import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.io.*;
@@ -203,22 +205,25 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
     }
 
     @Override
-    public List<List<Float>> createEmbedding(List<String> documents) {
+    public Embedding embedQuery(String query) throws EFException {
         try {
-            return forward(documents);
+            return Embedding.fromList(forward(Collections.singletonList(query)).get(0));
         } catch (OrtException e) {
-            //TODO not great to throw a runtime exception but we need to update the interface in upcoming release to rethrow
-            throw new RuntimeException(e);
+            throw new EFException(e);
         }
     }
 
     @Override
-    public List<List<Float>> createEmbedding(List<String> documents, String model) {
+    public List<Embedding> embedDocuments(List<String> documents) throws EFException {
         try {
-            return forward(documents);
+            return forward(documents).stream().map(Embedding::new).collect(Collectors.toList());
         } catch (OrtException e) {
-            //TODO not great to throw a runtime exception but we need to update the interface in upcoming release to rethrow
-            throw new RuntimeException(e);
+            throw new EFException(e);
         }
+    }
+
+    @Override
+    public List<Embedding> embedDocuments(String[] documents) throws EFException {
+        return embedDocuments(Arrays.asList(documents));
     }
 }

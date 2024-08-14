@@ -82,33 +82,41 @@ public class Collection {
         return this.delete(null, null, null);
     }
 
-    public Object upsert(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+    public Object upsert(List<Embedding> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ChromaException {
         AddEmbedding req = new AddEmbedding();
-        List<List<Float>> _embeddings = embeddings;
+        List<Embedding> _embeddings = embeddings;
         if (_embeddings == null) {
-            _embeddings = this.embeddingFunction.createEmbedding(documents);
+            _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
         req.setEmbeddings((List<Object>) (Object) _embeddings);
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
         req.setIds(ids);
-        return api.upsert(req, this.collectionId);
+        try {
+            return api.upsert(req, this.collectionId);
+        } catch (ApiException e) {
+            throw new ChromaException(e);
+        }
     }
 
 
-    public Object add(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+    public Object add(List<Embedding> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ChromaException {
         AddEmbedding req = new AddEmbedding();
-        List<List<Float>> _embeddings = embeddings;
+        List<Embedding> _embeddings = embeddings;
         if (_embeddings == null) {
-            _embeddings = this.embeddingFunction.createEmbedding(documents);
+            _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
         req.setEmbeddings((List<Object>) (Object) _embeddings);
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
         req.setIds(ids);
-        return api.add(req, this.collectionId);
+        try {
+            return api.add(req, this.collectionId);
+        } catch (ApiException e) {
+            throw new ChromaException(e);
+        }
     }
 
     public Integer count() throws ApiException {
@@ -161,23 +169,27 @@ public class Collection {
         return resp;
     }
 
-    public Object updateEmbeddings(List<List<Float>> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ApiException {
+    public Object updateEmbeddings(List<Embedding> embeddings, List<Map<String, String>> metadatas, List<String> documents, List<String> ids) throws ChromaException {
         UpdateEmbedding req = new UpdateEmbedding();
-        List<List<Float>> _embeddings = embeddings;
+        List<Embedding> _embeddings = embeddings;
         if (_embeddings == null) {
-            _embeddings = this.embeddingFunction.createEmbedding(documents);
+            _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
         req.setEmbeddings((List<Object>) (Object) _embeddings);
         req.setDocuments(documents);
         req.setMetadatas((List<Object>) (Object) metadatas);
         req.setIds(ids);
-        return api.update(req, this.collectionId);
+        try {
+            return api.update(req, this.collectionId);
+        } catch (ApiException e) {
+            throw new ChromaException(e);
+        }
     }
 
 
-    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, Object> where, Map<String, Object> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ApiException {
+    public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, Object> where, Map<String, Object> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ChromaException {
         QueryEmbedding body = new QueryEmbedding();
-        body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.createEmbedding(queryTexts));
+        body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.embedDocuments(queryTexts));
         body.nResults(nResults);
         body.include(include);
         if (where != null) {
@@ -186,9 +198,13 @@ public class Collection {
         if (whereDocument != null) {
             body.whereDocument(whereDocument.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
-        Gson gson = new Gson();
-        String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
-        return new Gson().fromJson(json, QueryResponse.class);
+        try {
+            Gson gson = new Gson();
+            String json = gson.toJson(api.getNearestNeighbors(body, this.collectionId));
+            return new Gson().fromJson(json, QueryResponse.class);
+        } catch (ApiException e) {
+            throw new ChromaException(e);
+        }
     }
 
     public static class QueryResponse {

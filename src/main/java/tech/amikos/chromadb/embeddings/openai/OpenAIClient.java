@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings.openai;
 
 import com.google.gson.Gson;
 import okhttp3.*;
+import tech.amikos.chromadb.EFException;
 
 import java.io.IOException;
 
@@ -39,7 +40,7 @@ public class OpenAIClient {
         return this.apiKey;
     }
 
-    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
+    public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) throws EFException {
         Request request = new Request.Builder()
                 .url(this.baseUrl)
                 .post(RequestBody.create(req.json(), JSON))
@@ -56,7 +57,7 @@ public class OpenAIClient {
 
             return gson.fromJson(responseData, CreateEmbeddingResponse.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new EFException(e);
         }
     }
 

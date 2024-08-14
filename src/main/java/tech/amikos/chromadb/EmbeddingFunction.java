@@ -4,7 +4,10 @@ import java.util.List;
 
 public interface EmbeddingFunction {
 
-    List<List<Float>> createEmbedding(List<String> documents);
+    Embedding embedQuery(String query) throws EFException;
 
-    List<List<Float>> createEmbedding(List<String> documents, String model);
+    List<Embedding> embedDocuments(List<String> documents) throws EFException;
+
+    List<Embedding> embedDocuments(String[] documents) throws EFException;
+
 }
