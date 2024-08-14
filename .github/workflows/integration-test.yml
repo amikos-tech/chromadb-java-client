@@ -20,7 +20,8 @@ jobs:
         if: startsWith(matrix.runner, 'macos')
         run: |
           brew install docker
-          colima start
+          brew install colima
+          sudo colima start
           sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
