@@ -1,4 +1,7 @@
-package tech.amikos.chromadb;
+package tech.amikos.chromadb.embeddings;
+
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
 
 import java.util.List;
 
@@ -9,5 +12,4 @@ public interface EmbeddingFunction {
     List<Embedding> embedDocuments(List<String> documents) throws EFException;
 
     List<Embedding> embedDocuments(String[] documents) throws EFException;
-
 }

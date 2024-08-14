@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 
 import java.io.IOException;
@@ -42,13 +43,13 @@ public class TestAPI {
     }
 
     public static void tearDownChromaDB() {
+        System.out.println(chromaContainer.getLogs());
         chromaContainer.stop();
     }
 
 
     @Test
     public void testHeartbeat() throws ApiException, IOException, InterruptedException {
-        System.out.println(chromaContainer.isRunning());
         Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));

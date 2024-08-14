@@ -3,6 +3,7 @@ package tech.amikos.chromadb;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.internal.LinkedTreeMap;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 import tech.amikos.chromadb.handler.DefaultApi;
 import tech.amikos.chromadb.model.*;
@@ -10,6 +11,8 @@ import tech.amikos.chromadb.model.*;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static java.lang.Thread.sleep;
 
 public class Collection {
     static Gson gson = new Gson();
@@ -88,7 +91,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
@@ -107,7 +110,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
@@ -175,7 +178,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setDocuments(documents);
         req.setMetadatas((List<Object>) (Object) metadatas);
         req.setIds(ids);
@@ -189,7 +192,7 @@ public class Collection {
 
     public QueryResponse query(List<String> queryTexts, Integer nResults, Map<String, Object> where, Map<String, Object> whereDocument, List<QueryEmbedding.IncludeEnum> include) throws ChromaException {
         QueryEmbedding body = new QueryEmbedding();
-        body.queryEmbeddings((List<Object>) (Object) this.embeddingFunction.embedDocuments(queryTexts));
+        body.queryEmbeddings(this.embeddingFunction.embedDocuments(queryTexts).stream().map(Embedding::asArray).collect(Collectors.toList()));
         body.nResults(nResults);
         body.include(include);
         if (where != null) {
