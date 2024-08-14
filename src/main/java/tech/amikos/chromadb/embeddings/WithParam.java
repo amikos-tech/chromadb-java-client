@@ -1,5 +1,8 @@
-package tech.amikos.chromadb;
+package tech.amikos.chromadb.embeddings;
 
+
+import tech.amikos.chromadb.Constants;
+import tech.amikos.chromadb.EFException;
 
 import java.util.Map;
 

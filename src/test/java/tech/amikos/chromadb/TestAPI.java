@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 
 import java.io.IOException;

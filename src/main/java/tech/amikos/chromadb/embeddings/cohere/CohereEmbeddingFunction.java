@@ -7,6 +7,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
 import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.io.IOException;
 import java.util.Arrays;

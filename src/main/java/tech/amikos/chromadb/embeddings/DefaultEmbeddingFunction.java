@@ -14,7 +14,6 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.shade.guava.primitives.Floats;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
-import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.io.*;
 import java.net.URL;

@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.io.IOException;
 import java.util.*;

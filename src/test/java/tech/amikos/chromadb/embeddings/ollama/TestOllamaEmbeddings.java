@@ -7,7 +7,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
-import tech.amikos.chromadb.WithParam;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.Arrays;
 import java.util.List;

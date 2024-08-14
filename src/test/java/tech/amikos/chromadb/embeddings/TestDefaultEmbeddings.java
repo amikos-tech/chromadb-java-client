@@ -3,7 +3,6 @@ package tech.amikos.chromadb.embeddings;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import tech.amikos.chromadb.Embedding;
-import tech.amikos.chromadb.EmbeddingFunction;
 
 import java.util.Arrays;
 import java.util.List;

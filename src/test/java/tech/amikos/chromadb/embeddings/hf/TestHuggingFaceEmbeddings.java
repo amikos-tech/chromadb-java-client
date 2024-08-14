@@ -3,6 +3,8 @@ package tech.amikos.chromadb.embeddings.hf;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tech.amikos.chromadb.*;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 import tech.amikos.chromadb.handler.ApiException;
 
 import java.util.*;

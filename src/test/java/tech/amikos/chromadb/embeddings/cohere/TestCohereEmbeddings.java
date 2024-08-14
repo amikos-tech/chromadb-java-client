@@ -4,7 +4,7 @@ import org.junit.Test;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.Utils;
-import tech.amikos.chromadb.WithParam;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.List;
 

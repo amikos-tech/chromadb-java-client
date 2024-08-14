@@ -3,6 +3,7 @@ package tech.amikos.chromadb;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.internal.LinkedTreeMap;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.handler.ApiException;
 import tech.amikos.chromadb.handler.DefaultApi;
 import tech.amikos.chromadb.model.*;
