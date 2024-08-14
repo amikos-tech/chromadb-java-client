@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.lang.Thread.sleep;
+
 public class Collection {
     static Gson gson = new Gson();
     DefaultApi api;
@@ -89,7 +91,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
@@ -108,7 +110,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setMetadatas((List<Map<String, Object>>) (Object) metadatas);
         req.setDocuments(documents);
         req.incrementIndex(true);
@@ -176,7 +178,7 @@ public class Collection {
         if (_embeddings == null) {
             _embeddings = this.embeddingFunction.embedDocuments(documents);
         }
-        req.setEmbeddings((List<Object>) (Object) _embeddings);
+        req.setEmbeddings(_embeddings.stream().map(Embedding::asArray).collect(Collectors.toList()));
         req.setDocuments(documents);
         req.setMetadatas((List<Object>) (Object) metadatas);
         req.setIds(ids);
