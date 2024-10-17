@@ -11,11 +11,13 @@ This client works with Chroma Versions `0.4.3+`
 - ✅ Default Embedding Function (all-mini-lm model)
 - ✅ OpenAI Embedding Function
 - ✅ Cohere Embedding Function
-- ✅ HuggingFace Embedding Function
+- ✅ HuggingFace Embedding Function (Inference API)
 - ✅ Ollama Embedding Function
+- ✅ Hugging Face Text Embedding Inference (HFEI) API
 - [ ] Sentence Transformers
 - [ ] PaLM API
 - [ ] Custom Embedding Function
+- [ ] Cloudflare Workers AI
 
 ### Feature Parity with ChromaDB API
 
@@ -53,7 +55,7 @@ Add Maven dependency:
 <dependency>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.6</version>
+    <version>0.1.7</version>
 </dependency>
 ```
 
