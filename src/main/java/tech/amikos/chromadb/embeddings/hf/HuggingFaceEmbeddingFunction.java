@@ -110,7 +110,7 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
         }
     }
 
-    public static enum APIType{
+    public enum APIType{
         HF_API,
         HFEI_API
     }
