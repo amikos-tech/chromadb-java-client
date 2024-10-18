@@ -30,7 +30,7 @@ public class TestAPI {
             Utils.loadEnvFile(".env");
             String chromaVersion = System.getenv("CHROMA_VERSION");
             if (chromaVersion == null) {
-                chromaVersion = "0.4.24";
+                chromaVersion = "0.5.15";
             }
             chromaContainer = new ChromaDBContainer("chromadb/chroma:" + chromaVersion).withEnv("ALLOW_RESET", "TRUE");
             chromaContainer.start();
@@ -85,7 +85,7 @@ public class TestAPI {
         try {
             client.getCollection("test-collection", ef);
         } catch (ApiException e) {
-            assertEquals(e.getCode(), 500);
+            assertTrue(Arrays.asList(400, 500).contains(e.getCode()));
         }
     }
 
