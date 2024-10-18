@@ -67,6 +67,7 @@
         <threetenbp-version>1.7.0</threetenbp-version>
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.13.2</junit-version>
+        <commons-net-version>3.11.1</commons-net-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -110,6 +111,11 @@
             <groupId>org.threeten</groupId>
             <artifactId>threetenbp</artifactId>
             <version>${threetenbp-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>${commons-net-version}</version>
         </dependency>
         <dependency>
             <groupId>ai.djl.huggingface</groupId>
