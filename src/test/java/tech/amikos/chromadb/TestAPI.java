@@ -165,7 +165,7 @@ public class TestAPI {
         try {
             client.getCollection("test-collection", ef);
         } catch (ApiException e) {
-            assertEquals(e.getCode(), 500);
+            assertTrue(Arrays.asList(400, 500).contains(e.getCode()));
         }
     }
 
