@@ -50,14 +50,14 @@ public class TestAPI {
 
     @Test
     public void testHeartbeat() throws ApiException, IOException, InterruptedException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
     }
 
     @Test
     public void testGetCollectionGet() throws ApiException, IOException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
@@ -67,16 +67,16 @@ public class TestAPI {
 
     @Test
     public void testCreateCollection() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         assertEquals(collection.getName(), "test-collection");
     }
 
     @Test
     public void testDeleteCollection() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
@@ -91,10 +91,10 @@ public class TestAPI {
 
     @Test
     public void testCreateUpsert() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -105,10 +105,10 @@ public class TestAPI {
 
     @Test
     public void testCreateAdd() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -121,26 +121,26 @@ public class TestAPI {
 
     @Test
     public void testQuery() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
         }});
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist."), Arrays.asList("1"));
         collection.add(null, metadata, Arrays.asList("Hello, my name is Bond. I am a Spy."), Arrays.asList("2"));
-        Collection.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
+        CollectionImpl.QueryResponse qr = collection.query(Arrays.asList("name is John"), 10, null, null, null);
         assertEquals(qr.getIds().get(0).get(0), "1"); //we check that Bond doc is first
     }
 
     @Test
     public void testQueryExample() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("type", "scientist");
@@ -149,16 +149,16 @@ public class TestAPI {
             put("type", "spy");
         }});
         collection.add(null, metadata, Arrays.asList("Hello, my name is John. I am a Data Scientist.", "Hello, my name is Bond. I am a Spy."), Arrays.asList("1", "2"));
-        Collection.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
+        CollectionImpl.QueryResponse qr = collection.query(Arrays.asList("Who is the spy"), 10, null, null, null);
         assertEquals(qr.getIds().get(0).get(0), "2"); //we check that Bond doc is first
     }
 
     @Test
     public void testReset() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         client.reset();
 
@@ -171,7 +171,7 @@ public class TestAPI {
 
     @Test
     public void testListCollections() throws ApiException, EFException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
         client.createCollection("test-collection", null, true, ef);
@@ -180,10 +180,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionCount() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -194,10 +194,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteIds() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -209,10 +209,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteWhere() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -226,10 +226,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteLogicalOrWhere() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key1", "value1");
@@ -251,10 +251,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteWhereNoMatch() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -268,10 +268,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteWhereDocuments() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -286,10 +286,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionDeleteWhereDocumentsNoMatch() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -304,7 +304,7 @@ public class TestAPI {
 
     @Test
     public void testVersion() throws ApiException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         String version = client.version();
         assertNotNull(version);
@@ -313,10 +313,10 @@ public class TestAPI {
 
     @Test
     public void testUpdateCollection() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -328,10 +328,10 @@ public class TestAPI {
 
     @Test
     public void testCollectionUpdateEmbeddings() throws ApiException, ChromaException {
-        Client client = new Client(Utils.getEnvOrProperty("CHROMA_URL"));
+        ClientImpl client = new ClientImpl(Utils.getEnvOrProperty("CHROMA_URL"));
         client.reset();
         EmbeddingFunction ef = new DefaultEmbeddingFunction();
-        Collection collection = client.createCollection("test-collection", null, true, ef);
+        CollectionImpl collection = client.createCollection("test-collection", null, true, ef);
         List<Map<String, String>> metadata = new ArrayList<>();
         metadata.add(new HashMap<String, String>() {{
             put("key", "value");
@@ -349,7 +349,7 @@ public class TestAPI {
                         .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
 
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         client.setTimeout(3);
         Map<String, BigDecimal> hb = client.heartbeat();
         assertTrue(hb.containsKey("nanosecond heartbeat"));
@@ -363,7 +363,7 @@ public class TestAPI {
                         .withBody("{\"nanosecond heartbeat\": 123456789}").withFixedDelay(2000)));
 
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         client.setTimeout(1);
         try {
             client.heartbeat();
@@ -382,7 +382,7 @@ public class TestAPI {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}")));
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         client.setDefaultHeaders(new HashMap<String, String>() {{
             put("Your-Header-Key", "Your-Expected-Header-Value");
         }});
@@ -400,7 +400,7 @@ public class TestAPI {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}")));
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
         client.setDefaultHeaders(new HashMap<String, String>() {{
             put("Authorization", "Basic " + encodedString);
@@ -419,7 +419,7 @@ public class TestAPI {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}")));
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         client.setDefaultHeaders(new HashMap<String, String>() {{
             put("Authorization", "Bearer test-token");
         }});
@@ -437,7 +437,7 @@ public class TestAPI {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"nanosecond heartbeat\": 123456789}")));
         Utils.loadEnvFile(".env");
-        Client client = new Client("http://127.0.0.1:8001");
+        ClientImpl client = new ClientImpl("http://127.0.0.1:8001");
         client.setDefaultHeaders(new HashMap<String, String>() {{
             put("X-Chroma-Token", "test-token");
         }});
