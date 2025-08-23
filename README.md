@@ -1,8 +1,11 @@
 # Chroma Vector Database Java Client
 
+> ![NOTE]
+> We are rewriting the Chroma Java client from scratch with the new Chroma API v2 support.
+
 This is a very basic/naive implementation in Java of the Chroma Vector Database API.
 
-This client works with Chroma Versions `0.4.3+`
+This client works with Chroma Versions `>=0.4.3+ <1.0.0` 
 
 ## Features
 
