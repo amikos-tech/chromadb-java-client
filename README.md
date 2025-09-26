@@ -49,6 +49,62 @@ This client works with Chroma Versions `>=0.4.3+ <1.0.0`
 - [x] Support for Sentence Transformers with Hugging Face API
 - ⚒️ Authentication ⚒️
 
+## Development
+
+This project includes a `Makefile` to simplify common development tasks. Make sure you have `make` installed on your system.
+
+### Quick Start
+
+```bash
+# Display available commands
+make help
+
+# Build the project
+make build
+
+# Run tests
+make test
+
+# Create JAR package
+make package
+```
+
+### Common Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Clean and compile the project |
+| `make test` | Run all tests |
+| `make test-unit` | Run unit tests only |
+| `make test-integration` | Run integration tests only |
+| `make test-version CHROMA_VERSION=0.5.15` | Test with specific ChromaDB version |
+| `make test-all-versions` | Test against all supported versions (0.4.24, 0.5.0, 0.5.5, 0.5.15) |
+| `make test-class TEST=TestAPI` | Run specific test class |
+| `make test-method TEST=TestAPI#testMethod` | Run specific test method |
+| `make package` | Create JAR package |
+| `make install` | Install to local Maven repository |
+| `make clean` | Clean build artifacts |
+| `make generate` | Generate API client from OpenAPI spec |
+| `make deps` | Download/update dependencies |
+| `make deps-tree` | Display dependency tree |
+| `make info` | Display project information |
+
+### Environment Variables
+
+For testing with external services, set these environment variables:
+- `OPENAI_API_KEY` - Required for OpenAI embedding tests
+- `COHERE_API_KEY` - Required for Cohere embedding tests
+- `HF_API_KEY` - Required for HuggingFace embedding tests
+- `CHROMA_VERSION` - Specify ChromaDB version for tests (default: latest)
+
+### Shortcuts
+
+The Makefile also provides single-letter shortcuts for common commands:
+- `make b` - Build
+- `make t` - Test
+- `make c` - Clean
+- `make i` - Install
+
 ## Usage
 
 Add Maven dependency:
