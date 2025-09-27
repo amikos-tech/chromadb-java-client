@@ -8,3 +8,4 @@ FEEDBACK:
 $ARGUMENTS
 
 **IMPORTANT:** Be concise and make sure to lint and test all code changes.
+**IMPORTANT:** Before creating a new issue check existing issues (gh issue list -s open) to ensure no duplicates.
