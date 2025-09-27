@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 /**
  * ChromaDB Client
  */
-public class Client {
+public class ClientImpl {
     final ApiClient apiClient = new ApiClient();
     private int timeout = 60;
     DefaultApi api;
 
-    public Client(String basePath) {
+    public ClientImpl(String basePath) {
         apiClient.setBasePath(basePath);
         api = new DefaultApi(apiClient);
         apiClient.setHttpClient(apiClient.getHttpClient().newBuilder()
@@ -52,15 +52,15 @@ public class Client {
         }
     }
 
-    public Collection getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
-        return new Collection(api, collectionName, embeddingFunction).fetch();
+    public CollectionImpl getCollection(String collectionName, EmbeddingFunction embeddingFunction) throws ApiException {
+        return new CollectionImpl(api, collectionName, embeddingFunction).fetch();
     }
 
     public Map<String, BigDecimal> heartbeat() throws ApiException {
         return api.heartbeat();
     }
 
-    public Collection createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction) throws ApiException {
+    public CollectionImpl createCollection(String collectionName, Map<String, String> metadata, Boolean createOrGet, EmbeddingFunction embeddingFunction) throws ApiException {
         CreateCollection req = new CreateCollection();
         req.setName(collectionName);
         Map<String, String> _metadata = metadata;
@@ -71,17 +71,17 @@ public class Client {
         req.setMetadata(_metadata);
         req.setGetOrCreate(createOrGet);
         LinkedTreeMap resp = (LinkedTreeMap) api.createCollection(req);
-        return new Collection(api, (String) resp.get("name"), embeddingFunction).fetch();
+        return new CollectionImpl(api, (String) resp.get("name"), embeddingFunction).fetch();
     }
 
-    public Collection deleteCollection(String collectionName) throws ApiException {
-        Collection collection = Collection.getInstance(api, collectionName);
+    public CollectionImpl deleteCollection(String collectionName) throws ApiException {
+        CollectionImpl collection = CollectionImpl.getInstance(api, collectionName);
         api.deleteCollection(collectionName);
         return collection;
     }
 
-    public Collection upsert(String collectionName, EmbeddingFunction ef) throws ApiException {
-        Collection collection = getCollection(collectionName, ef);
+    public CollectionImpl upsert(String collectionName, EmbeddingFunction ef) throws ApiException {
+        CollectionImpl collection = getCollection(collectionName, ef);
 //        collection.upsert();
         return collection;
     }
@@ -90,7 +90,7 @@ public class Client {
         return api.reset();
     }
 
-    public List<Collection> listCollections() throws ApiException {
+    public List<CollectionImpl> listCollections() throws ApiException {
         List<LinkedTreeMap> apiResponse = (List<LinkedTreeMap>) api.listCollections();
         return apiResponse.stream().map((LinkedTreeMap m) -> {
             try {

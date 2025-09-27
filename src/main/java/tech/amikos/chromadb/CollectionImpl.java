@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
 
-public class Collection {
+public class CollectionImpl {
     static Gson gson = new Gson();
     DefaultApi api;
     String collectionName;
@@ -25,7 +25,7 @@ public class Collection {
 
     private EmbeddingFunction embeddingFunction;
 
-    public Collection(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) {
+    public CollectionImpl(DefaultApi api, String collectionName, EmbeddingFunction embeddingFunction) {
         this.api = api;
         this.collectionName = collectionName;
         this.embeddingFunction = embeddingFunction;
@@ -44,7 +44,7 @@ public class Collection {
         return metadata;
     }
 
-    public Collection fetch() throws ApiException {
+    public CollectionImpl fetch() throws ApiException {
         try {
             LinkedTreeMap<String, ?> resp = (LinkedTreeMap<String, ?>) api.getCollection(collectionName);
             this.collectionName = resp.get("name").toString();
@@ -56,8 +56,8 @@ public class Collection {
         }
     }
 
-    public static Collection getInstance(DefaultApi api, String collectionName) throws ApiException {
-        return new Collection(api, collectionName, null);
+    public static CollectionImpl getInstance(DefaultApi api, String collectionName) throws ApiException {
+        return new CollectionImpl(api, collectionName, null);
     }
 
     @Override
