@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       chroma_versions:
-        description: 'Comma-separated list of ChromaDB versions to test (e.g., 0.5.15,0.5.20)'
+        description: 'Comma-separated list of ChromaDB versions to test (e.g., 1.1.0)'
         required: false
         default: ''
 
@@ -58,14 +58,14 @@ jobs:
       fail-fast: false
       matrix:
         chroma-version: ${{ fromJson(needs.determine-versions.outputs.matrix) }}
-        java-version: [11, 17]
+        java-version: [8, 17]
 
     services:
       chroma:
         image: chromadb/chroma:${{ matrix.chroma-version }}
         ports:
           - 8000:8000
-        env:
+        env: # TODO these are not accurate and won't work
           ALLOW_RESET: 'TRUE'
           IS_PERSISTENT: 'FALSE'
           CHROMA_SERVER_AUTH_PROVIDER: 'chromadb.auth.token_authn.TokenAuthenticationServerProvider'
@@ -73,14 +73,14 @@ jobs:
           CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER: 'X_CHROMA_TOKEN'
           CHROMA_SERVER_AUTH_CREDENTIALS: 'test-token'
         options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v1 || exit 1"
+          --health-cmd "curl -f http://localhost:8000/api/v2 || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
@@ -104,7 +104,7 @@ jobs:
         run: |
           echo "Waiting for ChromaDB to be ready..."
           for i in {1..30}; do
-            if curl -f http://localhost:8000/api/v1 > /dev/null 2>&1; then
+            if curl -f http://localhost:8000/api/v2 > /dev/null 2>&1; then
               echo "ChromaDB is ready!"
               break
             fi
@@ -113,12 +113,12 @@ jobs:
           done
 
           # Verify ChromaDB is responding
-          curl -v http://localhost:8000/api/v1 || true
+          curl -v http://localhost:8000/api/v2 || true
 
       - name: Get ChromaDB Version Info
         run: |
           echo "Testing against ChromaDB version: ${{ matrix.chroma-version }}"
-          curl -s http://localhost:8000/api/v1/version || echo "Version endpoint not available"
+          curl -s http://localhost:8000/api/v2/version || echo "Version endpoint not available"
 
       - name: Compile project
         run: mvn clean compile -DskipTests
@@ -159,7 +159,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
           path: |
@@ -168,7 +168,7 @@ jobs:
 
       - name: Upload coverage reports
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
           path: target/site/jacoco/
@@ -197,7 +197,7 @@ jobs:
 
     steps:
       - name: Download all test results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: test-artifacts
 
@@ -266,14 +266,14 @@ jobs:
           ALLOW_RESET: 'TRUE'
           IS_PERSISTENT: 'FALSE'
         options: >-
-          --health-cmd "curl -f http://localhost:8000/api/v1 || exit 1"
+          --health-cmd "curl -f http://localhost:8000/api/v2 || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -292,7 +292,7 @@ jobs:
           CHROMA_URL: http://localhost:8000
 
       - name: Upload performance results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-results-v2
           path: target/performance-reports/

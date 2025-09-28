@@ -36,10 +36,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java ${{ matrix.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
@@ -127,7 +127,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -135,145 +135,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Create stress test
-        run: |
-          cat > src/test/java/tech/amikos/chromadb/v2/V2StressTest.java << 'EOF'
-          package tech.amikos.chromadb.v2;
-
-          import org.junit.BeforeClass;
-          import org.junit.Test;
-          import tech.amikos.chromadb.v2.auth.AuthProvider;
-          import tech.amikos.chromadb.v2.client.Collection;
-          import tech.amikos.chromadb.v2.client.ServerClient;
-          import tech.amikos.chromadb.v2.model.*;
-
-          import java.util.*;
-          import java.util.concurrent.*;
-          import java.util.stream.Collectors;
-          import java.util.stream.IntStream;
-
-          import static org.junit.Assert.*;
-
-          public class V2StressTest {
-              private static ServerClient client;
-
-              @BeforeClass
-              public static void setup() {
-                  client = ServerClient.builder()
-                      .baseUrl("http://localhost:8000")
-                      .auth(AuthProvider.none())
-                      .connectTimeout(60)
-                      .readTimeout(60)
-                      .writeTimeout(60)
-                      .build();
-              }
-
-              @Test
-              public void testLargeScale() throws Exception {
-                  String collectionName = "stress_test_" + UUID.randomUUID().toString().substring(0, 8);
-                  Collection collection = client.createCollection(collectionName);
-
-                  // Add 10,000 records in batches of 100
-                  for (int batch = 0; batch < 100; batch++) {
-                      List<String> ids = new ArrayList<>();
-                      List<List<Float>> embeddings = new ArrayList<>();
-                      List<Map<String, Object>> metadatas = new ArrayList<>();
-
-                      for (int i = 0; i < 100; i++) {
-                          int recordId = batch * 100 + i;
-                          ids.add("id_" + recordId);
-
-                          // Create random embedding
-                          List<Float> embedding = new ArrayList<>();
-                          Random rand = new Random(recordId);
-                          for (int j = 0; j < 384; j++) {
-                              embedding.add(rand.nextFloat());
-                          }
-                          embeddings.add(embedding);
-
-                          metadatas.add(Map.of(
-                              "batch", batch,
-                              "index", i,
-                              "category", "category_" + (recordId % 10)
-                          ));
-                      }
-
-                      collection.add(builder -> builder
-                          .ids(ids)
-                          .embeddings(embeddings)
-                          .metadatas(metadatas)
-                      );
-
-                      if (batch % 10 == 0) {
-                          System.out.println("Added " + ((batch + 1) * 100) + " records");
-                      }
-                  }
-
-                  assertEquals(10000, collection.count());
-                  System.out.println("Successfully added 10,000 records");
-
-                  // Test queries
-                  Random rand = new Random();
-                  List<Float> queryEmbedding = IntStream.range(0, 384)
-                      .mapToObj(i -> rand.nextFloat())
-                      .collect(Collectors.toList());
-
-                  QueryResponse result = collection.query(builder -> builder
-                      .queryEmbeddings(Arrays.asList(queryEmbedding))
-                      .nResults(100)
-                      .include(Include.METADATAS, Include.DISTANCES)
-                  );
-
-                  assertEquals(1, result.getIds().size());
-                  assertEquals(100, result.getIds().get(0).size());
-
-                  client.deleteCollection(collectionName);
-              }
-
-              @Test
-              public void testConcurrentOperations() throws Exception {
-                  String collectionName = "concurrent_test_" + UUID.randomUUID().toString().substring(0, 8);
-                  Collection collection = client.createCollection(collectionName);
-
-                  ExecutorService executor = Executors.newFixedThreadPool(10);
-                  List<Future<Boolean>> futures = new ArrayList<>();
-
-                  // Submit 100 concurrent operations
-                  for (int i = 0; i < 100; i++) {
-                      final int taskId = i;
-                      futures.add(executor.submit(() -> {
-                          try {
-                              String id = "concurrent_" + taskId;
-                              List<Float> embedding = IntStream.range(0, 384)
-                                  .mapToObj(j -> (float) (taskId * 0.01))
-                                  .collect(Collectors.toList());
-
-                              collection.add(builder -> builder
-                                  .ids(Arrays.asList(id))
-                                  .embeddings(Arrays.asList(embedding))
-                              );
-                              return true;
-                          } catch (Exception e) {
-                              e.printStackTrace();
-                              return false;
-                          }
-                      }));
-                  }
-
-                  // Wait for all operations to complete
-                  for (Future<Boolean> future : futures) {
-                      assertTrue(future.get(30, TimeUnit.SECONDS));
-                  }
-
-                  executor.shutdown();
-                  executor.awaitTermination(1, TimeUnit.MINUTES);
-
-                  assertEquals(100, collection.count());
-                  client.deleteCollection(collectionName);
-              }
-          }
-          EOF
 
       - name: Run stress tests
         run: |

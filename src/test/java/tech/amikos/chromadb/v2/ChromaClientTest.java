@@ -8,8 +8,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -31,16 +31,10 @@ public class ChromaClientTest {
                 .withEnv("IS_PERSISTENT", "FALSE")  // Use ephemeral mode for tests
                 .waitingFor(Wait.forHttp("/api/v2/heartbeat")
                     .forPort(8000)
-                    .forStatusCode(200));
+                    .forStatusCode(200)
+                    .withStartupTimeout(Duration.ofSeconds(30)));
 
             chromaContainer.start();
-
-            // Additional wait for ChromaDB to be fully ready
-            try {
-                TimeUnit.SECONDS.sleep(2);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
         }
     }
 
