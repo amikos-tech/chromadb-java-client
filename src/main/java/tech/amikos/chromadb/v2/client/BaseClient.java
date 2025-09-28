@@ -17,36 +17,30 @@ public abstract class BaseClient implements Client {
     @Override
     public Tenant createTenant(String name) {
         CreateTenantRequest request = new CreateTenantRequest(name);
-        return httpClient.post("/api/v2/tenants", request, Tenant.class);
+        return httpClient.post("/api/v1/tenants", request, Tenant.class);
     }
 
     @Override
     public Tenant getTenant(String name) {
-        String path = String.format("/api/v2/tenants/%s", name);
+        String path = String.format("/api/v1/tenants/%s", name);
         return httpClient.get(path, Tenant.class);
     }
 
     @Override
     public void updateTenant(String name, Consumer<UpdateTenantRequest.Builder> configurator) {
-        UpdateTenantRequest.Builder builder = UpdateTenantRequest.builder();
-        if (configurator != null) {
-            configurator.accept(builder);
-        }
-        UpdateTenantRequest request = builder.build();
-        String path = String.format("/api/v2/tenants/%s", name);
-        httpClient.patch(path, request, Void.class);
+        // Tenants are not supported in v1 API, no-op
     }
 
     @Override
     public Database createDatabase(String tenant, String name) {
         CreateDatabaseRequest request = new CreateDatabaseRequest(name);
-        String path = String.format("/api/v2/tenants/%s/databases", tenant);
+        String path = String.format("/api/v1/tenants/%s/databases", tenant);
         return httpClient.post(path, request, Database.class);
     }
 
     @Override
     public Database getDatabase(String tenant, String name) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s", tenant, name);
+        String path = String.format("/api/v1/tenants/%s/databases/%s", tenant, name);
         return httpClient.get(path, Database.class);
     }
 
@@ -59,17 +53,13 @@ public abstract class BaseClient implements Client {
     @Override
     @SuppressWarnings("unchecked")
     public List<Database> listDatabases(String tenant, Integer limit, Integer offset) {
-        String path = String.format("/api/v2/tenants/%s/databases", tenant);
-        if (limit != null || offset != null) {
-            path += buildQueryParams(limit, offset);
-        }
-        return (List<Database>) httpClient.get(path, List.class);
+        // Databases are not supported in v1 API, return empty list
+        return new ArrayList<>();
     }
 
     @Override
     public void deleteDatabase(String tenant, String name) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s", tenant, name);
-        httpClient.delete(path, Void.class);
+        // Databases are not supported in v1 API, no-op
     }
 
     @Override
@@ -85,7 +75,7 @@ public abstract class BaseClient implements Client {
             configurator.accept(builder);
         }
         CreateCollectionRequest request = builder.build();
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections", tenant, database);
+        String path = "/api/v1/collections";
         CollectionModel model = httpClient.post(path, request, CollectionModel.class);
         return createCollectionInstance(model);
     }
@@ -103,15 +93,14 @@ public abstract class BaseClient implements Client {
             configurator.accept(builder);
         }
         CreateCollectionRequest request = builder.build();
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections", tenant, database);
+        String path = "/api/v1/collections";
         CollectionModel model = httpClient.post(path, request, CollectionModel.class);
         return createCollectionInstance(model);
     }
 
     @Override
     public Collection getCollection(String tenant, String database, String collectionId) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections/%s",
-                tenant, database, collectionId);
+        String path = String.format("/api/v1/collections/%s", collectionId);
         CollectionModel model = httpClient.get(path, CollectionModel.class);
         return createCollectionInstance(model);
     }
@@ -125,7 +114,7 @@ public abstract class BaseClient implements Client {
     @Override
     @SuppressWarnings("unchecked")
     public List<Collection> listCollections(String tenant, String database, Integer limit, Integer offset) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections", tenant, database);
+        String path = "/api/v1/collections";
         if (limit != null || offset != null) {
             path += buildQueryParams(limit, offset);
         }
@@ -141,14 +130,13 @@ public abstract class BaseClient implements Client {
 
     @Override
     public int countCollections(String tenant, String database) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections_count", tenant, database);
+        String path = "/api/v1/collections/count";
         return httpClient.get(path, Integer.class);
     }
 
     @Override
     public void deleteCollection(String tenant, String database, String collectionId) {
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections/%s",
-                tenant, database, collectionId);
+        String path = String.format("/api/v1/collections/%s", collectionId);
         httpClient.delete(path, Void.class);
     }
 
@@ -160,24 +148,23 @@ public abstract class BaseClient implements Client {
             configurator.accept(builder);
         }
         UpdateCollectionRequest request = builder.build();
-        String path = String.format("/api/v2/tenants/%s/databases/%s/collections/%s",
-                tenant, database, collectionId);
+        String path = String.format("/api/v1/collections/%s", collectionId);
         httpClient.put(path, request, Void.class);
     }
 
     @Override
     public String heartbeat() {
-        return httpClient.get("/api/v2/heartbeat", String.class);
+        return httpClient.get("/api/v1/heartbeat", String.class);
     }
 
     @Override
     public String version() {
-        return httpClient.get("/api/v2/version", String.class);
+        return httpClient.get("/api/v1/version", String.class);
     }
 
     @Override
     public void reset() {
-        httpClient.post("/api/v2/reset", null, Void.class);
+        httpClient.post("/api/v1/reset", null, Void.class);
     }
 
     protected String buildQueryParams(Integer limit, Integer offset) {

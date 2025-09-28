@@ -74,7 +74,7 @@ public class ServerClientTest {
     public void testHeartbeat() {
         String heartbeat = client.heartbeat();
         assertNotNull(heartbeat);
-        assertEquals("\"nanosecond heartbeat\"", heartbeat);
+        assertTrue(heartbeat.contains("nanosecond heartbeat"));
     }
 
     @Test

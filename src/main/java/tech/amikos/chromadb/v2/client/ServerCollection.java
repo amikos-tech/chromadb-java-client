@@ -61,8 +61,7 @@ public class ServerCollection implements Collection {
     }
 
     private String basePath() {
-        return String.format("/api/v2/tenants/%s/databases/%s/collections/%s",
-                getTenant(), getDatabase(), getId());
+        return String.format("/api/v1/collections/%s", getId());
     }
 
     @Override
