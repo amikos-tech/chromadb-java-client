@@ -1,0 +1,368 @@
+name: V2 API Nightly Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_experimental:
+        description: 'Test experimental ChromaDB features'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  MAVEN_OPTS: -Xmx4096m -Xms1024m
+
+jobs:
+  comprehensive-v2-tests:
+    name: Comprehensive V2 API Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chroma-version:
+          - '0.4.24'  # Minimum supported version
+          - '0.5.0'
+          - '0.5.5'
+          - '0.5.10'
+          - '0.5.15'
+          - '0.5.20'
+          - 'latest'
+        java-version: [8, 11, 17, 21]
+        exclude:
+          # Java 21 only with newer ChromaDB versions
+          - java-version: 21
+            chroma-version: '0.4.24'
+          - java-version: 21
+            chroma-version: '0.5.0'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Start ChromaDB container
+        run: |
+          docker run -d \
+            --name chroma-${{ matrix.chroma-version }} \
+            -p 8000:8000 \
+            -e ALLOW_RESET=TRUE \
+            -e IS_PERSISTENT=FALSE \
+            chromadb/chroma:${{ matrix.chroma-version }}
+
+          # Wait for ChromaDB to be ready
+          echo "Waiting for ChromaDB to start..."
+          for i in {1..60}; do
+            if docker exec chroma-${{ matrix.chroma-version }} curl -f http://localhost:8000/api/v1 > /dev/null 2>&1; then
+              echo "ChromaDB is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 2
+          done
+
+      - name: Check ChromaDB health
+        run: |
+          curl -v http://localhost:8000/api/v1
+          docker logs chroma-${{ matrix.chroma-version }} | tail -20
+
+      - name: Run V2 API tests
+        run: |
+          mvn clean test \
+            -Dtest="tech.amikos.chromadb.v2.**" \
+            -DfailIfNoTests=false \
+            -Dchroma.url=http://localhost:8000
+        env:
+          CHROMA_VERSION: ${{ matrix.chroma-version }}
+          CHROMA_URL: http://localhost:8000
+
+      - name: Generate detailed test report
+        if: always()
+        run: |
+          mvn surefire-report:report-only
+          mvn site -DgenerateReports=false
+
+      - name: Collect container logs
+        if: failure()
+        run: |
+          docker logs chroma-${{ matrix.chroma-version }} > chroma-logs-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}.txt
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: nightly-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
+          path: |
+            target/surefire-reports/
+            target/site/
+            chroma-logs-*.txt
+
+      - name: Stop ChromaDB container
+        if: always()
+        run: docker stop chroma-${{ matrix.chroma-version }} && docker rm chroma-${{ matrix.chroma-version }}
+
+  stress-tests:
+    name: V2 API Stress Tests
+    runs-on: ubuntu-latest
+
+    services:
+      chroma:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        env:
+          ALLOW_RESET: 'TRUE'
+          IS_PERSISTENT: 'TRUE'
+          PERSIST_DIRECTORY: '/chroma/data'
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/api/v1 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --mount type=tmpfs,destination=/chroma/data
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Create stress test
+        run: |
+          cat > src/test/java/tech/amikos/chromadb/v2/V2StressTest.java << 'EOF'
+          package tech.amikos.chromadb.v2;
+
+          import org.junit.BeforeClass;
+          import org.junit.Test;
+          import tech.amikos.chromadb.v2.auth.AuthProvider;
+          import tech.amikos.chromadb.v2.client.Collection;
+          import tech.amikos.chromadb.v2.client.ServerClient;
+          import tech.amikos.chromadb.v2.model.*;
+
+          import java.util.*;
+          import java.util.concurrent.*;
+          import java.util.stream.Collectors;
+          import java.util.stream.IntStream;
+
+          import static org.junit.Assert.*;
+
+          public class V2StressTest {
+              private static ServerClient client;
+
+              @BeforeClass
+              public static void setup() {
+                  client = ServerClient.builder()
+                      .baseUrl("http://localhost:8000")
+                      .auth(AuthProvider.none())
+                      .connectTimeout(60)
+                      .readTimeout(60)
+                      .writeTimeout(60)
+                      .build();
+              }
+
+              @Test
+              public void testLargeScale() throws Exception {
+                  String collectionName = "stress_test_" + UUID.randomUUID().toString().substring(0, 8);
+                  Collection collection = client.createCollection(collectionName);
+
+                  // Add 10,000 records in batches of 100
+                  for (int batch = 0; batch < 100; batch++) {
+                      List<String> ids = new ArrayList<>();
+                      List<List<Float>> embeddings = new ArrayList<>();
+                      List<Map<String, Object>> metadatas = new ArrayList<>();
+
+                      for (int i = 0; i < 100; i++) {
+                          int recordId = batch * 100 + i;
+                          ids.add("id_" + recordId);
+
+                          // Create random embedding
+                          List<Float> embedding = new ArrayList<>();
+                          Random rand = new Random(recordId);
+                          for (int j = 0; j < 384; j++) {
+                              embedding.add(rand.nextFloat());
+                          }
+                          embeddings.add(embedding);
+
+                          metadatas.add(Map.of(
+                              "batch", batch,
+                              "index", i,
+                              "category", "category_" + (recordId % 10)
+                          ));
+                      }
+
+                      collection.add(builder -> builder
+                          .ids(ids)
+                          .embeddings(embeddings)
+                          .metadatas(metadatas)
+                      );
+
+                      if (batch % 10 == 0) {
+                          System.out.println("Added " + ((batch + 1) * 100) + " records");
+                      }
+                  }
+
+                  assertEquals(10000, collection.count());
+                  System.out.println("Successfully added 10,000 records");
+
+                  // Test queries
+                  Random rand = new Random();
+                  List<Float> queryEmbedding = IntStream.range(0, 384)
+                      .mapToObj(i -> rand.nextFloat())
+                      .collect(Collectors.toList());
+
+                  QueryResponse result = collection.query(builder -> builder
+                      .queryEmbeddings(Arrays.asList(queryEmbedding))
+                      .nResults(100)
+                      .include(Include.METADATAS, Include.DISTANCES)
+                  );
+
+                  assertEquals(1, result.getIds().size());
+                  assertEquals(100, result.getIds().get(0).size());
+
+                  client.deleteCollection(collectionName);
+              }
+
+              @Test
+              public void testConcurrentOperations() throws Exception {
+                  String collectionName = "concurrent_test_" + UUID.randomUUID().toString().substring(0, 8);
+                  Collection collection = client.createCollection(collectionName);
+
+                  ExecutorService executor = Executors.newFixedThreadPool(10);
+                  List<Future<Boolean>> futures = new ArrayList<>();
+
+                  // Submit 100 concurrent operations
+                  for (int i = 0; i < 100; i++) {
+                      final int taskId = i;
+                      futures.add(executor.submit(() -> {
+                          try {
+                              String id = "concurrent_" + taskId;
+                              List<Float> embedding = IntStream.range(0, 384)
+                                  .mapToObj(j -> (float) (taskId * 0.01))
+                                  .collect(Collectors.toList());
+
+                              collection.add(builder -> builder
+                                  .ids(Arrays.asList(id))
+                                  .embeddings(Arrays.asList(embedding))
+                              );
+                              return true;
+                          } catch (Exception e) {
+                              e.printStackTrace();
+                              return false;
+                          }
+                      }));
+                  }
+
+                  // Wait for all operations to complete
+                  for (Future<Boolean> future : futures) {
+                      assertTrue(future.get(30, TimeUnit.SECONDS));
+                  }
+
+                  executor.shutdown();
+                  executor.awaitTermination(1, TimeUnit.MINUTES);
+
+                  assertEquals(100, collection.count());
+                  client.deleteCollection(collectionName);
+              }
+          }
+          EOF
+
+      - name: Run stress tests
+        run: |
+          mvn test -Dtest=V2StressTest -DfailIfNoTests=false
+        env:
+          CHROMA_URL: http://localhost:8000
+
+      - name: Upload stress test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: stress-test-results-v2
+          path: |
+            target/surefire-reports/TEST-*V2StressTest.xml
+            target/site/
+
+  report-summary:
+    name: Generate Nightly Report
+    needs: [comprehensive-v2-tests, stress-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: test-artifacts
+
+      - name: Generate summary report
+        run: |
+          echo "# V2 API Nightly Test Report" > nightly-report.md
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> nightly-report.md
+          echo "" >> nightly-report.md
+
+          echo "## Test Coverage Matrix" >> nightly-report.md
+          echo "| ChromaDB | Java 8 | Java 11 | Java 17 | Java 21 |" >> nightly-report.md
+          echo "|----------|--------|---------|---------|---------|" >> nightly-report.md
+
+          # Process test results
+          for dir in test-artifacts/nightly-v2-*; do
+            if [ -d "$dir" ]; then
+              basename "$dir" | grep -o "chroma-[^-]*" | cut -d- -f2 >> versions.txt
+            fi
+          done
+
+          sort -u versions.txt > unique-versions.txt || true
+
+          while IFS= read -r version; do
+            if [ -n "$version" ]; then
+              row="| $version |"
+              for java in 8 11 17 21; do
+                if [ -d "test-artifacts/nightly-v2-chroma-${version}-java-${java}" ]; then
+                  if ls test-artifacts/nightly-v2-chroma-${version}-java-${java}/TEST-*.xml 2>/dev/null | head -1 | xargs grep -q 'failures="0".*errors="0"' 2>/dev/null; then
+                    row="$row ✅ |"
+                  else
+                    row="$row ❌ |"
+                  fi
+                else
+                  row="$row - |"
+                fi
+              done
+              echo "$row" >> nightly-report.md
+            fi
+          done < unique-versions.txt || true
+
+          echo "" >> nightly-report.md
+          echo "## Stress Test Results" >> nightly-report.md
+          if [ -f "test-artifacts/stress-test-results-v2/TEST-*V2StressTest.xml" ]; then
+            echo "✅ Stress tests completed successfully" >> nightly-report.md
+          else
+            echo "⚠️ Stress test results not found" >> nightly-report.md
+          fi
+
+          cat nightly-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Create issue for failures
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[V2 API] Nightly test failures - ${date}`,
+              body: `Nightly V2 API tests have failed. Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+              labels: ['bug', 'v2-api', 'nightly-test']
+            });
