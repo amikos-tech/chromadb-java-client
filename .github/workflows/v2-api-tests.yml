@@ -47,7 +47,7 @@ jobs:
             echo "matrix=[${JSON_ARRAY}]" >> $GITHUB_OUTPUT
           else
             # Default versions for v2 API testing
-            echo 'matrix=["0.5.15", "0.5.20", "latest"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["1.0.0", "1.1.0", "latest"]' >> $GITHUB_OUTPUT
           fi
 
   v2-api-tests:
@@ -209,7 +209,7 @@ jobs:
           echo "|------------------|---------|---------|" >> $GITHUB_STEP_SUMMARY
 
           # Check test results for each combination
-          for chroma_version in "0.5.15" "0.5.20" "latest"; do
+          for chroma_version in "1.0.0" "1.1.0" "latest"; do
             java11_status="❓"
             java17_status="❓"
 

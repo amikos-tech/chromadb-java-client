@@ -23,20 +23,16 @@ jobs:
       fail-fast: false
       matrix:
         chroma-version:
-          - '0.4.24'  # Minimum supported version
-          - '0.5.0'
-          - '0.5.5'
-          - '0.5.10'
-          - '0.5.15'
-          - '0.5.20'
+          - '1.0.0'  # Minimum supported version
+          - '1.0.1'
+          - '1.0.2'
+          - '1.0.3'
+          - '1.0.4'
+          - '1.1.0'
           - 'latest'
         java-version: [8, 11, 17, 21]
         exclude:
-          # Java 21 only with newer ChromaDB versions
-          - java-version: 21
-            chroma-version: '0.4.24'
-          - java-version: 21
-            chroma-version: '0.5.0'
+          # Java 8 only with older ChromaDB versions (no exclusions needed for 1.x)
 
     steps:
       - name: Checkout code

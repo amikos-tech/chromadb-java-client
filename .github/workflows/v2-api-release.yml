@@ -105,7 +105,7 @@ jobs:
 
           ## Compatibility
           - Java: 8, 11, 17, 21
-          - ChromaDB: 0.4.24+
+          - ChromaDB: 1.0.0+
 
           ## Installation
 
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chroma-version: ['0.4.24', '0.5.15', '0.5.20', 'latest']
+        chroma-version: ['1.0.0', '1.0.4', '1.1.0', 'latest']
         java-version: [8, 11, 17, 21]
 
     services:
