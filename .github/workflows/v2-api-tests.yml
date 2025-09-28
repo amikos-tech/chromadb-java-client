@@ -159,7 +159,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
           path: |
@@ -168,7 +168,7 @@ jobs:
 
       - name: Upload coverage reports
         if: success()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
           path: target/site/jacoco/
@@ -197,7 +197,7 @@ jobs:
 
     steps:
       - name: Download all test results
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v4
         with:
           path: test-artifacts
 
@@ -292,7 +292,7 @@ jobs:
           CHROMA_URL: http://localhost:8000
 
       - name: Upload performance results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: performance-results-v2
           path: target/performance-reports/

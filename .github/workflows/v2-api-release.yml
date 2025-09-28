@@ -139,7 +139,7 @@ jobs:
           cat release-notes.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-v2
           path: |
@@ -197,7 +197,7 @@ jobs:
 
       - name: Upload compatibility results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: compatibility-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
           path: compatibility-results.txt
@@ -224,7 +224,7 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v4
         with:
           name: release-artifacts-v2
           path: ./release
