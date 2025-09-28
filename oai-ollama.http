@@ -1,0 +1,36 @@
+POST http://localhost:11434/api/embeddings
+Content-Type: application/json
+
+{
+  "model": "llama2",
+  "prompt": [
+    "Here is an article about llamas...",
+    "this is another document to embedd"
+  ]
+}
+
+### req.Input: &{0x140007120d8 <nil> <nil> false true {0 0} false false false 0x10072ad60}
+
+###
+POST http://localhost:11434/v1/embeddings
+Content-Type: application/json
+
+{
+  "model": "llama2",
+  "input": [
+    "I am a sentence",
+    "I am another sentence"
+  ]
+}
+
+### req.Input: {{"model":"llama2","prompt":{"Prompt":"","Prompts":["I am a sentence","I am another sentence"]},"options":null}
+
+### BG GPT
+
+POST http://localhost:11434/api/embeddings
+Content-Type: application/json
+
+{
+  "model": "bg-gpt",
+  "prompt": "Казвам се Иван и съм от София"
+}
