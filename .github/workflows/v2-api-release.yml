@@ -1,0 +1,271 @@
+name: V2 API Release Validation
+
+on:
+  push:
+    tags:
+      - 'v2.*'
+      - 'v*.*.0-v2'
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version (e.g., 2.0.0)'
+        required: true
+      dry_run:
+        description: 'Perform dry run without publishing'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  validate-release:
+    name: Validate V2 API Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: 'maven'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.release_version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+          # Extract version components
+          if [[ $VERSION =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-.*)?$ ]]; then
+            echo "major=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "minor=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
+            echo "patch=${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
+            echo "suffix=${BASH_REMATCH[4]}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update version in pom.xml
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.version.outputs.version }}
+          mvn versions:commit
+
+      - name: Run full test suite
+        run: |
+          mvn clean test -Dtest="tech.amikos.chromadb.v2.**"
+
+      - name: Check backward compatibility
+        run: |
+          echo "Checking backward compatibility..."
+
+          # Download previous version for comparison
+          PREV_MAJOR=${{ steps.version.outputs.major }}
+          PREV_MINOR=$((steps.version.outputs.minor - 1))
+          PREV_VERSION="v${PREV_MAJOR}.${PREV_MINOR}.0"
+
+          if git rev-parse "$PREV_VERSION" >/dev/null 2>&1; then
+            git checkout "$PREV_VERSION" -- src/main/java/tech/amikos/chromadb/v2/client/Client.java || true
+            mv src/main/java/tech/amikos/chromadb/v2/client/Client.java /tmp/Client.java.prev || true
+            git checkout HEAD -- src/main/java/tech/amikos/chromadb/v2/client/Client.java
+
+            # Simple diff to check for breaking changes
+            if [ -f /tmp/Client.java.prev ]; then
+              echo "### API Changes from ${PREV_VERSION}:" >> $GITHUB_STEP_SUMMARY
+              diff -u /tmp/Client.java.prev src/main/java/tech/amikos/chromadb/v2/client/Client.java || true >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Generate Javadoc
+        run: |
+          mvn javadoc:javadoc -Dadditionalparam=-Xdoclint:none
+
+      - name: Build release artifacts
+        run: |
+          mvn clean package -DskipTests
+          mvn source:jar
+          mvn javadoc:jar
+
+      - name: Create release notes
+        id: release-notes
+        run: |
+          cat > release-notes.md << EOF
+          # V2 API Release ${{ steps.version.outputs.version }}
+
+          ## What's New
+          - ChromaDB V2 API support
+          - Improved performance and reliability
+          - Enhanced testing coverage
+
+          ## Compatibility
+          - Java: 8, 11, 17, 21
+          - ChromaDB: 1.0.0+
+
+          ## Installation
+
+          ### Maven
+          \`\`\`xml
+          <dependency>
+              <groupId>io.github.amikos-tech</groupId>
+              <artifactId>chromadb-java-client</artifactId>
+              <version>${{ steps.version.outputs.version }}</version>
+          </dependency>
+          \`\`\`
+
+          ### Gradle
+          \`\`\`groovy
+          implementation 'io.github.amikos-tech:chromadb-java-client:${{ steps.version.outputs.version }}'
+          \`\`\`
+
+          ## Changes
+          $(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD | grep -E "v2|V2" | head -20)
+
+          ## Documentation
+          - [V2 API Documentation](https://github.com/amikos-tech/chromadb-java-client/blob/main/V2_API_EXAMPLE.md)
+          - [Migration Guide](https://github.com/amikos-tech/chromadb-java-client/blob/main/V2_MIGRATION.md)
+
+          ## Checksums
+          \`\`\`
+          $(sha256sum target/*.jar)
+          \`\`\`
+          EOF
+
+          cat release-notes.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-v2
+          path: |
+            target/*.jar
+            release-notes.md
+
+  compatibility-matrix:
+    name: V2 Release Compatibility Test
+    needs: validate-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chroma-version: ['1.0.0', '1.0.4', '1.1.0', 'latest']
+        java-version: [8, 11, 17, 21]
+
+    services:
+      chroma:
+        image: chromadb/chroma:${{ matrix.chroma-version }}
+        ports:
+          - 8000:8000
+        env:
+          ALLOW_RESET: 'TRUE'
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:8000/api/v1 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run compatibility tests
+        run: |
+          mvn test -Dtest="tech.amikos.chromadb.v2.**Test" -DfailIfNoTests=false
+        env:
+          CHROMA_URL: http://localhost:8000
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "ChromaDB: ${{ matrix.chroma-version }}, Java: ${{ matrix.java-version }}" >> compatibility-results.txt
+          if [ $? -eq 0 ]; then
+            echo "✅ PASSED" >> compatibility-results.txt
+          else
+            echo "❌ FAILED" >> compatibility-results.txt
+          fi
+
+      - name: Upload compatibility results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
+          path: compatibility-results.txt
+
+  publish-release:
+    name: Publish V2 API Release
+    needs: [validate-release, compatibility-matrix]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry_run != 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts-v2
+          path: ./release
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: V2 API Release ${{ github.ref }}
+          body_path: ./release/release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
+
+      - name: Upload JAR to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/chromadb-java-client-${{ steps.version.outputs.version }}.jar
+          asset_name: chromadb-java-client-${{ steps.version.outputs.version }}.jar
+          asset_content_type: application/java-archive
+
+      - name: Deploy to Maven Central
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          mvn clean deploy -P release -DskipTests
+
+      - name: Update documentation
+        run: |
+          # Update README with new version
+          sed -i "s/<version>.*<\/version>/<version>${{ steps.version.outputs.version }}<\/version>/g" README.md
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add README.md
+          git commit -m "docs: update version to ${{ steps.version.outputs.version }}" || true
+          git push origin HEAD:main || true

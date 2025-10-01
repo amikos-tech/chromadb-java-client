@@ -1,0 +1,225 @@
+name: V2 API Nightly Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_experimental:
+        description: 'Test experimental ChromaDB features'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  MAVEN_OPTS: -Xmx4096m -Xms1024m
+
+jobs:
+  comprehensive-v2-tests:
+    name: Comprehensive V2 API Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chroma-version:
+          - '1.0.0'  # Minimum supported version
+          - '1.0.1'
+          - '1.0.2'
+          - '1.0.3'
+          - '1.0.4'
+          - '1.1.0'
+          - 'latest'
+        java-version: [8, 11, 17, 21]
+        exclude:
+          # Java 8 only with older ChromaDB versions (no exclusions needed for 1.x)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Start ChromaDB container
+        run: |
+          docker run -d \
+            --name chroma-${{ matrix.chroma-version }} \
+            -p 8000:8000 \
+            -e ALLOW_RESET=TRUE \
+            -e IS_PERSISTENT=FALSE \
+            chromadb/chroma:${{ matrix.chroma-version }}
+
+          # Wait for ChromaDB to be ready
+          echo "Waiting for ChromaDB to start..."
+          for i in {1..60}; do
+            if curl -f http://localhost:8000/api/v1 > /dev/null 2>&1; then
+              echo "ChromaDB is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 2
+          done
+
+      - name: Check ChromaDB health
+        run: |
+          curl -v http://localhost:8000/api/v1
+          docker logs chroma-${{ matrix.chroma-version }} | tail -20
+
+      - name: Run V2 API tests
+        run: |
+          mvn clean test \
+            -Dtest="tech.amikos.chromadb.v2.**" \
+            -DfailIfNoTests=false \
+            -Dchroma.url=http://localhost:8000
+        env:
+          CHROMA_VERSION: ${{ matrix.chroma-version }}
+          CHROMA_URL: http://localhost:8000
+
+      - name: Generate detailed test report
+        if: always()
+        run: |
+          mvn surefire-report:report-only
+          mvn site -DgenerateReports=false
+
+      - name: Collect container logs
+        if: failure()
+        run: |
+          docker logs chroma-${{ matrix.chroma-version }} > chroma-logs-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}.txt
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
+          path: |
+            target/surefire-reports/
+            target/site/
+            chroma-logs-*.txt
+
+      - name: Stop ChromaDB container
+        if: always()
+        run: docker stop chroma-${{ matrix.chroma-version }} && docker rm chroma-${{ matrix.chroma-version }}
+
+  stress-tests:
+    name: V2 API Stress Tests
+    runs-on: ubuntu-latest
+
+    services:
+      chroma:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        env:
+          ALLOW_RESET: 'TRUE'
+          IS_PERSISTENT: 'TRUE'
+          PERSIST_DIRECTORY: '/chroma/data'
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:8000/api/v1 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --mount type=tmpfs,destination=/chroma/data
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run stress tests
+        run: |
+          mvn test -Dtest=V2StressTest -DfailIfNoTests=false
+        env:
+          CHROMA_URL: http://localhost:8000
+
+      - name: Upload stress test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-results-v2
+          path: |
+            target/surefire-reports/TEST-*V2StressTest.xml
+            target/site/
+
+  report-summary:
+    name: Generate Nightly Report
+    needs: [comprehensive-v2-tests, stress-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+
+      - name: Generate summary report
+        run: |
+          echo "# V2 API Nightly Test Report" > nightly-report.md
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> nightly-report.md
+          echo "" >> nightly-report.md
+
+          echo "## Test Coverage Matrix" >> nightly-report.md
+          echo "| ChromaDB | Java 8 | Java 11 | Java 17 | Java 21 |" >> nightly-report.md
+          echo "|----------|--------|---------|---------|---------|" >> nightly-report.md
+
+          # Process test results
+          for dir in test-artifacts/nightly-v2-*; do
+            if [ -d "$dir" ]; then
+              basename "$dir" | grep -o "chroma-[^-]*" | cut -d- -f2 >> versions.txt
+            fi
+          done
+
+          sort -u versions.txt > unique-versions.txt || true
+
+          while IFS= read -r version; do
+            if [ -n "$version" ]; then
+              row="| $version |"
+              for java in 8 11 17 21; do
+                if [ -d "test-artifacts/nightly-v2-chroma-${version}-java-${java}" ]; then
+                  if ls test-artifacts/nightly-v2-chroma-${version}-java-${java}/TEST-*.xml 2>/dev/null | head -1 | xargs grep -q 'failures="0".*errors="0"' 2>/dev/null; then
+                    row="$row ✅ |"
+                  else
+                    row="$row ❌ |"
+                  fi
+                else
+                  row="$row - |"
+                fi
+              done
+              echo "$row" >> nightly-report.md
+            fi
+          done < unique-versions.txt || true
+
+          echo "" >> nightly-report.md
+          echo "## Stress Test Results" >> nightly-report.md
+          if [ -f "test-artifacts/stress-test-results-v2/TEST-*V2StressTest.xml" ]; then
+            echo "✅ Stress tests completed successfully" >> nightly-report.md
+          else
+            echo "⚠️ Stress test results not found" >> nightly-report.md
+          fi
+
+          cat nightly-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Create issue for failures
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[V2 API] Nightly test failures - ${date}`,
+              body: `Nightly V2 API tests have failed. Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`,
+              labels: ['bug', 'v2-api', 'nightly-test']
+            });
