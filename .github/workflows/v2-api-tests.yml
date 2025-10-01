@@ -104,7 +104,7 @@ jobs:
         run: |
           echo "Waiting for ChromaDB to be ready..."
           for i in {1..30}; do
-            if curl -f http://localhost:8000/api/v2 > /dev/null 2>&1; then
+            if curl -f http://localhost:8000/api/v1 > /dev/null 2>&1; then
               echo "ChromaDB is ready!"
               break
             fi
@@ -113,12 +113,12 @@ jobs:
           done
 
           # Verify ChromaDB is responding
-          curl -v http://localhost:8000/api/v2 || true
+          curl -v http://localhost:8000/api/v1 || true
 
       - name: Get ChromaDB Version Info
         run: |
           echo "Testing against ChromaDB version: ${{ matrix.chroma-version }}"
-          curl -s http://localhost:8000/api/v2/version || echo "Version endpoint not available"
+          curl -s http://localhost:8000/api/v1/version || echo "Version endpoint not available"
 
       - name: Compile project
         run: mvn clean compile -DskipTests
@@ -205,20 +205,20 @@ jobs:
         run: |
           echo "# V2 API Compatibility Matrix" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| ChromaDB Version | Java 11 | Java 17 |" >> $GITHUB_STEP_SUMMARY
-          echo "|------------------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ChromaDB Version | Java 8 | Java 17 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
 
           # Check test results for each combination
           for chroma_version in "1.0.0" "1.1.0" "latest"; do
-            java11_status="❓"
+            java8_status="❓"
             java17_status="❓"
 
-            if [ -d "test-artifacts/test-results-v2-chroma-${chroma_version}-java-11" ]; then
-              if grep -q 'failures="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-11/TEST-*.xml 2>/dev/null && \
-                 grep -q 'errors="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-11/TEST-*.xml 2>/dev/null; then
-                java11_status="✅"
+            if [ -d "test-artifacts/test-results-v2-chroma-${chroma_version}-java-8" ]; then
+              if grep -q 'failures="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-8/TEST-*.xml 2>/dev/null && \
+                 grep -q 'errors="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-8/TEST-*.xml 2>/dev/null; then
+                java8_status="✅"
               else
-                java11_status="❌"
+                java8_status="❌"
               fi
             fi
 
@@ -231,7 +231,7 @@ jobs:
               fi
             fi
 
-            echo "| ${chroma_version} | ${java11_status} | ${java17_status} |" >> $GITHUB_STEP_SUMMARY
+            echo "| ${chroma_version} | ${java8_status} | ${java17_status} |" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
