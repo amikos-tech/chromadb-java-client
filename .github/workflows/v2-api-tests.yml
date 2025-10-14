@@ -1,0 +1,298 @@
+name: V2 API Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/chroma-v2-api-*'
+    paths:
+      - 'src/main/java/tech/amikos/chromadb/v2/**'
+      - 'src/test/java/tech/amikos/chromadb/v2/**'
+      - '.github/workflows/v2-api-tests.yml'
+      - 'pom.xml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/main/java/tech/amikos/chromadb/v2/**'
+      - 'src/test/java/tech/amikos/chromadb/v2/**'
+      - '.github/workflows/v2-api-tests.yml'
+      - 'pom.xml'
+  workflow_dispatch:
+    inputs:
+      chroma_versions:
+        description: 'Comma-separated list of ChromaDB versions to test (e.g., 1.1.0)'
+        required: false
+        default: ''
+
+env:
+  MAVEN_OPTS: -Xmx4096m -Xms1024m
+
+jobs:
+  determine-versions:
+    name: Determine ChromaDB Versions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set ChromaDB versions matrix
+        id: set-matrix
+        run: |
+          if [ -n "${{ github.event.inputs.chroma_versions }}" ]; then
+            # Use custom versions from workflow dispatch
+            IFS=',' read -ra VERSIONS <<< "${{ github.event.inputs.chroma_versions }}"
+            JSON_ARRAY=$(printf '"%s",' "${VERSIONS[@]}" | sed 's/,$//')
+            echo "matrix=[${JSON_ARRAY}]" >> $GITHUB_OUTPUT
+          else
+            # Default versions for v2 API testing
+            echo 'matrix=["1.0.0", "1.1.0", "latest"]' >> $GITHUB_OUTPUT
+          fi
+
+  v2-api-tests:
+    name: V2 API Tests (ChromaDB ${{ matrix.chroma-version }})
+    needs: determine-versions
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chroma-version: ${{ fromJson(needs.determine-versions.outputs.matrix) }}
+        java-version: [8, 17]
+
+    services:
+      chroma:
+        image: chromadb/chroma:${{ matrix.chroma-version }}
+        ports:
+          - 8000:8000
+        env: # TODO these are not accurate and won't work
+          ALLOW_RESET: 'TRUE'
+          IS_PERSISTENT: 'FALSE'
+          CHROMA_SERVER_AUTH_PROVIDER: 'chromadb.auth.token_authn.TokenAuthenticationServerProvider'
+          CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: 'chromadb.auth.token_authn.TokenConfigServerCredentialsProvider'
+          CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER: 'X_CHROMA_TOKEN'
+          CHROMA_SERVER_AUTH_CREDENTIALS: 'test-token'
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:8000/api/v1 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: ${{ runner.os }}-maven-v2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-v2-
+            ${{ runner.os }}-maven-
+
+      - name: Wait for ChromaDB to be ready
+        run: |
+          echo "Waiting for ChromaDB to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/api/v1 > /dev/null 2>&1; then
+              echo "ChromaDB is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+          # Verify ChromaDB is responding
+          curl -v http://localhost:8000/api/v1 || true
+
+      - name: Get ChromaDB Version Info
+        run: |
+          echo "Testing against ChromaDB version: ${{ matrix.chroma-version }}"
+          curl -s http://localhost:8000/api/v1/version || echo "Version endpoint not available"
+
+      - name: Compile project
+        run: mvn clean compile -DskipTests
+
+      - name: Compile tests
+        run: mvn test-compile
+
+      - name: Run V2 API Unit Tests
+        run: |
+          mvn test \
+            -Dtest="tech.amikos.chromadb.v2.**Test" \
+            -DfailIfNoTests=false \
+            -Dchroma.url=http://localhost:8000 \
+            -Dchroma.token=test-token
+        env:
+          CHROMA_VERSION: ${{ matrix.chroma-version }}
+          CHROMA_URL: http://localhost:8000
+          CHROMA_TOKEN: test-token
+
+      - name: Run V2 API Integration Tests
+        if: success() || failure()
+        run: |
+          mvn test \
+            -Dtest="tech.amikos.chromadb.v2.**IT" \
+            -DfailIfNoTests=false \
+            -Dchroma.url=http://localhost:8000 \
+            -Dchroma.token=test-token
+        env:
+          CHROMA_VERSION: ${{ matrix.chroma-version }}
+          CHROMA_URL: http://localhost:8000
+          CHROMA_TOKEN: test-token
+
+      - name: Generate test report
+        if: always()
+        run: |
+          mvn surefire-report:report-only
+          mvn site -DgenerateReports=false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
+          path: |
+            target/surefire-reports/
+            target/site/surefire-report.html
+
+      - name: Upload coverage reports
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-v2-chroma-${{ matrix.chroma-version }}-java-${{ matrix.java-version }}
+          path: target/site/jacoco/
+
+      - name: Test Report Summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ChromaDB Version: ${{ matrix.chroma-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Java Version: ${{ matrix.java-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f target/surefire-reports/TEST-tech.amikos.chromadb.v2.ServerClientTest.xml ]; then
+            echo "### V2 API Test Results" >> $GITHUB_STEP_SUMMARY
+            # Parse XML to get test counts (simplified - you might want to use xmllint or similar)
+            grep -o 'tests="[^"]*"' target/surefire-reports/TEST-*.xml | head -1 >> $GITHUB_STEP_SUMMARY || true
+            grep -o 'failures="[^"]*"' target/surefire-reports/TEST-*.xml | head -1 >> $GITHUB_STEP_SUMMARY || true
+            grep -o 'errors="[^"]*"' target/surefire-reports/TEST-*.xml | head -1 >> $GITHUB_STEP_SUMMARY || true
+          fi
+
+  v2-api-compatibility-matrix:
+    name: V2 API Compatibility Report
+    needs: v2-api-tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+
+      - name: Generate compatibility matrix
+        run: |
+          echo "# V2 API Compatibility Matrix" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| ChromaDB Version | Java 8 | Java 17 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check test results for each combination
+          for chroma_version in "1.0.0" "1.1.0" "latest"; do
+            java8_status="❓"
+            java17_status="❓"
+
+            if [ -d "test-artifacts/test-results-v2-chroma-${chroma_version}-java-8" ]; then
+              if grep -q 'failures="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-8/TEST-*.xml 2>/dev/null && \
+                 grep -q 'errors="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-8/TEST-*.xml 2>/dev/null; then
+                java8_status="✅"
+              else
+                java8_status="❌"
+              fi
+            fi
+
+            if [ -d "test-artifacts/test-results-v2-chroma-${chroma_version}-java-17" ]; then
+              if grep -q 'failures="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-17/TEST-*.xml 2>/dev/null && \
+                 grep -q 'errors="0"' test-artifacts/test-results-v2-chroma-${chroma_version}-java-17/TEST-*.xml 2>/dev/null; then
+                java17_status="✅"
+              else
+                java17_status="❌"
+              fi
+            fi
+
+            echo "| ${chroma_version} | ${java8_status} | ${java17_status} |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ = All tests passed | ❌ = Tests failed | ❓ = No results" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  v2-api-performance-tests:
+    name: V2 API Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    services:
+      chroma:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        env:
+          ALLOW_RESET: 'TRUE'
+          IS_PERSISTENT: 'FALSE'
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:8000/api/v1 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run performance tests
+        run: |
+          mvn test \
+            -Dtest="tech.amikos.chromadb.v2.**PerformanceTest" \
+            -DfailIfNoTests=false \
+            -Dchroma.url=http://localhost:8000
+        env:
+          CHROMA_URL: http://localhost:8000
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-v2
+          path: target/performance-reports/

@@ -30,7 +30,10 @@ build/
 .vscode/
 
 ### Mac OS ###
-.DS_Store*.class
+.DS_Store
+
+### Java ###
+*.class
 *.log
 *.ctxt
 .mtj.tmp/

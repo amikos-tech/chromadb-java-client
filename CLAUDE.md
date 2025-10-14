@@ -28,10 +28,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `HF_API_KEY` - Required for HuggingFace embedding tests
 - `CHROMA_VERSION` - Specifies ChromaDB version for integration tests
 
-## Architecture Overview
+## API Design Principles (V2)
 
-### Core Client Structure
-The client follows a standard Swagger/OpenAPI generated client pattern with custom enhancements:
+### Radical Simplicity
+The V2 API follows principles of radical simplicity based on successful Java libraries like OkHttp, Retrofit, and Jedis:
+
+1. **Single Configuration Pattern**: Use ONLY fluent builders, NEVER Consumer<Builder> patterns
+2. **Flat Package Structure**: All public API classes in `tech.amikos.chromadb.v2` package (no sub-packages)
+3. **One Way to Do Things**: Each task has exactly one idiomatic approach
+4. **Minimal Public API Surface**: ~20-25 classes total (following OkHttp's model)
+5. **Concrete Over Abstract**: Prefer concrete classes over interfaces where possible
+
+### Architecture Overview
+
+#### V1 Client (Legacy - Maintained for Compatibility)
+The V1 client (`tech.amikos.chromadb`) follows a standard Swagger/OpenAPI generated client pattern:
 
 1. **Generated API Layer** (`target/generated-sources/swagger/`)
    - Auto-generated from OpenAPI specifications
@@ -47,6 +58,31 @@ The client follows a standard Swagger/OpenAPI generated client pattern with cust
    - Multiple provider implementations (OpenAI, Cohere, HuggingFace, Ollama, Default)
    - Each implements `EmbeddingFunction` interface
    - Default embedding uses ONNX Runtime for local inference
+
+#### V2 Client (Recommended - Radical Simplicity)
+The V2 client (`tech.amikos.chromadb.v2`) implements radical simplicity:
+
+1. **Single Flat Package** - All classes in `tech.amikos.chromadb.v2`
+   - No sub-packages for auth, model, client, etc.
+   - Everything discoverable in one location
+
+2. **Core Classes** (~20 total)
+   - `ChromaClient` - Single client class with builder
+   - `Collection` - Concrete collection class (not interface)
+   - `Metadata` - Strongly-typed metadata with builder
+   - Query builders: `QueryBuilder`, `AddBuilder`, etc.
+   - Model classes: `Where`, `WhereDocument`, `Include`
+   - Auth: `AuthProvider` interface with implementations
+   - Exceptions: Strongly-typed exception hierarchy
+
+3. **Builder-Only Pattern**
+   ```java
+   // Only way to query - no Consumer<Builder> alternative
+   collection.query()
+       .where(Where.eq("type", "article"))
+       .nResults(10)
+       .execute();
+   ```
 
 ### Key Design Patterns
 
