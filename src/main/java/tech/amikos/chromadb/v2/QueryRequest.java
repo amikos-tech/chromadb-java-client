@@ -11,6 +11,9 @@ public class QueryRequest {
     @SerializedName("query_embeddings")
     private final Object queryEmbeddings;
 
+    @SerializedName("query_texts")
+    private final List<String> queryTexts;
+
     @SerializedName("n_results")
     private final Integer nResults;
 
@@ -25,6 +28,7 @@ public class QueryRequest {
 
     private QueryRequest(Builder builder) {
         this.queryEmbeddings = builder.queryEmbeddings;
+        this.queryTexts = builder.queryTexts;
         this.nResults = builder.nResults;
         this.where = builder.where;
         this.whereDocument = builder.whereDocument;
@@ -37,6 +41,7 @@ public class QueryRequest {
 
     public static class Builder {
         private Object queryEmbeddings;
+        private List<String> queryTexts;
         private Integer nResults = 10;
         private Map<String, Object> where;
         private Map<String, Object> whereDocument;
@@ -49,6 +54,11 @@ public class QueryRequest {
 
         public Builder queryEmbeddingsAsBase64(List<String> embeddings) {
             this.queryEmbeddings = embeddings;
+            return this;
+        }
+
+        public Builder queryTexts(List<String> texts) {
+            this.queryTexts = texts;
             return this;
         }
 
@@ -78,8 +88,11 @@ public class QueryRequest {
         }
 
         public QueryRequest build() {
-            if (queryEmbeddings == null) {
-                throw new IllegalArgumentException("queryEmbeddings are required");
+            if (queryEmbeddings == null && queryTexts == null) {
+                throw new IllegalArgumentException("Either queryEmbeddings or queryTexts must be provided");
+            }
+            if (queryEmbeddings != null && queryTexts != null) {
+                throw new IllegalArgumentException("Cannot provide both queryEmbeddings and queryTexts");
             }
             return new QueryRequest(this);
         }

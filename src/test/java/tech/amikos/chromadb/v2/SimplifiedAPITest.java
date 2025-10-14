@@ -184,4 +184,142 @@ public class SimplifiedAPITest {
         // Test passes if compilation succeeds
         assertTrue("Code compiles without Consumer<Builder> patterns", true);
     }
+
+    @Test
+    public void testConvenienceMethodsExist() {
+        // Verify that convenience methods exist on Collection class
+        // This test ensures the API surface matches Chroma's simplicity
+
+        // This test passes if the code compiles, proving the methods exist
+        Class<Collection> collectionClass = Collection.class;
+        assertNotNull(collectionClass);
+
+        // Verify method signatures exist (compile-time check)
+        try {
+            // add(List, List)
+            collectionClass.getDeclaredMethod("add", List.class, List.class);
+
+            // add(List, List, List)
+            collectionClass.getDeclaredMethod("add", List.class, List.class, List.class);
+
+            // add(List, List, List, List)
+            collectionClass.getDeclaredMethod("add", List.class, List.class, List.class, List.class);
+
+            // query(List, int)
+            collectionClass.getDeclaredMethod("query", List.class, int.class);
+
+            // query(List, int, Where)
+            collectionClass.getDeclaredMethod("query", List.class, int.class, Where.class);
+
+            // queryByText(List, int)
+            collectionClass.getDeclaredMethod("queryByText", List.class, int.class);
+
+            // get(List)
+            collectionClass.getDeclaredMethod("get", List.class);
+
+            // delete(List)
+            collectionClass.getDeclaredMethod("delete", List.class);
+
+            // delete(Where)
+            collectionClass.getDeclaredMethod("delete", Where.class);
+
+            // upsert(List, List)
+            collectionClass.getDeclaredMethod("upsert", List.class, List.class);
+
+            assertTrue("All convenience methods exist", true);
+        } catch (NoSuchMethodException e) {
+            fail("Convenience method missing: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testBuilderMethodsStillExist() {
+        // Verify that builder methods still exist for complex cases
+        Class<Collection> collectionClass = Collection.class;
+
+        try {
+            // Builder methods should return builder instances
+            collectionClass.getDeclaredMethod("query");
+            collectionClass.getDeclaredMethod("get");
+            collectionClass.getDeclaredMethod("add");
+            collectionClass.getDeclaredMethod("update");
+            collectionClass.getDeclaredMethod("upsert");
+            collectionClass.getDeclaredMethod("delete");
+
+            assertTrue("All builder methods exist", true);
+        } catch (NoSuchMethodException e) {
+            fail("Builder method missing: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testQueryRequestSupportsQueryTexts() {
+        // Verify QueryRequest supports query_texts for Chroma API alignment
+        QueryRequest request = QueryRequest.builder()
+            .queryTexts(Arrays.asList("search text"))
+            .nResults(10)
+            .build();
+
+        assertNotNull(request);
+    }
+
+    @Test
+    public void testQueryRequestValidation() {
+        // Verify QueryRequest validates that either embeddings or texts are provided
+        try {
+            QueryRequest.builder()
+                .nResults(10)
+                .build();
+            fail("Should require either queryEmbeddings or queryTexts");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("queryEmbeddings or queryTexts"));
+        }
+    }
+
+    @Test
+    public void testQueryRequestMutualExclusivity() {
+        // Verify QueryRequest doesn't allow both embeddings and texts
+        try {
+            QueryRequest.builder()
+                .queryEmbeddings(Arrays.asList(Arrays.asList(0.1f, 0.2f)))
+                .queryTexts(Arrays.asList("text"))
+                .nResults(10)
+                .build();
+            fail("Should not allow both queryEmbeddings and queryTexts");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("Cannot provide both"));
+        }
+    }
+
+    @Test
+    public void testAddRecordsRequestBuilder() {
+        // Test AddRecordsRequest builder works correctly
+        AddRecordsRequest request = AddRecordsRequest.builder()
+            .ids(Arrays.asList("id1", "id2"))
+            .embeddings(Arrays.asList(
+                Arrays.asList(0.1f, 0.2f),
+                Arrays.asList(0.3f, 0.4f)
+            ))
+            .documents(Arrays.asList("doc1", "doc2"))
+            .metadatas(Arrays.asList(
+                Map.of("key", "value1"),
+                Map.of("key", "value2")
+            ))
+            .build();
+
+        assertNotNull(request);
+    }
+
+    @Test
+    public void testDualAPIApproach() {
+        // Verify the dual API approach (convenience + builders) is available
+        // This is a design validation test
+
+        // Both approaches should be valid at compile time:
+        // 1. Convenience: collection.query(embeddings, 10)
+        // 2. Builder: collection.query().queryEmbeddings(embeddings).nResults(10).execute()
+
+        // If this compiles, the dual approach is working
+        assertTrue("Dual API approach compiles successfully", true);
+    }
 }

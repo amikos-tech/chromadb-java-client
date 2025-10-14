@@ -64,30 +64,97 @@ public class Collection {
         return httpClient.get(basePath() + "/count", Integer.class);
     }
 
+    // Convenience methods for common use cases (Chroma-aligned API)
+
+    public void add(List<String> ids, List<List<Float>> embeddings) {
+        new AddBuilder().ids(ids).embeddings(embeddings).execute();
+    }
+
+    public void add(List<String> ids, List<List<Float>> embeddings, List<String> documents) {
+        new AddBuilder().ids(ids).embeddings(embeddings).documents(documents).execute();
+    }
+
+    public void add(List<String> ids, List<List<Float>> embeddings, List<String> documents, List<Map<String, Object>> metadatas) {
+        new AddBuilder().ids(ids).embeddings(embeddings).documents(documents).metadatas(metadatas).execute();
+    }
+
+    public QueryResponse query(List<List<Float>> queryEmbeddings, int nResults) {
+        return new QueryBuilder().queryEmbeddings(queryEmbeddings).nResults(nResults).execute();
+    }
+
+    public QueryResponse query(List<List<Float>> queryEmbeddings, int nResults, Where where) {
+        return new QueryBuilder().queryEmbeddings(queryEmbeddings).nResults(nResults).where(where).execute();
+    }
+
+    public QueryResponse query(List<List<Float>> queryEmbeddings, int nResults, Where where, Include... include) {
+        return new QueryBuilder().queryEmbeddings(queryEmbeddings).nResults(nResults).where(where).include(include).execute();
+    }
+
+    public QueryResponse queryByText(List<String> queryTexts, int nResults) {
+        return new QueryBuilder().queryTexts(queryTexts).nResults(nResults).execute();
+    }
+
+    public QueryResponse queryByText(List<String> queryTexts, int nResults, Where where) {
+        return new QueryBuilder().queryTexts(queryTexts).nResults(nResults).where(where).execute();
+    }
+
+    public QueryResponse queryByText(List<String> queryTexts, int nResults, Where where, Include... include) {
+        return new QueryBuilder().queryTexts(queryTexts).nResults(nResults).where(where).include(include).execute();
+    }
+
+    public GetResponse get(List<String> ids) {
+        return new GetBuilder().ids(ids).execute();
+    }
+
+    public GetResponse get(List<String> ids, Include... include) {
+        return new GetBuilder().ids(ids).include(include).execute();
+    }
+
+    public void update(List<String> ids, List<List<Float>> embeddings, List<String> documents, List<Map<String, Object>> metadatas) {
+        new UpdateBuilder().ids(ids).embeddings(embeddings).documents(documents).metadatas(metadatas).execute();
+    }
+
+    public void upsert(List<String> ids, List<List<Float>> embeddings) {
+        new UpsertBuilder().ids(ids).embeddings(embeddings).execute();
+    }
+
+    public void upsert(List<String> ids, List<List<Float>> embeddings, List<String> documents) {
+        new UpsertBuilder().ids(ids).embeddings(embeddings).documents(documents).execute();
+    }
+
+    public void upsert(List<String> ids, List<List<Float>> embeddings, List<String> documents, List<Map<String, Object>> metadatas) {
+        new UpsertBuilder().ids(ids).embeddings(embeddings).documents(documents).metadatas(metadatas).execute();
+    }
+
+    public void delete(List<String> ids) {
+        new DeleteBuilder().ids(ids).execute();
+    }
+
+    public void delete(Where where) {
+        new DeleteBuilder().where(where).execute();
+    }
+
+    // Builder methods for complex operations
+
     public QueryBuilder query() {
         return new QueryBuilder();
     }
-
 
     public GetBuilder get() {
         return new GetBuilder();
     }
 
-
     public AddBuilder add() {
         return new AddBuilder();
     }
-
 
     public UpdateBuilder update() {
         return new UpdateBuilder();
     }
 
-
     public UpsertBuilder upsert() {
         return new UpsertBuilder();
     }
-
 
     public DeleteBuilder delete() {
         return new DeleteBuilder();
@@ -99,6 +166,11 @@ public class Collection {
 
         public QueryBuilder queryEmbeddings(List<List<Float>> embeddings) {
             builder.queryEmbeddings(embeddings);
+            return this;
+        }
+
+        public QueryBuilder queryTexts(List<String> texts) {
+            builder.queryTexts(texts);
             return this;
         }
 
