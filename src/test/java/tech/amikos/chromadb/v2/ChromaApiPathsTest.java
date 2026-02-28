@@ -145,4 +145,43 @@ public class ChromaApiPathsTest {
                 "/api/v2/tenants/t%201/databases/d%201/collections/c%201/add",
                 ChromaApiPaths.collectionAdd("t 1", "d 1", "c 1"));
     }
+
+    @Test
+    public void testUnicodeSegmentsEncoded() {
+        assertEquals(
+                "/api/v2/tenants/%E4%BD%A0%E5%A5%BD%20%F0%9F%8C%8D",
+                ChromaApiPaths.tenant("你好 🌍"));
+    }
+
+    // --- Null input guard ---
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullTenantThrows() {
+        ChromaApiPaths.tenant(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullDatabaseThrows() {
+        ChromaApiPaths.database("t1", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullCollectionNameThrows() {
+        ChromaApiPaths.collection("t1", "db1", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyTenantThrows() {
+        ChromaApiPaths.tenant("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyDatabaseThrows() {
+        ChromaApiPaths.database("t1", "");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyCollectionNameThrows() {
+        ChromaApiPaths.collection("t1", "db1", "");
+    }
 }

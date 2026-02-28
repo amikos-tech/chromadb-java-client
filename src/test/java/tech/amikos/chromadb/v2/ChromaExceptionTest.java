@@ -91,6 +91,28 @@ public class ChromaExceptionTest {
         assertTrue(ex instanceof ChromaException);
     }
 
+    @Test
+    public void testDeserializationExceptionStatusCode() {
+        ChromaDeserializationException ex = new ChromaDeserializationException("bad body", 200);
+        assertEquals(200, ex.getStatusCode());
+        assertTrue(ex.hasStatusCode());
+        assertNull(ex.getCause());
+        assertTrue(ex instanceof ChromaException);
+    }
+
+    @Test
+    public void testDeserializationExceptionWithCause() {
+        Throwable cause = new RuntimeException("json parse");
+        ChromaDeserializationException ex = new ChromaDeserializationException("bad body", 200, cause);
+        assertSame(cause, ex.getCause());
+        assertEquals(200, ex.getStatusCode());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeserializationExceptionRejectsNon2xxStatusCode() {
+        new ChromaDeserializationException("bad body", 500);
+    }
+
     // --- Cause constructor tests ---
 
     @Test
