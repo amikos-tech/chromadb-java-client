@@ -6,7 +6,7 @@
     <name>Chroma Vector DB Java Client Library</name>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.7</version>
+    <version>0.2.0-SNAPSHOT</version>
     <description>
         Chroma Vector DB Java Client
     </description>
@@ -31,21 +31,14 @@
         <connection>scm:git:git://github.com/amikos-tech/chromadb-java-client.git</connection>
         <developerConnection>scm:git:ssh://git@github.com:amikos-tech/chromadb-java-client.git</developerConnection>
         <url>https://github.com/amikos-tech/chromadb-java-client/tree/main</url>
-    </scm><licenses>
-    <license>
-        <name>MIT</name>
-        <url>https://opensource.org/licenses/MIT</url>
-    </license>
-</licenses>
+    </scm>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
 
-
-<!--    <distributionManagement>-->
-<!--        <repository>-->
-<!--            <id>github</id>-->
-<!--            <name>GitHub Packages</name>-->
-<!--            <url>https://maven.pkg.github.com/amikos-tech/chromadb-java-client</url>-->
-<!--        </repository>-->
-<!--    </distributionManagement>-->
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -56,37 +49,19 @@
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
     <properties>
         <java.version>1.8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <gson-fire-version>1.8.5</gson-fire-version>
-        <swagger-core-version>1.6.9</swagger-core-version>
         <okhttp-version>4.12.0</okhttp-version>
         <gson-version>2.10.1</gson-version>
-        <threetenbp-version>1.7.0</threetenbp-version>
-        <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.13.2</junit-version>
-        <commons-net-version>3.11.1</commons-net-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
-        </dependency>
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.10.10</version>
-        </dependency>
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-annotations</artifactId>
-            <version>2.2.10</version>
-        </dependency>
+        <!-- HTTP client -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -97,26 +72,15 @@
             <artifactId>logging-interceptor</artifactId>
             <version>${okhttp-version}</version>
         </dependency>
+
+        <!-- JSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${gson-version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.gsonfire</groupId>
-            <artifactId>gson-fire</artifactId>
-            <version>${gson-fire-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.threeten</groupId>
-            <artifactId>threetenbp</artifactId>
-            <version>${threetenbp-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-net</groupId>
-            <artifactId>commons-net</artifactId>
-            <version>${commons-net-version}</version>
-        </dependency>
+
+        <!-- Embedding functions (DefaultEmbeddingFunction) -->
         <dependency>
             <groupId>ai.djl.huggingface</groupId>
             <artifactId>tokenizers</artifactId>
@@ -130,7 +94,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.16.1</version> <!-- Replace with the appropriate version -->
+            <version>2.16.1</version>
         </dependency>
         <dependency>
             <groupId>org.nd4j</groupId>
@@ -142,7 +106,8 @@
             <artifactId>commons-compress</artifactId>
             <version>1.27.0</version>
         </dependency>
-        <!-- test dependencies -->
+
+        <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -172,152 +137,6 @@
 
     <build>
         <plugins>
-            <!--                        <plugin>-->
-            <!--                            <groupId>org.openapitools</groupId>-->
-            <!--                            <artifactId>openapi-generator-maven-plugin</artifactId>-->
-            <!--                            &lt;!&ndash; RELEASE_VERSION &ndash;&gt;-->
-            <!--                            <version>6.6.0</version>-->
-            <!--                            <executions>-->
-            <!--                                <execution>-->
-            <!--                                    <id>generate-client</id>-->
-            <!--                                    <goals>-->
-            <!--                                        <goal>generate</goal>-->
-            <!--                                    </goals>-->
-            <!--                                    <phase>process-resources</phase>-->
-            <!--                                    <configuration>-->
-            <!--                                        <inputSpec>${project.basedir}/src/main/resources/openapi/openai.yaml</inputSpec>-->
-            <!--                                        <generatorName>java</generatorName>-->
-            <!--                                        &lt;!&ndash; override the default library to jersey2 &ndash;&gt;-->
-            <!--                                        <library>okhttp-gson</library>-->
-            <!--                                        <configOptions>-->
-            <!--                                            <dateLibrary>joda</dateLibrary>-->
-            <!--                                        </configOptions>-->
-            <!--                                        &lt;!&ndash;                            <output>${project.basedir}/src/main/java</output>&ndash;&gt;-->
-            <!--                                        <apiPackage>com.openai.api.handler</apiPackage>-->
-            <!--                                        <modelPackage>com.openai.api.model</modelPackage>-->
-            <!--                                        <invokerPackage>com.openai.api.handler</invokerPackage>-->
-            <!--                                        <skipValidateSpec>true</skipValidateSpec>-->
-            <!--                                    </configuration>-->
-            <!--                                </execution>-->
-            <!--                            </executions>-->
-            <!--                        </plugin>-->
-            <plugin>
-                <groupId>io.swagger.codegen.v3</groupId>
-                <artifactId>swagger-codegen-maven-plugin</artifactId>
-                <version>3.0.46</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.github.jknack</groupId>
-                        <artifactId>handlebars</artifactId>
-                        <version>4.3.0</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>chroma-api</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/src/main/resources/openapi/api.yaml</inputSpec>
-                            <language>java</language>
-                            <!-- override the default library to jersey2 -->
-                            <library>okhttp4-gson</library>
-                            <configOptions>
-                                <dateLibrary>joda</dateLibrary>
-                            </configOptions>
-                            <!--                            <output>${project.basedir}/src/main/java</output>-->
-                            <apiPackage>tech.amikos.chromadb.handler</apiPackage>
-                            <modelPackage>tech.amikos.chromadb.model</modelPackage>
-                            <invokerPackage>tech.amikos.chromadb.handler</invokerPackage>
-                            <!--                                        <additionalProperties>-->
-                            <!--                                            <additionalProperty>ignoreImportMappings=false</additionalProperty>-->
-                            <!--                                        </additionalProperties>-->
-                            <importMappings>
-                                <importMapping>CreateEmbeddingRequest=tech.amikos.chromadb.embeddings.openai.CreateEmbeddingRequest
-                                </importMapping>
-                            </importMappings>
-                            <generateApiTests>false</generateApiTests>
-                        </configuration>
-                    </execution>
-                    <!--                                <execution>-->
-                    <!--                                    <id>openai-api</id>-->
-                    <!--                                    <goals>-->
-                    <!--                                        <goal>generate</goal>-->
-                    <!--                                    </goals>-->
-                    <!--                                    <configuration>-->
-                    <!--                                        <inputSpec>${project.basedir}/src/main/resources/openapi/openai.yaml</inputSpec>-->
-                    <!--                                        <language>java</language>-->
-                    <!--                                        &lt;!&ndash; override the default library to jersey2 &ndash;&gt;-->
-                    <!--                                        <library>okhttp4-gson</library>-->
-                    <!--                                        <configOptions>-->
-                    <!--                                            <dateLibrary>joda</dateLibrary>-->
-                    <!--                                        </configOptions>-->
-                    <!--                                        &lt;!&ndash;                            <output>${project.basedir}/src/main/java</output>&ndash;&gt;-->
-                    <!--                                        <apiPackage>com.openai.api.handler</apiPackage>-->
-                    <!--                                        <modelPackage>com.openai.api.model</modelPackage>-->
-                    <!--                                        <invokerPackage>com.openai.api.handler</invokerPackage>-->
-                    <!--                                        <generateApiTests>false</generateApiTests>-->
-                    <!--                                    </configuration>-->
-                    <!--                                </execution>-->
-                </executions>
-            </plugin>
-            <!--            <plugin>-->
-            <!--                <groupId>org.codehaus.mojo</groupId>-->
-            <!--                <artifactId>exec-maven-plugin</artifactId>-->
-            <!--                <version>1.3.2</version>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <id>swagger-codegen-test</id>-->
-            <!--                        <phase>generate-sources</phase>-->
-            <!--                        <goals>-->
-            <!--                            <goal>java</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--                <configuration>-->
-            <!--                    <executable>java</executable>-->
-            <!--                    <mainClass>io.swagger.codegen.SwaggerCodegen</mainClass>-->
-            <!--                    <commandlineArgs>-->
-            <!--                        generate &#45;&#45;http-user-agent lrt-sync/v1 -i ${project.basedir}/src/main/resources/openapi/api.yaml -l java -o ${project.basedir}/target/generated-sources/swagger-->
-            <!--                    </commandlineArgs>-->
-            <!--                    <includeProjectDependencies>true</includeProjectDependencies>-->
-            <!--                    <includePluginDependencies>true</includePluginDependencies>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>add_sources</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/main/java</source>
-                                <source>target/generated-sources/swagger/src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>add_test_sources</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -330,8 +149,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -425,7 +242,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.8.1</version> <!-- Use the latest version available -->
+                <version>2.8.1</version>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
