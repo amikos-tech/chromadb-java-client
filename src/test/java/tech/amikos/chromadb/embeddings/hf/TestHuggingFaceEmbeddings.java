@@ -7,7 +7,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.embeddings.WithParam;
-import tech.amikos.chromadb.handler.ApiException;
 
 import java.util.*;
 
@@ -35,7 +34,7 @@ public class TestHuggingFaceEmbeddings {
     }
 
     @Test
-    public void testEmbedDocuments() throws ApiException, EFException {
+    public void testEmbedDocuments() throws EFException {
         String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
         EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey));
         List<Embedding> results = ef.embedDocuments(Arrays.asList("Hello world", "How are you?"));
@@ -44,7 +43,7 @@ public class TestHuggingFaceEmbeddings {
     }
 
     @Test
-    public void testEmbedQuery() throws ApiException, EFException {
+    public void testEmbedQuery() throws EFException {
         String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
         EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey));
         Embedding results = ef.embedQuery("How are you?");
@@ -53,7 +52,7 @@ public class TestHuggingFaceEmbeddings {
     }
 
     @Test
-    public void testWithModel() throws ApiException, EFException {
+    public void testWithModel() throws EFException {
         String apiKey = Utils.getEnvOrProperty("HF_API_KEY");
         EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey), WithParam.model("sentence-transformers/all-mpnet-base-v2"));
         Embedding results = ef.embedQuery("How are you?");
@@ -71,4 +70,3 @@ public class TestHuggingFaceEmbeddings {
         assertEquals(384, results.getDimensions());
     }
 }
-
