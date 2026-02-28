@@ -44,6 +44,18 @@ public class WhereTest {
     }
 
     @Test
+    public void testArrayMetadataFactoriesThrowUnsupportedOperationException() {
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", "v"); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", 1); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", 1.0f); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", true); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", "v"); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", 1); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", 1.0f); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", false); } });
+    }
+
+    @Test
     public void testLogicalCombinatorsThrowUnsupportedOperationException() {
         final Where first = stubWhere();
         final Where second = stubWhere();

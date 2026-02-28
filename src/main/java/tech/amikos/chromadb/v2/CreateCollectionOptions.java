@@ -35,7 +35,10 @@ public final class CreateCollectionOptions {
 
         Builder() {}
 
-        public Builder metadata(Map<String, Object> metadata) { this.metadata = metadata; return this; }
+        public Builder metadata(Map<String, Object> metadata) {
+            this.metadata = metadata != null ? new LinkedHashMap<String, Object>(metadata) : null;
+            return this;
+        }
         public Builder configuration(CollectionConfiguration configuration) { this.configuration = configuration; return this; }
 
         public CreateCollectionOptions build() {

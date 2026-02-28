@@ -78,12 +78,11 @@ make package
 | `make test-unit` | Run unit tests only |
 | `make test-integration` | Run integration tests only |
 | `make test-version CHROMA_VERSION=1.0.0` | Test with specific ChromaDB version |
-| `make test-class TEST=TestAPI` | Run specific test class |
-| `make test-method TEST=TestAPI#testMethod` | Run specific test method |
+| `make test-class TEST=YourTestClass` | Run specific test class |
+| `make test-method TEST=YourTestClass#yourTestMethod` | Run specific test method |
 | `make package` | Create JAR package |
 | `make install` | Install to local Maven repository |
 | `make clean` | Clean build artifacts |
-| `make generate` | Generate API client from OpenAPI spec |
 | `make deps` | Download/update dependencies |
 | `make deps-tree` | Display dependency tree |
 | `make info` | Display project information |

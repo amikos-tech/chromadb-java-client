@@ -32,6 +32,20 @@ public final class TokenAuth implements AuthProvider {
         if (value.trim().isEmpty()) {
             throw new IllegalArgumentException("token must not be blank");
         }
-        return value;
+        return value.trim();
+    }
+
+    /**
+     * Creates bearer token authentication from an environment variable.
+     *
+     * @param tokenVar the name of the environment variable holding the token
+     * @throws IllegalStateException if the environment variable is not set
+     */
+    public static TokenAuth fromEnv(String tokenVar) {
+        String token = System.getenv(tokenVar);
+        if (token == null) {
+            throw new IllegalStateException("Environment variable not set: " + tokenVar);
+        }
+        return new TokenAuth(token);
     }
 }

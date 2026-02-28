@@ -16,11 +16,25 @@ public class WhereDocumentTest {
     }
 
     @Test
+    public void testRegexFactoriesThrowUnsupportedOperationException() {
+        assertNotImplemented(new Runnable() { @Override public void run() { WhereDocument.regex("\\bAI\\b"); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { WhereDocument.notRegex("\\bAI\\b"); } });
+    }
+
+    @Test
     public void testLogicalCombinatorsThrowUnsupportedOperationException() {
         final WhereDocument first = stubWhereDocument();
         final WhereDocument second = stubWhereDocument();
         assertNotImplemented(new Runnable() { @Override public void run() { WhereDocument.and(first, second); } });
         assertNotImplemented(new Runnable() { @Override public void run() { WhereDocument.or(first, second); } });
+    }
+
+    @Test
+    public void testInstanceLogicalCombinatorsDelegateToStaticFactories() {
+        final WhereDocument first = stubWhereDocument();
+        final WhereDocument second = stubWhereDocument();
+        assertNotImplemented(new Runnable() { @Override public void run() { first.and(second); } });
+        assertNotImplemented(new Runnable() { @Override public void run() { first.or(second); } });
     }
 
     private static WhereDocument stubWhereDocument() {

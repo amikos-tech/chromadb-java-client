@@ -47,6 +47,18 @@ public abstract class Where {
     public static Where nin(String key, int... values) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static Where nin(String key, float... values) { throw new UnsupportedOperationException("Not yet implemented"); }
 
+    // --- Array metadata operators ---
+
+    public static Where contains(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where contains(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where contains(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where contains(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+
+    public static Where notContains(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where notContains(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where notContains(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where notContains(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+
     // --- Logical combinators ---
 
     public static Where and(Where... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }

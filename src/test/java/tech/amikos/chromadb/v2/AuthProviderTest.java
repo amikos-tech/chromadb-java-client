@@ -89,6 +89,42 @@ public class AuthProviderTest {
     }
 
     @Test
+    public void testTokenAuthTrimsWhitespace() {
+        TokenAuth auth = TokenAuth.of("  my-token  ");
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        auth.applyAuth(headers);
+        assertEquals("Bearer my-token", headers.get("Authorization"));
+    }
+
+    @Test
+    public void testChromaTokenAuthTrimsWhitespace() {
+        ChromaTokenAuth auth = ChromaTokenAuth.of("  chroma-tok  ");
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        auth.applyAuth(headers);
+        assertEquals("chroma-tok", headers.get("X-Chroma-Token"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testTokenAuthFromEnvThrowsWhenNotSet() {
+        TokenAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testChromaTokenAuthFromEnvThrowsWhenNotSet() {
+        ChromaTokenAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBasicAuthFromEnvThrowsWhenUsernameNotSet() {
+        BasicAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime(), "PATH");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBasicAuthFromEnvThrowsWhenPasswordNotSet() {
+        BasicAuth.fromEnv("PATH", "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
+    }
+
+    @Test
     public void testAuthProviderOverwritesPreviousHeader() {
         Map<String, String> headers = new LinkedHashMap<String, String>();
         headers.put("Authorization", "old-value");

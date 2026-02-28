@@ -55,12 +55,12 @@ clean: check-tools ## Clean build artifacts
 .PHONY: test-unit
 test-unit: check-tools ## Run unit tests only
 	@echo "$(BLUE)Running unit tests...$(NC)"
-	$(MAVEN) test -Dtest="!TestAPI,!*Integration*"
+	$(MAVEN) test -Dtest="!*Integration*"
 
 .PHONY: test-integration
 test-integration: check-tools ## Run integration tests only
 	@echo "$(BLUE)Running integration tests...$(NC)"
-	$(MAVEN) test -Dtest="TestAPI,*Integration*"
+	$(MAVEN) test -Dtest="*Integration*"
 
 .PHONY: test-version
 test-version: check-tools ## Test with specific ChromaDB version (use CHROMA_VERSION=x.x.x)
@@ -76,7 +76,7 @@ endif
 test-class: check-tools ## Run specific test class (use TEST=ClassName)
 ifndef TEST
 	@echo "$(RED)Error: TEST not specified$(NC)"
-	@echo "Usage: make test-class TEST=TestAPI"
+	@echo "Usage: make test-class TEST=YourTestClass"
 	@exit 1
 endif
 	@echo "$(BLUE)Running test class $(TEST)...$(NC)"
@@ -86,25 +86,11 @@ endif
 test-method: check-tools ## Run specific test method (use TEST=ClassName#methodName)
 ifndef TEST
 	@echo "$(RED)Error: TEST not specified$(NC)"
-	@echo "Usage: make test-method TEST=TestAPI#testCreateCollection"
+	@echo "Usage: make test-method TEST=YourTestClass#yourTestMethod"
 	@exit 1
 endif
 	@echo "$(BLUE)Running test method $(TEST)...$(NC)"
 	$(MAVEN) test -Dtest=$(TEST)
-
-##@ Code Generation
-
-.PHONY: generate
-generate: check-tools ## Generate API client from OpenAPI spec
-	@echo "$(BLUE)Generating API client from OpenAPI spec...$(NC)"
-	$(MAVEN) generate-sources
-
-.PHONY: generate-clean
-generate-clean: check-tools ## Clean and regenerate API client
-	@echo "$(BLUE)Cleaning generated sources...$(NC)"
-	rm -rf target/generated-sources
-	@echo "$(BLUE)Regenerating API client...$(NC)"
-	$(MAVEN) generate-sources
 
 ##@ Development Utilities
 
@@ -202,7 +188,7 @@ help: ## Display this help message
 	@echo "  make build                     # Build the project"
 	@echo "  make test                      # Run all tests"
 	@echo "  make test-version CHROMA_VERSION=1.0.0   # Test with specific version"
-	@echo "  make test-class TEST=TestAPI   # Run specific test class"
+	@echo "  make test-class TEST=YourTestClass   # Run specific test class"
 	@echo "  make help                      # Show this help"
 
 # Quick shortcuts

@@ -32,4 +32,23 @@ public final class BasicAuth implements AuthProvider {
     public void applyAuth(Map<String, String> headers) {
         headers.put("Authorization", "Basic " + encoded);
     }
+
+    /**
+     * Creates HTTP Basic authentication from environment variables.
+     *
+     * @param usernameVar the name of the environment variable holding the username
+     * @param passwordVar the name of the environment variable holding the password
+     * @throws IllegalStateException if either environment variable is not set
+     */
+    public static BasicAuth fromEnv(String usernameVar, String passwordVar) {
+        String username = System.getenv(usernameVar);
+        if (username == null) {
+            throw new IllegalStateException("Environment variable not set: " + usernameVar);
+        }
+        String password = System.getenv(passwordVar);
+        if (password == null) {
+            throw new IllegalStateException("Environment variable not set: " + passwordVar);
+        }
+        return new BasicAuth(username, password);
+    }
 }
