@@ -4,7 +4,7 @@
 # Variables
 MAVEN := mvn
 JAVA := java
-CHROMA_VERSIONS := 0.4.24 0.5.0 0.5.5 0.5.15
+CHROMA_VERSIONS :=
 
 # Color output
 RED := \033[0;31m
@@ -66,20 +66,11 @@ test-integration: check-tools ## Run integration tests only
 test-version: check-tools ## Test with specific ChromaDB version (use CHROMA_VERSION=x.x.x)
 ifndef CHROMA_VERSION
 	@echo "$(RED)Error: CHROMA_VERSION not specified$(NC)"
-	@echo "Usage: make test-version CHROMA_VERSION=0.5.15"
+	@echo "Usage: make test-version CHROMA_VERSION=1.0.0"
 	@exit 1
 endif
 	@echo "$(BLUE)Testing with ChromaDB version $(CHROMA_VERSION)...$(NC)"
 	CHROMA_VERSION=$(CHROMA_VERSION) $(MAVEN) test
-
-.PHONY: test-all-versions
-test-all-versions: check-tools ## Run tests against all supported ChromaDB versions
-	@echo "$(BLUE)Testing against all supported ChromaDB versions...$(NC)"
-	@for version in $(CHROMA_VERSIONS); do \
-		echo "$(YELLOW)Testing with ChromaDB $$version...$(NC)"; \
-		CHROMA_VERSION=$$version $(MAVEN) test || exit 1; \
-	done
-	@echo "$(GREEN)✓ All version tests passed$(NC)"
 
 .PHONY: test-class
 test-class: check-tools ## Run specific test class (use TEST=ClassName)
@@ -210,7 +201,7 @@ help: ## Display this help message
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make build                     # Build the project"
 	@echo "  make test                      # Run all tests"
-	@echo "  make test-version CHROMA_VERSION=0.5.15  # Test with specific version"
+	@echo "  make test-version CHROMA_VERSION=1.0.0   # Test with specific version"
 	@echo "  make test-class TEST=TestAPI   # Run specific test class"
 	@echo "  make help                      # Show this help"
 

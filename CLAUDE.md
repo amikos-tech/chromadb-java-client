@@ -14,14 +14,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Skip tests during build**: `mvn clean install -DskipTests`
 
 ### Testing with Different Chroma Versions
-- **Set Chroma version for tests**: `export CHROMA_VERSION=0.5.15 && mvn test`
-- Supported versions: 0.4.24, 0.5.0, 0.5.5, 0.5.15
+- **Set Chroma version for tests**: `export CHROMA_VERSION=1.0.0 && mvn test`
+- Target: ChromaDB `>=1.0.0`
 
 ### Environment Variables for Tests
 - `OPENAI_API_KEY` - Required for OpenAI embedding tests
 - `COHERE_API_KEY` - Required for Cohere embedding tests
 - `HF_API_KEY` - Required for HuggingFace embedding tests
 - `CHROMA_VERSION` - Specifies ChromaDB version for integration tests
+- `TEI_VERSION` - Override HuggingFace TEI image version (default: 1.8.3)
+- `TEI_IMAGE` - Override HuggingFace TEI image registry
 
 ## Architecture Overview
 
@@ -79,7 +81,7 @@ The client is being migrated to a v2 API with an interface-first design:
 - **Unit Tests**: Test v2 value objects, auth providers, exception hierarchy, and builders
 - **Integration Tests**: Use TestContainers with actual ChromaDB Docker images
 - **Test Container**: `chromadb/chroma` with configurable versions
-- Tests verify compatibility across multiple ChromaDB versions (0.4.24 to 0.5.15)
+- Tests target ChromaDB `>=1.0.0`
 
 ## Development Notes
 
@@ -95,7 +97,7 @@ The client is being migrated to a v2 API with an interface-first design:
 
 ### Version Compatibility
 - Target Java 8 for maximum compatibility
-- ChromaDB versions: `>=0.4.3+ <1.0.0`
+- ChromaDB versions: `>=1.0.0`
 - Maintain backward compatibility when possible
 
 ### Publishing
