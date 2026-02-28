@@ -28,15 +28,10 @@ public class Utils {
     }
 
     public static String getEnvOrProperty(String key) {
-        // Try to get the value from the environment variables
         String value = System.getenv(key);
-
-        // If not found, try to get the value from the system properties
         if (value == null) {
             value = System.getProperty(key);
         }
-
         return value;
     }
-
 }

@@ -2,8 +2,6 @@ package tech.amikos.chromadb.embeddings.openai;
 
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -71,7 +69,6 @@ public class CreateEmbeddingRequest {
         return this;
     }
 
-    @Schema(example = "text-embedding-ada-002", required = true, description = "ID of the model to use. You can use the [List models](/docs/api-reference/models/list) API to see all of your available models, or see our [Model overview](/docs/models/overview) for descriptions of them. ")
     public String getModel() {
         return model;
     }
@@ -85,12 +82,10 @@ public class CreateEmbeddingRequest {
         this.model = model;
     }
 
-    @Schema(example = "The quick brown fox jumped over the lazy dog", required = true, description = "Input text to embed, encoded as a string or array of tokens. To embed multiple inputs in a single request, pass an array of strings or array of token arrays. Each input must not exceed the max input tokens for the model (8191 tokens for `text-embedding-ada-002`). [Example Python code](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb) for counting tokens. ")
     public Input getInput() {
         return input;
     }
 
-    @Schema(example = "user-1234", description = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](/docs/guides/safety-best-practices/end-user-ids). ")
     public String getUser() {
         return user;
     }

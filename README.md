@@ -5,7 +5,7 @@
 
 This is a very basic/naive implementation in Java of the Chroma Vector Database API.
 
-This client works with Chroma Versions `>=0.4.3+ <1.0.0` 
+This client works with Chroma Versions `>=1.0.0`
 
 ## Features
 
@@ -77,14 +77,12 @@ make package
 | `make test` | Run all tests |
 | `make test-unit` | Run unit tests only |
 | `make test-integration` | Run integration tests only |
-| `make test-version CHROMA_VERSION=0.5.15` | Test with specific ChromaDB version |
-| `make test-all-versions` | Test against all supported versions (0.4.24, 0.5.0, 0.5.5, 0.5.15) |
-| `make test-class TEST=TestAPI` | Run specific test class |
-| `make test-method TEST=TestAPI#testMethod` | Run specific test method |
+| `make test-version CHROMA_VERSION=1.0.0` | Test with specific ChromaDB version |
+| `make test-class TEST=YourTestClass` | Run specific test class |
+| `make test-method TEST=YourTestClass#yourTestMethod` | Run specific test method |
 | `make package` | Create JAR package |
 | `make install` | Install to local Maven repository |
 | `make clean` | Clean build artifacts |
-| `make generate` | Generate API client from OpenAPI spec |
 | `make deps` | Download/update dependencies |
 | `make deps-tree` | Display dependency tree |
 | `make info` | Display project information |
@@ -338,7 +336,7 @@ In this example we'll use a local Docker based server to generate the embeddings
 First let's start the HFEI server:
 
 ```bash
-docker run -d -p 8008:80 --platform linux/amd64 --name hfei ghcr.io/huggingface/text-embeddings-inference:cpu-1.5.0 --model-id Snowflake/snowflake-arctic-embed-s --revision main
+docker run -d -p 8008:80 --platform linux/amd64 --name hfei ghcr.io/huggingface/text-embeddings-inference:cpu-1.8.3 --model-id sentence-transformers/all-MiniLM-L6-v2
 ```
 
 > Note: Check the official documentation for more details - https://github.com/huggingface/text-embeddings-inference
