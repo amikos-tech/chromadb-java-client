@@ -12,19 +12,25 @@ import static org.junit.Assert.*;
 
 public class ChromaClientBuilderTest {
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testBuilderBuildThrowsNotYetImplemented() {
-        ChromaClient.builder().build();
+    @Test
+    public void testBuilderCreatesClient() {
+        Client client = ChromaClient.builder()
+                .baseUrl("http://localhost:1234")
+                .build();
+        assertNotNull(client);
+        client.close();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testCloudBuilderBuildThrowsNotYetImplemented() {
-        ChromaClient.cloud().build();
+    @Test
+    public void testBuilderCreatesClientWithDefaults() {
+        Client client = ChromaClient.builder().build();
+        assertNotNull(client);
+        client.close();
     }
 
     @Test
     public void testBuilderFluentChaining() {
-        ChromaClient.Builder builder = ChromaClient.builder()
+        Client client = ChromaClient.builder()
                 .baseUrl("http://localhost:8000")
                 .auth(TokenAuth.of("tok"))
                 .apiKey("key")
@@ -36,8 +42,10 @@ public class ChromaClientBuilderTest {
                 .connectTimeout(Duration.ofSeconds(5))
                 .readTimeout(Duration.ofSeconds(10))
                 .writeTimeout(Duration.ofSeconds(10))
-                .defaultHeaders(Collections.<String, String>emptyMap());
-        assertNotNull(builder);
+                .defaultHeaders(Collections.<String, String>emptyMap())
+                .build();
+        assertNotNull(client);
+        client.close();
     }
 
     @Test
@@ -48,6 +56,63 @@ public class ChromaClientBuilderTest {
                 .database("d")
                 .timeout(Duration.ofSeconds(30));
         assertNotNull(builder);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloudBuilderRequiresApiKey() {
+        ChromaClient.cloud()
+                .tenant("t")
+                .database("d")
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloudBuilderRequiresTenant() {
+        ChromaClient.cloud()
+                .apiKey("key")
+                .database("d")
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testCloudBuilderRequiresDatabase() {
+        ChromaClient.cloud()
+                .apiKey("key")
+                .tenant("t")
+                .build();
+    }
+
+    @Test
+    public void testCloudBuilderCreatesClient() {
+        Client client = ChromaClient.cloud()
+                .apiKey("key")
+                .tenant("t")
+                .database("d")
+                .build();
+        assertNotNull(client);
+        client.close();
+    }
+
+    @Test
+    public void testCloudBuilderUsesChromaTokenAuth() throws Exception {
+        Client client = ChromaClient.cloud()
+                .apiKey("key")
+                .tenant("t")
+                .database("d")
+                .build();
+        try {
+            Field apiClientField = client.getClass().getDeclaredField("apiClient");
+            apiClientField.setAccessible(true);
+            Object apiClient = apiClientField.get(client);
+
+            Field authProviderField = ChromaApiClient.class.getDeclaredField("authProvider");
+            authProviderField.setAccessible(true);
+            Object authProvider = authProviderField.get(apiClient);
+
+            assertTrue(authProvider instanceof ChromaTokenAuth);
+        } finally {
+            client.close();
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)

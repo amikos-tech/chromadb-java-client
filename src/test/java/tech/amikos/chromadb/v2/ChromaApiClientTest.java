@@ -137,6 +137,15 @@ public class ChromaApiClientTest {
         assertEquals("renamed", result.get("name"));
     }
 
+    @Test
+    public void testVoidPut() {
+        stubFor(put(urlEqualTo("/api/v2/collections/id1"))
+                .willReturn(aResponse().withStatus(200)));
+
+        ChromaApiClient c = newClient();
+        c.put("/api/v2/collections/id1", Collections.singletonMap("name", "renamed"));
+    }
+
     // --- Happy path: DELETE ---
 
     @Test
@@ -380,6 +389,23 @@ public class ChromaApiClientTest {
         ChromaApiClient c = newClient();
         try {
             c.put("/api/v2/test", Collections.singletonMap("k", "v"), String.class);
+            fail("Expected ChromaServerException");
+        } catch (ChromaServerException e) {
+            assertEquals(500, e.getStatusCode());
+        }
+    }
+
+    @Test
+    public void testVoidPutError500MapsToServerException() {
+        stubFor(put(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"internal error\"}")));
+
+        ChromaApiClient c = newClient();
+        try {
+            c.put("/api/v2/test", Collections.singletonMap("k", "v"));
             fail("Expected ChromaServerException");
         } catch (ChromaServerException e) {
             assertEquals(500, e.getStatusCode());
@@ -819,6 +845,12 @@ public class ChromaApiClientTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testNullPathThrowsOnVoidPut() {
+        ChromaApiClient c = newClient();
+        c.put(null, Collections.singletonMap("k", "v"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testInvalidPathThrowsOnGet() {
         ChromaApiClient c = newClient();
         c.get("://invalid", String.class);
@@ -840,6 +872,12 @@ public class ChromaApiClientTest {
     public void testNullBodyThrowsOnPut() {
         ChromaApiClient c = newClient();
         c.put("/api/v2/test", null, String.class);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullBodyThrowsOnVoidPut() {
+        ChromaApiClient c = newClient();
+        c.put("/api/v2/test", null);
     }
 
     @Test
@@ -896,6 +934,18 @@ public class ChromaApiClientTest {
         c.close();
         try {
             c.put("/api/v2/test", Collections.singletonMap("k", "v"), String.class);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertEquals("ChromaApiClient is closed", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUseAfterCloseThrowsOnVoidPut() {
+        ChromaApiClient c = newClient();
+        c.close();
+        try {
+            c.put("/api/v2/test", Collections.singletonMap("k", "v"));
             fail("Expected IllegalStateException");
         } catch (IllegalStateException e) {
             assertEquals("ChromaApiClient is closed", e.getMessage());
@@ -1016,6 +1066,18 @@ public class ChromaApiClientTest {
 
         ChromaApiClient c = newClient();
         c.post("/api/v2/collections/id1/add", Collections.singletonMap("ids", "id1"));
+    }
+
+    @Test
+    public void testVoidPutIgnoresResponseBodyContract() {
+        stubFor(put(urlEqualTo("/api/v2/collections/id1"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/html")
+                        .withBody("<html>unexpected</html>")));
+
+        ChromaApiClient c = newClient();
+        c.put("/api/v2/collections/id1", Collections.singletonMap("name", "renamed"));
     }
 
     @Test

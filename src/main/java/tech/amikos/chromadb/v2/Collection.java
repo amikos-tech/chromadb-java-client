@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * // Query
  * QueryResult result = collection.query()
- *     .queryTexts("search term")
+ *     .queryEmbeddings(new float[]{0.12f, 0.34f, 0.56f})
  *     .nResults(10)
  *     .where(Where.eq("type", "article"))
  *     .include(Include.DOCUMENTS, Include.DISTANCES)

@@ -1,7 +1,12 @@
 package tech.amikos.chromadb.v2;
 
+import com.google.gson.reflect.TypeToken;
+
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -23,6 +28,9 @@ import java.util.Objects;
  * }</pre>
  */
 public final class ChromaClient {
+
+    private static final String DEFAULT_BASE_URL = "http://localhost:8000";
+    private static final String CLOUD_BASE_URL = "https://api.trychroma.com";
 
     private ChromaClient() {}
 
@@ -100,7 +108,13 @@ public final class ChromaClient {
         }
 
         public Client build() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            String effectiveBaseUrl = baseUrl != null ? baseUrl : DEFAULT_BASE_URL;
+            Tenant effectiveTenant = tenant != null ? tenant : Tenant.defaultTenant();
+            Database effectiveDatabase = database != null ? database : Database.defaultDatabase();
+            ChromaApiClient apiClient = new ChromaApiClient(
+                    effectiveBaseUrl, authProvider, defaultHeaders,
+                    connectTimeout, readTimeout, writeTimeout);
+            return new ChromaClientImpl(apiClient, effectiveTenant, effectiveDatabase);
         }
     }
 
@@ -130,7 +144,19 @@ public final class ChromaClient {
         public CloudBuilder timeout(Duration timeout) { this.timeout = timeout; return this; }
 
         public Client build() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            if (apiKey == null) {
+                throw new IllegalStateException("apiKey is required for Chroma Cloud");
+            }
+            if (tenant == null) {
+                throw new IllegalStateException("tenant is required for Chroma Cloud");
+            }
+            if (database == null) {
+                throw new IllegalStateException("database is required for Chroma Cloud");
+            }
+            ChromaApiClient apiClient = new ChromaApiClient(
+                    CLOUD_BASE_URL, ChromaTokenAuth.of(apiKey), null,
+                    timeout, timeout, timeout);
+            return new ChromaClientImpl(apiClient, Tenant.of(tenant), Database.of(database));
         }
     }
 
@@ -140,5 +166,223 @@ public final class ChromaClient {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return nonNullValue;
+    }
+
+    // --- Private implementation ---
+
+    private static final class ChromaClientImpl implements Client {
+
+        private final ChromaApiClient apiClient;
+        private final Tenant tenant;
+        private final Database database;
+
+        ChromaClientImpl(ChromaApiClient apiClient, Tenant tenant, Database database) {
+            this.apiClient = apiClient;
+            this.tenant = tenant;
+            this.database = database;
+        }
+
+        @Override
+        public String heartbeat() {
+            Map<String, Long> result = apiClient.get(
+                    ChromaApiPaths.heartbeat(),
+                    new TypeToken<Map<String, Long>>() {}.getType());
+            Long value = result.get("nanosecond heartbeat");
+            if (value == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned heartbeat payload without required 'nanosecond heartbeat' field",
+                        200
+                );
+            }
+            return String.valueOf(value);
+        }
+
+        @Override
+        public String version() {
+            return apiClient.get(ChromaApiPaths.version(), String.class);
+        }
+
+        @Override
+        public void reset() {
+            apiClient.post(ChromaApiPaths.reset(), Collections.emptyMap());
+        }
+
+        @Override
+        public Tenant createTenant(String name) {
+            String tenantName = requireNonBlank("name", name);
+            apiClient.post(ChromaApiPaths.tenants(),
+                    new ChromaDtos.CreateTenantRequest(tenantName),
+                    ChromaDtos.TenantResponse.class);
+            return Tenant.of(tenantName);
+        }
+
+        @Override
+        public Tenant getTenant(String name) {
+            String tenantName = requireNonBlank("name", name);
+            ChromaDtos.TenantResponse dto = apiClient.get(
+                    ChromaApiPaths.tenant(tenantName),
+                    ChromaDtos.TenantResponse.class);
+            return Tenant.of(requireNonBlankField("tenant.name", dto.name));
+        }
+
+        @Override
+        public Database createDatabase(String name) {
+            String databaseName = requireNonBlank("name", name);
+            apiClient.post(ChromaApiPaths.databases(tenant.getName()),
+                    new ChromaDtos.CreateDatabaseRequest(databaseName),
+                    ChromaDtos.DatabaseResponse.class);
+            return Database.of(databaseName);
+        }
+
+        @Override
+        public Database getDatabase(String name) {
+            String databaseName = requireNonBlank("name", name);
+            ChromaDtos.DatabaseResponse dto = apiClient.get(
+                    ChromaApiPaths.database(tenant.getName(), databaseName),
+                    ChromaDtos.DatabaseResponse.class);
+            return Database.of(requireNonBlankField("database.name", dto.name));
+        }
+
+        @Override
+        public List<Database> listDatabases() {
+            List<ChromaDtos.DatabaseResponse> dtos = apiClient.get(
+                    ChromaApiPaths.databases(tenant.getName()),
+                    new TypeToken<List<ChromaDtos.DatabaseResponse>>() {}.getType());
+            List<Database> result = new ArrayList<Database>(dtos.size());
+            for (int i = 0; i < dtos.size(); i++) {
+                ChromaDtos.DatabaseResponse dto = dtos.get(i);
+                if (dto == null) {
+                    throw new ChromaDeserializationException(
+                            "Server returned databases list with null entry at index " + i,
+                            200
+                    );
+                }
+                result.add(Database.of(requireNonBlankField("database.name", dto.name)));
+            }
+            return result;
+        }
+
+        @Override
+        public void deleteDatabase(String name) {
+            String databaseName = requireNonBlank("name", name);
+            apiClient.delete(ChromaApiPaths.database(tenant.getName(), databaseName));
+        }
+
+        @Override
+        public Collection createCollection(String name) {
+            return createCollection(name, null);
+        }
+
+        @Override
+        public Collection createCollection(String name, CreateCollectionOptions options) {
+            return postCollection(requireNonBlank("name", name), options, false);
+        }
+
+        @Override
+        public Collection getCollection(String name) {
+            String collectionName = requireNonBlank("name", name);
+            ChromaDtos.CollectionResponse dto = apiClient.get(
+                    ChromaApiPaths.collection(tenant.getName(), database.getName(), collectionName),
+                    ChromaDtos.CollectionResponse.class);
+            return ChromaHttpCollection.from(dto, apiClient, tenant, database);
+        }
+
+        @Override
+        public Collection getOrCreateCollection(String name) {
+            return getOrCreateCollection(name, null);
+        }
+
+        @Override
+        public Collection getOrCreateCollection(String name, CreateCollectionOptions options) {
+            return postCollection(requireNonBlank("name", name), options, true);
+        }
+
+        @Override
+        public List<Collection> listCollections() {
+            List<ChromaDtos.CollectionResponse> dtos = apiClient.get(
+                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    new TypeToken<List<ChromaDtos.CollectionResponse>>() {}.getType());
+            return toCollections(dtos);
+        }
+
+        @Override
+        public List<Collection> listCollections(int limit, int offset) {
+            if (limit < 0) {
+                throw new IllegalArgumentException("limit must be >= 0");
+            }
+            if (offset < 0) {
+                throw new IllegalArgumentException("offset must be >= 0");
+            }
+            Map<String, String> queryParams = new LinkedHashMap<String, String>();
+            queryParams.put("limit", String.valueOf(limit));
+            queryParams.put("offset", String.valueOf(offset));
+            List<ChromaDtos.CollectionResponse> dtos = apiClient.get(
+                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    queryParams,
+                    new TypeToken<List<ChromaDtos.CollectionResponse>>() {}.getType());
+            return toCollections(dtos);
+        }
+
+        @Override
+        public void deleteCollection(String name) {
+            String collectionName = requireNonBlank("name", name);
+            apiClient.delete(ChromaApiPaths.collection(tenant.getName(), database.getName(), collectionName));
+        }
+
+        @Override
+        public int countCollections() {
+            return apiClient.get(
+                    ChromaApiPaths.collectionsCount(tenant.getName(), database.getName()),
+                    Integer.class);
+        }
+
+        @Override
+        public void close() {
+            apiClient.close();
+        }
+
+        private Collection postCollection(String name, CreateCollectionOptions options, boolean getOrCreate) {
+            Map<String, Object> metadata = options != null ? options.getMetadata() : null;
+            CollectionConfiguration config = options != null ? options.getConfiguration() : null;
+            ChromaDtos.CollectionResponse dto = apiClient.post(
+                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    new ChromaDtos.CreateCollectionRequest(
+                            name, metadata,
+                            ChromaDtos.toConfigurationMap(config),
+                            getOrCreate),
+                    ChromaDtos.CollectionResponse.class);
+            return ChromaHttpCollection.from(dto, apiClient, tenant, database);
+        }
+
+        private List<Collection> toCollections(List<ChromaDtos.CollectionResponse> dtos) {
+            if (dtos == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned collections payload as null",
+                        200
+                );
+            }
+            List<Collection> result = new ArrayList<Collection>(dtos.size());
+            for (int i = 0; i < dtos.size(); i++) {
+                ChromaDtos.CollectionResponse dto = dtos.get(i);
+                if (dto == null) {
+                    throw new ChromaDeserializationException(
+                            "Server returned collections list with null entry at index " + i,
+                            200
+                    );
+                }
+                result.add(ChromaHttpCollection.from(dto, apiClient, tenant, database));
+            }
+            return result;
+        }
+
+        private static String requireNonBlankField(String fieldName, String value) {
+            if (value == null || value.trim().isEmpty()) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid " + fieldName + " field",
+                        200
+                );
+            }
+            return value.trim();
+        }
     }
 }
