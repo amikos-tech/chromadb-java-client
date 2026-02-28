@@ -6,4 +6,8 @@ public class ChromaClientException extends ChromaException {
     public ChromaClientException(String message, int statusCode, String errorCode) {
         super(message, statusCode, errorCode);
     }
+
+    public ChromaClientException(String message, int statusCode, String errorCode, Throwable cause) {
+        super(message, statusCode, errorCode, cause);
+    }
 }

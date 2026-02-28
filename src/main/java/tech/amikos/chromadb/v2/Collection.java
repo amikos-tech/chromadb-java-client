@@ -21,6 +21,8 @@ import java.util.Map;
  *     .include(Include.DOCUMENTS, Include.DISTANCES)
  *     .execute();
  * }</pre>
+ *
+ * <p>All record operations may throw unchecked exceptions from the {@link ChromaException} hierarchy.</p>
  */
 public interface Collection {
 
@@ -40,24 +42,33 @@ public interface Collection {
 
     // --- Record operations ---
 
+    /** @throws ChromaException on server or client errors during execution */
     AddBuilder add();
 
+    /** @throws ChromaException on server or client errors during execution */
     QueryBuilder query();
 
+    /** @throws ChromaException on server or client errors during execution */
     GetBuilder get();
 
+    /** @throws ChromaException on server or client errors during execution */
     UpdateBuilder update();
 
+    /** @throws ChromaException on server or client errors during execution */
     UpsertBuilder upsert();
 
+    /** @throws ChromaException on server or client errors during execution */
     DeleteBuilder delete();
 
+    /** @throws ChromaServerException on server errors */
     int count();
 
     // --- Modification ---
 
+    /** @throws ChromaNotFoundException if the collection no longer exists */
     void modifyName(String newName);
 
+    /** @throws ChromaNotFoundException if the collection no longer exists */
     void modifyMetadata(Map<String, Object> metadata);
 
     // --- Builders ---
@@ -73,6 +84,7 @@ public interface Collection {
         AddBuilder metadatas(List<Map<String, Object>> metadatas);
         AddBuilder uris(String... uris);
         AddBuilder uris(List<String> uris);
+        /** @throws ChromaBadRequestException if the input is invalid */
         void execute();
     }
 
@@ -85,6 +97,7 @@ public interface Collection {
         QueryBuilder where(Where where);
         QueryBuilder whereDocument(WhereDocument whereDocument);
         QueryBuilder include(Include... include);
+        /** @throws ChromaBadRequestException if the query is invalid */
         QueryResult execute();
     }
 
@@ -96,6 +109,7 @@ public interface Collection {
         GetBuilder include(Include... include);
         GetBuilder limit(int limit);
         GetBuilder offset(int offset);
+        /** @throws ChromaBadRequestException if the request is invalid */
         GetResult execute();
     }
 
@@ -108,6 +122,7 @@ public interface Collection {
         UpdateBuilder documents(List<String> documents);
         UpdateBuilder metadatas(Map<String, Object>... metadatas);
         UpdateBuilder metadatas(List<Map<String, Object>> metadatas);
+        /** @throws ChromaBadRequestException if the input is invalid */
         void execute();
     }
 
@@ -122,6 +137,7 @@ public interface Collection {
         UpsertBuilder metadatas(List<Map<String, Object>> metadatas);
         UpsertBuilder uris(String... uris);
         UpsertBuilder uris(List<String> uris);
+        /** @throws ChromaBadRequestException if the input is invalid */
         void execute();
     }
 
@@ -130,6 +146,7 @@ public interface Collection {
         DeleteBuilder ids(List<String> ids);
         DeleteBuilder where(Where where);
         DeleteBuilder whereDocument(WhereDocument whereDocument);
+        /** @throws ChromaBadRequestException if the filter is invalid */
         void execute();
     }
 }

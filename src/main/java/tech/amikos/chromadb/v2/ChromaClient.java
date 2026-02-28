@@ -33,31 +33,46 @@ public final class ChromaClient {
     }
 
     public static final class Builder {
+        private String baseUrl;
+        private AuthProvider authProvider;
+        private String apiKey;
+        private Tenant tenant;
+        private Database database;
+        private Duration connectTimeout;
+        private Duration readTimeout;
+        private Duration writeTimeout;
+        private Map<String, String> defaultHeaders;
+
         Builder() {}
 
-        public Builder baseUrl(String baseUrl) { return this; }
+        public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
 
-        public Builder auth(AuthProvider authProvider) { return this; }
+        public Builder auth(AuthProvider authProvider) { this.authProvider = authProvider; return this; }
 
-        public Builder apiKey(String apiKey) { return this; }
+        public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
 
-        public Builder tenant(Tenant tenant) { return this; }
+        public Builder tenant(Tenant tenant) { this.tenant = tenant; return this; }
 
-        public Builder tenant(String tenant) { return this; }
+        public Builder tenant(String tenant) { this.tenant = Tenant.of(tenant); return this; }
 
-        public Builder database(Database database) { return this; }
+        public Builder database(Database database) { this.database = database; return this; }
 
-        public Builder database(String database) { return this; }
+        public Builder database(String database) { this.database = Database.of(database); return this; }
 
-        public Builder timeout(Duration timeout) { return this; }
+        public Builder timeout(Duration timeout) {
+            this.connectTimeout = timeout;
+            this.readTimeout = timeout;
+            this.writeTimeout = timeout;
+            return this;
+        }
 
-        public Builder connectTimeout(Duration timeout) { return this; }
+        public Builder connectTimeout(Duration timeout) { this.connectTimeout = timeout; return this; }
 
-        public Builder readTimeout(Duration timeout) { return this; }
+        public Builder readTimeout(Duration timeout) { this.readTimeout = timeout; return this; }
 
-        public Builder writeTimeout(Duration timeout) { return this; }
+        public Builder writeTimeout(Duration timeout) { this.writeTimeout = timeout; return this; }
 
-        public Builder defaultHeaders(Map<String, String> headers) { return this; }
+        public Builder defaultHeaders(Map<String, String> headers) { this.defaultHeaders = headers; return this; }
 
         public Client build() {
             throw new UnsupportedOperationException("Not yet implemented");
@@ -65,15 +80,20 @@ public final class ChromaClient {
     }
 
     public static final class CloudBuilder {
+        private String apiKey;
+        private String tenant;
+        private String database;
+        private Duration timeout;
+
         CloudBuilder() {}
 
-        public CloudBuilder apiKey(String apiKey) { return this; }
+        public CloudBuilder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
 
-        public CloudBuilder tenant(String tenant) { return this; }
+        public CloudBuilder tenant(String tenant) { this.tenant = tenant; return this; }
 
-        public CloudBuilder database(String database) { return this; }
+        public CloudBuilder database(String database) { this.database = database; return this; }
 
-        public CloudBuilder timeout(Duration timeout) { return this; }
+        public CloudBuilder timeout(Duration timeout) { this.timeout = timeout; return this; }
 
         public Client build() {
             throw new UnsupportedOperationException("Not yet implemented");

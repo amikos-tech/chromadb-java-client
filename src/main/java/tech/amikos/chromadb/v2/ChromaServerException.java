@@ -6,4 +6,8 @@ public class ChromaServerException extends ChromaException {
     public ChromaServerException(String message, int statusCode, String errorCode) {
         super(message, statusCode, errorCode);
     }
+
+    public ChromaServerException(String message, int statusCode, String errorCode, Throwable cause) {
+        super(message, statusCode, errorCode, cause);
+    }
 }

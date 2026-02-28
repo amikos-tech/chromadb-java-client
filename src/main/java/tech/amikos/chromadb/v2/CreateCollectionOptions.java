@@ -1,5 +1,7 @@
 package tech.amikos.chromadb.v2;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Options for creating a collection. */
@@ -9,7 +11,9 @@ public final class CreateCollectionOptions {
     private final CollectionConfiguration configuration;
 
     private CreateCollectionOptions(Builder builder) {
-        this.metadata = builder.metadata;
+        this.metadata = builder.metadata != null
+                ? Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.metadata))
+                : null;
         this.configuration = builder.configuration;
     }
 

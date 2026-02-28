@@ -14,11 +14,11 @@ public abstract class WhereDocument {
 
     WhereDocument() {}
 
-    public static WhereDocument contains(String text) { throw new UnsupportedOperationException(); }
-    public static WhereDocument notContains(String text) { throw new UnsupportedOperationException(); }
+    public static WhereDocument contains(String text) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static WhereDocument notContains(String text) { throw new UnsupportedOperationException("Not yet implemented"); }
 
-    public static WhereDocument and(WhereDocument... conditions) { throw new UnsupportedOperationException(); }
-    public static WhereDocument or(WhereDocument... conditions) { throw new UnsupportedOperationException(); }
+    public static WhereDocument and(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static WhereDocument or(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
 
     /** Serialize to the Chroma filter JSON structure. */
     public abstract Map<String, Object> toMap();
