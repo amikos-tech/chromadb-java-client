@@ -10,9 +10,15 @@ public final class Database {
     private final String name;
 
     private Database(String name) {
-        this.name = Objects.requireNonNull(name, "name");
+        this.name = validateName(name);
     }
 
+    /**
+     * Creates a database identifier.
+     *
+     * @throws NullPointerException     if {@code name} is {@code null}
+     * @throws IllegalArgumentException if {@code name} is blank
+     */
     public static Database of(String name) {
         return new Database(name);
     }
@@ -40,5 +46,14 @@ public final class Database {
     @Override
     public String toString() {
         return name;
+    }
+
+    private static String validateName(String name) {
+        String value = Objects.requireNonNull(name, "name");
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
+        return normalized;
     }
 }

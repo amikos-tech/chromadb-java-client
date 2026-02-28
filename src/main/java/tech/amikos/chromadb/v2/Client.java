@@ -6,7 +6,8 @@ import java.util.List;
  * ChromaDB client interface.
  *
  * <p>All implementations manage tenant/database context set at construction time.
- * Use {@link ChromaClient#builder()} to create instances.</p>
+ * Use {@link ChromaClient#builder()} for self-hosted deployments or
+ * {@link ChromaClient#cloud()} for Chroma Cloud.</p>
  *
  * <p>All methods may throw unchecked exceptions from the {@link ChromaException} hierarchy:
  * <ul>

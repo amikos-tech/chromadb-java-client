@@ -10,9 +10,15 @@ public final class Tenant {
     private final String name;
 
     private Tenant(String name) {
-        this.name = Objects.requireNonNull(name, "name");
+        this.name = validateName(name);
     }
 
+    /**
+     * Creates a tenant identifier.
+     *
+     * @throws NullPointerException     if {@code name} is {@code null}
+     * @throws IllegalArgumentException if {@code name} is blank
+     */
     public static Tenant of(String name) {
         return new Tenant(name);
     }
@@ -40,5 +46,14 @@ public final class Tenant {
     @Override
     public String toString() {
         return name;
+    }
+
+    private static String validateName(String name) {
+        String value = Objects.requireNonNull(name, "name");
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
+        return normalized;
     }
 }

@@ -2,8 +2,13 @@ package tech.amikos.chromadb.v2;
 
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.junit.Assert.*;
 
 public class ChromaClientBuilderTest {
 
@@ -19,7 +24,6 @@ public class ChromaClientBuilderTest {
 
     @Test
     public void testBuilderFluentChaining() {
-        // Should not throw — verifies that setters return the builder and store values
         ChromaClient.Builder builder = ChromaClient.builder()
                 .baseUrl("http://localhost:8000")
                 .auth(TokenAuth.of("tok"))
@@ -33,13 +37,7 @@ public class ChromaClientBuilderTest {
                 .readTimeout(Duration.ofSeconds(10))
                 .writeTimeout(Duration.ofSeconds(10))
                 .defaultHeaders(Collections.<String, String>emptyMap());
-
-        // builder is fully configured; build() is not yet implemented
-        try {
-            builder.build();
-        } catch (UnsupportedOperationException e) {
-            // expected
-        }
+        assertNotNull(builder);
     }
 
     @Test
@@ -49,11 +47,69 @@ public class ChromaClientBuilderTest {
                 .tenant("t")
                 .database("d")
                 .timeout(Duration.ofSeconds(30));
+        assertNotNull(builder);
+    }
 
-        try {
-            builder.build();
-        } catch (UnsupportedOperationException e) {
-            // expected
-        }
+    @Test(expected = IllegalArgumentException.class)
+    public void testCloudBuilderRejectsBlankApiKey() {
+        ChromaClient.cloud().apiKey("  ");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testCloudBuilderRejectsNullApiKey() {
+        ChromaClient.cloud().apiKey(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testCloudBuilderRejectsNullTenant() {
+        ChromaClient.cloud().tenant(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCloudBuilderRejectsBlankTenant() {
+        ChromaClient.cloud().tenant("  ");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testCloudBuilderRejectsNullDatabase() {
+        ChromaClient.cloud().database(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCloudBuilderRejectsBlankDatabase() {
+        ChromaClient.cloud().database("  ");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testBuilderDefaultHeadersDefensiveCopy() throws Exception {
+        Map<String, String> input = new LinkedHashMap<String, String>();
+        input.put("X-Test", "one");
+
+        ChromaClient.Builder builder = ChromaClient.builder().defaultHeaders(input);
+        input.put("X-Test", "two");
+
+        Field field = ChromaClient.Builder.class.getDeclaredField("defaultHeaders");
+        field.setAccessible(true);
+        Map<String, String> stored = (Map<String, String>) field.get(builder);
+
+        assertNotSame(input, stored);
+        assertEquals("one", stored.get("X-Test"));
+    }
+
+    @Test
+    public void testCloudBuilderNormalizesWhitespaceInTenantAndDatabase() throws Exception {
+        ChromaClient.CloudBuilder builder = ChromaClient.cloud()
+                .apiKey("key")
+                .tenant("  tenant-a  ")
+                .database("  db-a  ");
+
+        Field tenantField = ChromaClient.CloudBuilder.class.getDeclaredField("tenant");
+        tenantField.setAccessible(true);
+        Field databaseField = ChromaClient.CloudBuilder.class.getDeclaredField("database");
+        databaseField.setAccessible(true);
+
+        assertEquals("tenant-a", tenantField.get(builder));
+        assertEquals("db-a", databaseField.get(builder));
     }
 }

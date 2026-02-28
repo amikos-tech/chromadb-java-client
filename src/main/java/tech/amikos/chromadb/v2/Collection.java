@@ -30,9 +30,9 @@ public interface Collection {
 
     String getName();
 
-    String getTenant();
+    Tenant getTenant();
 
-    String getDatabase();
+    Database getDatabase();
 
     Map<String, Object> getMetadata();
 
@@ -42,22 +42,16 @@ public interface Collection {
 
     // --- Record operations ---
 
-    /** @throws ChromaException on server or client errors during execution */
     AddBuilder add();
 
-    /** @throws ChromaException on server or client errors during execution */
     QueryBuilder query();
 
-    /** @throws ChromaException on server or client errors during execution */
     GetBuilder get();
 
-    /** @throws ChromaException on server or client errors during execution */
     UpdateBuilder update();
 
-    /** @throws ChromaException on server or client errors during execution */
     UpsertBuilder upsert();
 
-    /** @throws ChromaException on server or client errors during execution */
     DeleteBuilder delete();
 
     /** @throws ChromaServerException on server errors */
@@ -80,7 +74,6 @@ public interface Collection {
         AddBuilder embeddings(List<float[]> embeddings);
         AddBuilder documents(String... documents);
         AddBuilder documents(List<String> documents);
-        AddBuilder metadatas(Map<String, Object>... metadatas);
         AddBuilder metadatas(List<Map<String, Object>> metadatas);
         AddBuilder uris(String... uris);
         AddBuilder uris(List<String> uris);
@@ -120,7 +113,6 @@ public interface Collection {
         UpdateBuilder embeddings(List<float[]> embeddings);
         UpdateBuilder documents(String... documents);
         UpdateBuilder documents(List<String> documents);
-        UpdateBuilder metadatas(Map<String, Object>... metadatas);
         UpdateBuilder metadatas(List<Map<String, Object>> metadatas);
         /** @throws ChromaBadRequestException if the input is invalid */
         void execute();
@@ -133,7 +125,6 @@ public interface Collection {
         UpsertBuilder embeddings(List<float[]> embeddings);
         UpsertBuilder documents(String... documents);
         UpsertBuilder documents(List<String> documents);
-        UpsertBuilder metadatas(Map<String, Object>... metadatas);
         UpsertBuilder metadatas(List<Map<String, Object>> metadatas);
         UpsertBuilder uris(String... uris);
         UpsertBuilder uris(List<String> uris);

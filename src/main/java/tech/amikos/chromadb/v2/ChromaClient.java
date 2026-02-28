@@ -1,7 +1,9 @@
 package tech.amikos.chromadb.v2;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Entry point for creating ChromaDB clients.
@@ -35,7 +37,6 @@ public final class ChromaClient {
     public static final class Builder {
         private String baseUrl;
         private AuthProvider authProvider;
-        private String apiKey;
         private Tenant tenant;
         private Database database;
         private Duration connectTimeout;
@@ -45,11 +46,32 @@ public final class ChromaClient {
 
         Builder() {}
 
+        /**
+         * Sets the base URL of the Chroma server.
+         *
+         * @param baseUrl server URL (for example {@code http://localhost:8000})
+         * @return this builder
+         */
         public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
 
+        /**
+         * Sets the authentication provider directly.
+         *
+         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
+         * method invoked determines the effective authentication.</p>
+         */
         public Builder auth(AuthProvider authProvider) { this.authProvider = authProvider; return this; }
 
-        public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
+        /**
+         * Convenience for {@code auth(TokenAuth.of(apiKey))}.
+         *
+         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
+         * method invoked determines the effective authentication.</p>
+         */
+        public Builder apiKey(String apiKey) {
+            this.authProvider = TokenAuth.of(apiKey);
+            return this;
+        }
 
         public Builder tenant(Tenant tenant) { this.tenant = tenant; return this; }
 
@@ -72,7 +94,10 @@ public final class ChromaClient {
 
         public Builder writeTimeout(Duration timeout) { this.writeTimeout = timeout; return this; }
 
-        public Builder defaultHeaders(Map<String, String> headers) { this.defaultHeaders = headers; return this; }
+        public Builder defaultHeaders(Map<String, String> headers) {
+            this.defaultHeaders = headers == null ? null : new LinkedHashMap<String, String>(headers);
+            return this;
+        }
 
         public Client build() {
             throw new UnsupportedOperationException("Not yet implemented");
@@ -87,16 +112,33 @@ public final class ChromaClient {
 
         CloudBuilder() {}
 
-        public CloudBuilder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
+        public CloudBuilder apiKey(String apiKey) {
+            this.apiKey = requireNonBlank("apiKey", apiKey);
+            return this;
+        }
 
-        public CloudBuilder tenant(String tenant) { this.tenant = tenant; return this; }
+        public CloudBuilder tenant(String tenant) {
+            this.tenant = Tenant.of(tenant).getName();
+            return this;
+        }
 
-        public CloudBuilder database(String database) { this.database = database; return this; }
+        public CloudBuilder database(String database) {
+            this.database = Database.of(database).getName();
+            return this;
+        }
 
         public CloudBuilder timeout(Duration timeout) { this.timeout = timeout; return this; }
 
         public Client build() {
             throw new UnsupportedOperationException("Not yet implemented");
         }
+    }
+
+    private static String requireNonBlank(String fieldName, String value) {
+        String nonNullValue = Objects.requireNonNull(value, fieldName);
+        if (nonNullValue.trim().isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return nonNullValue;
     }
 }

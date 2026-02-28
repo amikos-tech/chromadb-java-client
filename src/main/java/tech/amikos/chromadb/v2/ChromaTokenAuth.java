@@ -9,9 +9,15 @@ public final class ChromaTokenAuth implements AuthProvider {
     private final String token;
 
     private ChromaTokenAuth(String token) {
-        this.token = Objects.requireNonNull(token, "token");
+        this.token = validateToken(token);
     }
 
+    /**
+     * Creates Chroma Cloud token authentication.
+     *
+     * @throws NullPointerException     if {@code token} is {@code null}
+     * @throws IllegalArgumentException if {@code token} is blank
+     */
     public static ChromaTokenAuth of(String token) {
         return new ChromaTokenAuth(token);
     }
@@ -19,5 +25,13 @@ public final class ChromaTokenAuth implements AuthProvider {
     @Override
     public void applyAuth(Map<String, String> headers) {
         headers.put("X-Chroma-Token", token);
+    }
+
+    private static String validateToken(String token) {
+        String value = Objects.requireNonNull(token, "token");
+        if (value.trim().isEmpty()) {
+            throw new IllegalArgumentException("token must not be blank");
+        }
+        return value;
     }
 }

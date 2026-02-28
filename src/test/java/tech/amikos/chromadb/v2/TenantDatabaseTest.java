@@ -48,6 +48,24 @@ public class TenantDatabaseTest {
         Tenant.of(null);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testTenantRejectsEmpty() {
+        Tenant.of("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTenantRejectsBlank() {
+        Tenant.of("   ");
+    }
+
+    @Test
+    public void testTenantNormalizesWhitespace() {
+        Tenant trimmed = Tenant.of("tenant-a");
+        Tenant withWhitespace = Tenant.of("  tenant-a  ");
+        assertEquals("tenant-a", withWhitespace.getName());
+        assertEquals(trimmed, withWhitespace);
+    }
+
     @Test
     public void testTenantNotEqualToNull() {
         assertNotEquals(Tenant.of("t1"), null);
@@ -103,6 +121,24 @@ public class TenantDatabaseTest {
     @Test(expected = NullPointerException.class)
     public void testDatabaseRejectsNull() {
         Database.of(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDatabaseRejectsEmpty() {
+        Database.of("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDatabaseRejectsBlank() {
+        Database.of("   ");
+    }
+
+    @Test
+    public void testDatabaseNormalizesWhitespace() {
+        Database trimmed = Database.of("db-a");
+        Database withWhitespace = Database.of("  db-a  ");
+        assertEquals("db-a", withWhitespace.getName());
+        assertEquals(trimmed, withWhitespace);
     }
 
     @Test

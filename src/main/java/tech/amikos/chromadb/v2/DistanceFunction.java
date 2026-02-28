@@ -1,5 +1,7 @@
 package tech.amikos.chromadb.v2;
 
+import java.util.Locale;
+
 /** HNSW distance metric. */
 public enum DistanceFunction {
     COSINE("cosine"),
@@ -14,5 +16,18 @@ public enum DistanceFunction {
 
     public String getValue() {
         return value;
+    }
+
+    public static DistanceFunction fromValue(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("value must not be null");
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        for (DistanceFunction distanceFunction : values()) {
+            if (distanceFunction.value.equals(normalized)) {
+                return distanceFunction;
+            }
+        }
+        throw new IllegalArgumentException("Unknown distance function: " + value);
     }
 }

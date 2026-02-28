@@ -49,12 +49,46 @@ public class CollectionConfigurationTest {
     }
 
     @Test
+    public void testDistanceFunctionFromValue() {
+        assertEquals(DistanceFunction.COSINE, DistanceFunction.fromValue("cosine"));
+        assertEquals(DistanceFunction.L2, DistanceFunction.fromValue("L2"));
+        assertEquals(DistanceFunction.IP, DistanceFunction.fromValue(" ip "));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDistanceFunctionFromValueRejectsUnknown() {
+        DistanceFunction.fromValue("unknown");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDistanceFunctionFromValueRejectsNull() {
+        DistanceFunction.fromValue(null);
+    }
+
+    @Test
     public void testIncludeValues() {
         assertEquals("embeddings", Include.EMBEDDINGS.getValue());
         assertEquals("documents", Include.DOCUMENTS.getValue());
         assertEquals("metadatas", Include.METADATAS.getValue());
         assertEquals("distances", Include.DISTANCES.getValue());
         assertEquals("uris", Include.URIS.getValue());
+    }
+
+    @Test
+    public void testIncludeFromValue() {
+        assertEquals(Include.DOCUMENTS, Include.fromValue("documents"));
+        assertEquals(Include.DISTANCES, Include.fromValue("DISTANCES"));
+        assertEquals(Include.URIS, Include.fromValue(" uris "));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIncludeFromValueRejectsUnknown() {
+        Include.fromValue("unsupported");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIncludeFromValueRejectsNull() {
+        Include.fromValue(null);
     }
 
     @Test
@@ -110,5 +144,60 @@ public class CollectionConfigurationTest {
                 .build();
 
         assertNull(options.getMetadata());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswMRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswM(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswConstructionEfRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswConstructionEf(-1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswSearchEfRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswSearchEf(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswBatchSizeRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswBatchSize(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswSyncThresholdRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswSyncThreshold(0);
+    }
+
+    @Test
+    public void testCollectionConfigurationEqualsHashCodeAndToString() {
+        CollectionConfiguration a = CollectionConfiguration.builder()
+                .space(DistanceFunction.COSINE)
+                .hnswM(16)
+                .hnswConstructionEf(100)
+                .hnswSearchEf(50)
+                .hnswBatchSize(1000)
+                .hnswSyncThreshold(500)
+                .build();
+
+        CollectionConfiguration b = CollectionConfiguration.builder()
+                .space(DistanceFunction.COSINE)
+                .hnswM(16)
+                .hnswConstructionEf(100)
+                .hnswSearchEf(50)
+                .hnswBatchSize(1000)
+                .hnswSyncThreshold(500)
+                .build();
+
+        CollectionConfiguration c = CollectionConfiguration.builder()
+                .space(DistanceFunction.L2)
+                .build();
+
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, c);
+        assertTrue(a.toString().contains("hnswM=16"));
     }
 }

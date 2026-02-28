@@ -26,7 +26,8 @@ public class ChromaExceptionTest {
     @Test
     public void testBaseExceptionDefaultStatusCode() {
         ChromaException ex = new ChromaException("simple error");
-        assertEquals(-1, ex.getStatusCode());
+        assertEquals(ChromaException.STATUS_CODE_UNAVAILABLE, ex.getStatusCode());
+        assertFalse(ex.hasStatusCode());
         assertNull(ex.getErrorCode());
     }
 
@@ -85,7 +86,8 @@ public class ChromaExceptionTest {
         Throwable cause = new java.net.ConnectException("Connection refused");
         ChromaConnectionException ex = new ChromaConnectionException("Cannot connect", cause);
         assertSame(cause, ex.getCause());
-        assertEquals(-1, ex.getStatusCode());
+        assertEquals(ChromaException.STATUS_CODE_UNAVAILABLE, ex.getStatusCode());
+        assertFalse(ex.hasStatusCode());
         assertTrue(ex instanceof ChromaException);
     }
 
@@ -123,12 +125,22 @@ public class ChromaExceptionTest {
         assertSame(cause, ex.getCause());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testClientExceptionRejectsNon4xxStatusCode() {
+        new ChromaClientException("error", 503, null);
+    }
+
     @Test
     public void testServerExceptionWithCause() {
         Throwable cause = new RuntimeException("timeout");
         ChromaServerException ex = new ChromaServerException("error", 502, "GatewayError", cause);
         assertEquals(502, ex.getStatusCode());
         assertSame(cause, ex.getCause());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testServerExceptionRejectsNon5xxStatusCode() {
+        new ChromaServerException("error", 422, null);
     }
 
     // --- instanceof hierarchy tests ---
@@ -212,5 +224,20 @@ public class ChromaExceptionTest {
         assertTrue(ex instanceof ChromaNotFoundException);
         assertEquals("NotFoundError", ex.getErrorCode());
         assertSame(cause, ex.getCause());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFactoryRejectsNonErrorStatusCode() {
+        ChromaExceptions.fromHttpResponse(200, "ok", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFactoryRejectsNullMessage() {
+        ChromaExceptions.fromHttpResponse(500, null, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testFactoryRejectsBlankMessage() {
+        ChromaExceptions.fromHttpResponse(500, "   ", null);
     }
 }

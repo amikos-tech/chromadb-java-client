@@ -25,6 +25,7 @@ public abstract class Where {
     public static Where ne(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static Where ne(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static Where ne(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    public static Where ne(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
 
     // --- Comparison ---
 
@@ -52,8 +53,10 @@ public abstract class Where {
     public static Where or(Where... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
 
     /** Chain: {@code Where.eq("a", 1).and(Where.eq("b", 2))} */
-    public Where and(Where other) { return and(this, other); }
-    public Where or(Where other) { return or(this, other); }
+    public Where and(Where other) { return Where.and(this, other); }
+
+    /** Chain: {@code Where.eq("a", 1).or(Where.eq("b", 2))} */
+    public Where or(Where other) { return Where.or(this, other); }
 
     /** Serialize to the Chroma filter JSON structure. */
     public abstract Map<String, Object> toMap();

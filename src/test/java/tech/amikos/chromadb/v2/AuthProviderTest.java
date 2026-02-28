@@ -45,6 +45,16 @@ public class AuthProviderTest {
         TokenAuth.of(null);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testTokenAuthRejectsEmptyToken() {
+        TokenAuth.of("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTokenAuthRejectsBlankToken() {
+        TokenAuth.of("   ");
+    }
+
     @Test
     public void testChromaTokenAuthAppliesHeader() {
         ChromaTokenAuth auth = ChromaTokenAuth.of("chroma-tok");
@@ -57,6 +67,16 @@ public class AuthProviderTest {
     @Test(expected = NullPointerException.class)
     public void testChromaTokenAuthRejectsNullToken() {
         ChromaTokenAuth.of(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testChromaTokenAuthRejectsEmptyToken() {
+        ChromaTokenAuth.of("");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testChromaTokenAuthRejectsBlankToken() {
+        ChromaTokenAuth.of("   ");
     }
 
     @Test

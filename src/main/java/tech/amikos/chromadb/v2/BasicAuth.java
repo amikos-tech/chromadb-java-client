@@ -17,6 +17,13 @@ public final class BasicAuth implements AuthProvider {
                 .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Creates HTTP Basic authentication from username/password credentials.
+     *
+     * @param username basic auth username
+     * @param password basic auth password
+     * @throws NullPointerException if {@code username} or {@code password} is {@code null}
+     */
     public static BasicAuth of(String username, String password) {
         return new BasicAuth(username, password);
     }
