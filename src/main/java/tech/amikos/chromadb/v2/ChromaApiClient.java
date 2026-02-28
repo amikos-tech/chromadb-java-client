@@ -118,6 +118,15 @@ class ChromaApiClient implements AutoCloseable {
         return deserialize(response.body, responseType, response.statusCode);
     }
 
+    void put(String path, Object body) {
+        ensureOpen();
+        Request request = newRequest()
+                .url(buildUrl(path))
+                .put(jsonBody(body))
+                .build();
+        execute(request);
+    }
+
     void delete(String path) {
         ensureOpen();
         Request request = newRequest()

@@ -200,4 +200,21 @@ public class CollectionConfigurationTest {
         assertNotEquals(a, c);
         assertTrue(a.toString().contains("hnswM=16"));
     }
+
+    @Test
+    public void testConfigurationMapRoundTrip() {
+        CollectionConfiguration original = CollectionConfiguration.builder()
+                .space(DistanceFunction.IP)
+                .hnswM(32)
+                .hnswConstructionEf(120)
+                .hnswSearchEf(55)
+                .hnswBatchSize(500)
+                .hnswSyncThreshold(250)
+                .build();
+
+        Map<String, Object> configMap = ChromaDtos.toConfigurationMap(original);
+        CollectionConfiguration parsed = ChromaDtos.parseConfiguration(configMap);
+
+        assertEquals(original, parsed);
+    }
 }
