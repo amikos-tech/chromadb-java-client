@@ -54,10 +54,14 @@ final class ChromaDtos {
         final String newName;
         @SerializedName("new_metadata")
         final Map<String, Object> newMetadata;
+        @SerializedName("new_configuration")
+        final Map<String, Object> newConfiguration;
 
-        UpdateCollectionRequest(String newName, Map<String, Object> newMetadata) {
+        UpdateCollectionRequest(String newName, Map<String, Object> newMetadata,
+                                Map<String, Object> newConfiguration) {
             this.newName = newName;
             this.newMetadata = newMetadata;
+            this.newConfiguration = newConfiguration;
         }
     }
 
@@ -289,16 +293,70 @@ final class ChromaDtos {
         if (config.getHnswSearchEf() != null) {
             params.put("hnsw:search_ef", config.getHnswSearchEf());
         }
+        if (config.getHnswNumThreads() != null) {
+            params.put("hnsw:num_threads", config.getHnswNumThreads());
+        }
         if (config.getHnswBatchSize() != null) {
             params.put("hnsw:batch_size", config.getHnswBatchSize());
         }
         if (config.getHnswSyncThreshold() != null) {
             params.put("hnsw:sync_threshold", config.getHnswSyncThreshold());
         }
+        if (config.getHnswResizeFactor() != null) {
+            params.put("hnsw:resize_factor", config.getHnswResizeFactor());
+        }
+        if (config.getSpannSearchNprobe() != null) {
+            params.put("spann:search_nprobe", config.getSpannSearchNprobe());
+        }
+        if (config.getSpannEfSearch() != null) {
+            params.put("spann:ef_search", config.getSpannEfSearch());
+        }
         if (params.isEmpty()) {
             return null;
         }
         return params;
+    }
+
+    static Map<String, Object> toUpdateConfigurationMap(UpdateCollectionConfiguration config) {
+        if (config == null) {
+            return null;
+        }
+        Map<String, Object> root = new LinkedHashMap<String, Object>();
+        if (config.hasHnswUpdates()) {
+            Map<String, Object> hnsw = new LinkedHashMap<String, Object>();
+            if (config.getHnswSearchEf() != null) {
+                hnsw.put("ef_search", config.getHnswSearchEf());
+            }
+            if (config.getHnswNumThreads() != null) {
+                hnsw.put("num_threads", config.getHnswNumThreads());
+            }
+            if (config.getHnswBatchSize() != null) {
+                hnsw.put("batch_size", config.getHnswBatchSize());
+            }
+            if (config.getHnswSyncThreshold() != null) {
+                hnsw.put("sync_threshold", config.getHnswSyncThreshold());
+            }
+            if (config.getHnswResizeFactor() != null) {
+                hnsw.put("resize_factor", config.getHnswResizeFactor());
+            }
+            root.put("hnsw", hnsw);
+        }
+        if (config.hasSpannUpdates()) {
+            Map<String, Object> spann = new LinkedHashMap<String, Object>();
+            if (config.getSpannSearchNprobe() != null) {
+                spann.put("search_nprobe", config.getSpannSearchNprobe());
+            }
+            if (config.getSpannEfSearch() != null) {
+                spann.put("ef_search", config.getSpannEfSearch());
+            }
+            root.put("spann", spann);
+        }
+        if (root.isEmpty()) {
+            throw new IllegalStateException(
+                    "UpdateCollectionConfiguration has updates but serialized to an empty payload"
+            );
+        }
+        return root;
     }
 
     static CollectionConfiguration parseConfiguration(Map<String, Object> configJson) {
@@ -357,6 +415,18 @@ final class ChromaDtos {
                 throw invalidConfiguration("hnsw:search_ef must be > 0 but was " + value, e);
             }
         }
+        Object numThreads = configJson.get("hnsw:num_threads");
+        if (numThreads != null) {
+            if (!(numThreads instanceof Number)) {
+                throw invalidConfiguration("hnsw:num_threads must be numeric");
+            }
+            int value = ((Number) numThreads).intValue();
+            try {
+                builder.hnswNumThreads(value);
+            } catch (IllegalArgumentException e) {
+                throw invalidConfiguration("hnsw:num_threads must be > 0 but was " + value, e);
+            }
+        }
         Object batchSize = configJson.get("hnsw:batch_size");
         if (batchSize != null) {
             if (!(batchSize instanceof Number)) {
@@ -379,6 +449,42 @@ final class ChromaDtos {
                 builder.hnswSyncThreshold(value);
             } catch (IllegalArgumentException e) {
                 throw invalidConfiguration("hnsw:sync_threshold must be > 0 but was " + value, e);
+            }
+        }
+        Object resizeFactor = configJson.get("hnsw:resize_factor");
+        if (resizeFactor != null) {
+            if (!(resizeFactor instanceof Number)) {
+                throw invalidConfiguration("hnsw:resize_factor must be numeric");
+            }
+            double value = ((Number) resizeFactor).doubleValue();
+            try {
+                builder.hnswResizeFactor(value);
+            } catch (IllegalArgumentException e) {
+                throw invalidConfiguration("hnsw:resize_factor must be > 0 and finite but was " + value, e);
+            }
+        }
+        Object spannSearchNprobe = configJson.get("spann:search_nprobe");
+        if (spannSearchNprobe != null) {
+            if (!(spannSearchNprobe instanceof Number)) {
+                throw invalidConfiguration("spann:search_nprobe must be numeric");
+            }
+            int value = ((Number) spannSearchNprobe).intValue();
+            try {
+                builder.spannSearchNprobe(value);
+            } catch (IllegalArgumentException e) {
+                throw invalidConfiguration("spann:search_nprobe must be > 0 but was " + value, e);
+            }
+        }
+        Object spannEfSearch = configJson.get("spann:ef_search");
+        if (spannEfSearch != null) {
+            if (!(spannEfSearch instanceof Number)) {
+                throw invalidConfiguration("spann:ef_search must be numeric");
+            }
+            int value = ((Number) spannEfSearch).intValue();
+            try {
+                builder.spannEfSearch(value);
+            } catch (IllegalArgumentException e) {
+                throw invalidConfiguration("spann:ef_search must be > 0 but was " + value, e);
             }
         }
         return builder.build();

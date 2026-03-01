@@ -2,12 +2,9 @@ package tech.amikos.chromadb.v2;
 
 import java.util.Objects;
 
-/** Immutable collection configuration (HNSW/SPANN parameters). */
-public final class CollectionConfiguration {
+/** Immutable runtime collection configuration update payload (HNSW or SPANN). */
+public final class UpdateCollectionConfiguration {
 
-    private final DistanceFunction space;
-    private final Integer hnswM;
-    private final Integer hnswConstructionEf;
     private final Integer hnswSearchEf;
     private final Integer hnswNumThreads;
     private final Integer hnswBatchSize;
@@ -16,10 +13,7 @@ public final class CollectionConfiguration {
     private final Integer spannSearchNprobe;
     private final Integer spannEfSearch;
 
-    private CollectionConfiguration(Builder builder) {
-        this.space = builder.space;
-        this.hnswM = builder.hnswM;
-        this.hnswConstructionEf = builder.hnswConstructionEf;
+    private UpdateCollectionConfiguration(Builder builder) {
         this.hnswSearchEf = builder.hnswSearchEf;
         this.hnswNumThreads = builder.hnswNumThreads;
         this.hnswBatchSize = builder.hnswBatchSize;
@@ -33,9 +27,6 @@ public final class CollectionConfiguration {
         return new Builder();
     }
 
-    public DistanceFunction getSpace() { return space; }
-    public Integer getHnswM() { return hnswM; }
-    public Integer getHnswConstructionEf() { return hnswConstructionEf; }
     public Integer getHnswSearchEf() { return hnswSearchEf; }
     public Integer getHnswNumThreads() { return hnswNumThreads; }
     public Integer getHnswBatchSize() { return hnswBatchSize; }
@@ -44,15 +35,39 @@ public final class CollectionConfiguration {
     public Integer getSpannSearchNprobe() { return spannSearchNprobe; }
     public Integer getSpannEfSearch() { return spannEfSearch; }
 
+    public boolean hasHnswUpdates() {
+        return hnswSearchEf != null
+                || hnswNumThreads != null
+                || hnswBatchSize != null
+                || hnswSyncThreshold != null
+                || hnswResizeFactor != null;
+    }
+
+    public boolean hasSpannUpdates() {
+        return spannSearchNprobe != null || spannEfSearch != null;
+    }
+
+    public void validate() {
+        boolean hasHnsw = hasHnswUpdates();
+        boolean hasSpann = hasSpannUpdates();
+        if (!hasHnsw && !hasSpann) {
+            throw new IllegalArgumentException(
+                    "configuration must specify at least one parameter to modify (hnsw or spann)"
+            );
+        }
+        if (hasHnsw && hasSpann) {
+            throw new IllegalArgumentException(
+                    "cannot update both hnsw and spann configuration in the same request"
+            );
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof CollectionConfiguration)) return false;
-        CollectionConfiguration that = (CollectionConfiguration) o;
-        return space == that.space
-                && Objects.equals(hnswM, that.hnswM)
-                && Objects.equals(hnswConstructionEf, that.hnswConstructionEf)
-                && Objects.equals(hnswSearchEf, that.hnswSearchEf)
+        if (!(o instanceof UpdateCollectionConfiguration)) return false;
+        UpdateCollectionConfiguration that = (UpdateCollectionConfiguration) o;
+        return Objects.equals(hnswSearchEf, that.hnswSearchEf)
                 && Objects.equals(hnswNumThreads, that.hnswNumThreads)
                 && Objects.equals(hnswBatchSize, that.hnswBatchSize)
                 && Objects.equals(hnswSyncThreshold, that.hnswSyncThreshold)
@@ -64,9 +79,6 @@ public final class CollectionConfiguration {
     @Override
     public int hashCode() {
         return Objects.hash(
-                space,
-                hnswM,
-                hnswConstructionEf,
                 hnswSearchEf,
                 hnswNumThreads,
                 hnswBatchSize,
@@ -79,24 +91,36 @@ public final class CollectionConfiguration {
 
     @Override
     public String toString() {
-        return "CollectionConfiguration{"
-                + "space=" + space
-                + ", hnswM=" + hnswM
-                + ", hnswConstructionEf=" + hnswConstructionEf
-                + ", hnswSearchEf=" + hnswSearchEf
-                + ", hnswNumThreads=" + hnswNumThreads
-                + ", hnswBatchSize=" + hnswBatchSize
-                + ", hnswSyncThreshold=" + hnswSyncThreshold
-                + ", hnswResizeFactor=" + hnswResizeFactor
-                + ", spannSearchNprobe=" + spannSearchNprobe
-                + ", spannEfSearch=" + spannEfSearch
-                + '}';
+        StringBuilder sb = new StringBuilder("UpdateCollectionConfiguration{");
+        boolean hasContent = false;
+        if (hasHnswUpdates()) {
+            sb.append("hnsw={")
+                    .append("efSearch=").append(hnswSearchEf)
+                    .append(", numThreads=").append(hnswNumThreads)
+                    .append(", batchSize=").append(hnswBatchSize)
+                    .append(", syncThreshold=").append(hnswSyncThreshold)
+                    .append(", resizeFactor=").append(hnswResizeFactor)
+                    .append('}');
+            hasContent = true;
+        }
+        if (hasSpannUpdates()) {
+            if (hasContent) {
+                sb.append(", ");
+            }
+            sb.append("spann={")
+                    .append("searchNprobe=").append(spannSearchNprobe)
+                    .append(", efSearch=").append(spannEfSearch)
+                    .append('}');
+            hasContent = true;
+        }
+        if (!hasContent) {
+            sb.append("empty");
+        }
+        sb.append('}');
+        return sb.toString();
     }
 
     public static final class Builder {
-        private DistanceFunction space;
-        private Integer hnswM;
-        private Integer hnswConstructionEf;
         private Integer hnswSearchEf;
         private Integer hnswNumThreads;
         private Integer hnswBatchSize;
@@ -107,31 +131,54 @@ public final class CollectionConfiguration {
 
         Builder() {}
 
-        public Builder space(DistanceFunction space) { this.space = space; return this; }
-        /** @throws IllegalArgumentException if {@code m <= 0} */
-        public Builder hnswM(int m) { this.hnswM = requirePositive("hnswM", m); return this; }
         /** @throws IllegalArgumentException if {@code ef <= 0} */
-        public Builder hnswConstructionEf(int ef) { this.hnswConstructionEf = requirePositive("hnswConstructionEf", ef); return this; }
-        /** @throws IllegalArgumentException if {@code ef <= 0} */
-        public Builder hnswSearchEf(int ef) { this.hnswSearchEf = requirePositive("hnswSearchEf", ef); return this; }
+        public Builder hnswSearchEf(int ef) {
+            this.hnswSearchEf = requirePositive("hnswSearchEf", ef);
+            return this;
+        }
+
         /** @throws IllegalArgumentException if {@code threads <= 0} */
-        public Builder hnswNumThreads(int threads) { this.hnswNumThreads = requirePositive("hnswNumThreads", threads); return this; }
+        public Builder hnswNumThreads(int threads) {
+            this.hnswNumThreads = requirePositive("hnswNumThreads", threads);
+            return this;
+        }
+
         /** @throws IllegalArgumentException if {@code size <= 0} */
-        public Builder hnswBatchSize(int size) { this.hnswBatchSize = requirePositive("hnswBatchSize", size); return this; }
+        public Builder hnswBatchSize(int size) {
+            this.hnswBatchSize = requirePositive("hnswBatchSize", size);
+            return this;
+        }
+
         /** @throws IllegalArgumentException if {@code threshold <= 0} */
-        public Builder hnswSyncThreshold(int threshold) { this.hnswSyncThreshold = requirePositive("hnswSyncThreshold", threshold); return this; }
-        /** @throws IllegalArgumentException if {@code factor <= 0} or not finite */
+        public Builder hnswSyncThreshold(int threshold) {
+            this.hnswSyncThreshold = requirePositive("hnswSyncThreshold", threshold);
+            return this;
+        }
+
+        /**
+         * @throws IllegalArgumentException if {@code factor <= 0} or is not finite
+         */
         public Builder hnswResizeFactor(double factor) {
             this.hnswResizeFactor = Double.valueOf(requirePositiveFinite("hnswResizeFactor", factor));
             return this;
         }
-        /** @throws IllegalArgumentException if {@code nprobe <= 0} */
-        public Builder spannSearchNprobe(int nprobe) { this.spannSearchNprobe = requirePositive("spannSearchNprobe", nprobe); return this; }
-        /** @throws IllegalArgumentException if {@code ef <= 0} */
-        public Builder spannEfSearch(int ef) { this.spannEfSearch = requirePositive("spannEfSearch", ef); return this; }
 
-        public CollectionConfiguration build() {
-            return new CollectionConfiguration(this);
+        /** @throws IllegalArgumentException if {@code nprobe <= 0} */
+        public Builder spannSearchNprobe(int nprobe) {
+            this.spannSearchNprobe = requirePositive("spannSearchNprobe", nprobe);
+            return this;
+        }
+
+        /** @throws IllegalArgumentException if {@code ef <= 0} */
+        public Builder spannEfSearch(int ef) {
+            this.spannEfSearch = requirePositive("spannEfSearch", ef);
+            return this;
+        }
+
+        public UpdateCollectionConfiguration build() {
+            UpdateCollectionConfiguration config = new UpdateCollectionConfiguration(this);
+            config.validate();
+            return config;
         }
 
         private static int requirePositive(String name, int value) {

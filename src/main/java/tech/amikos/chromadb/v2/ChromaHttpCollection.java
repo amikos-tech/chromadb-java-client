@@ -111,7 +111,7 @@ final class ChromaHttpCollection implements Collection {
     public void modifyName(String newName) {
         String normalizedName = requireNonBlankArgument("newName", newName);
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
-        apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(normalizedName, null));
+        apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(normalizedName, null, null));
         this.name = normalizedName;
     }
 
@@ -119,8 +119,25 @@ final class ChromaHttpCollection implements Collection {
     public void modifyMetadata(Map<String, Object> metadata) {
         Objects.requireNonNull(metadata, "metadata");
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
-        apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(null, metadata));
+        apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(null, metadata, null));
         mergeLocalMetadata(metadata);
+    }
+
+    @Override
+    public void modifyConfiguration(UpdateCollectionConfiguration config) {
+        Objects.requireNonNull(config, "config");
+        config.validate();
+        Map<String, Object> updatePayload = ChromaDtos.toUpdateConfigurationMap(config);
+        if (updatePayload == null) {
+            throw new IllegalStateException("Validated configuration update must serialize to non-null payload");
+        }
+        String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
+        apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(
+                null,
+                null,
+                updatePayload
+        ));
+        mergeLocalConfiguration(config);
     }
 
     private void mergeLocalMetadata(Map<String, Object> metadataUpdate) {
@@ -132,6 +149,64 @@ final class ChromaHttpCollection implements Collection {
             merged.putAll(copyMetadata(metadataUpdate));
             this.metadata = merged;
         }
+    }
+
+    private synchronized void mergeLocalConfiguration(UpdateCollectionConfiguration update) {
+        CollectionConfiguration.Builder builder = CollectionConfiguration.builder();
+        if (this.configuration != null) {
+            if (this.configuration.getSpace() != null) {
+                builder.space(this.configuration.getSpace());
+            }
+            if (this.configuration.getHnswM() != null) {
+                builder.hnswM(this.configuration.getHnswM().intValue());
+            }
+            if (this.configuration.getHnswConstructionEf() != null) {
+                builder.hnswConstructionEf(this.configuration.getHnswConstructionEf().intValue());
+            }
+            if (this.configuration.getHnswSearchEf() != null) {
+                builder.hnswSearchEf(this.configuration.getHnswSearchEf().intValue());
+            }
+            if (this.configuration.getHnswNumThreads() != null) {
+                builder.hnswNumThreads(this.configuration.getHnswNumThreads().intValue());
+            }
+            if (this.configuration.getHnswBatchSize() != null) {
+                builder.hnswBatchSize(this.configuration.getHnswBatchSize().intValue());
+            }
+            if (this.configuration.getHnswSyncThreshold() != null) {
+                builder.hnswSyncThreshold(this.configuration.getHnswSyncThreshold().intValue());
+            }
+            if (this.configuration.getHnswResizeFactor() != null) {
+                builder.hnswResizeFactor(this.configuration.getHnswResizeFactor().doubleValue());
+            }
+            if (this.configuration.getSpannSearchNprobe() != null) {
+                builder.spannSearchNprobe(this.configuration.getSpannSearchNprobe().intValue());
+            }
+            if (this.configuration.getSpannEfSearch() != null) {
+                builder.spannEfSearch(this.configuration.getSpannEfSearch().intValue());
+            }
+        }
+        if (update.getHnswSearchEf() != null) {
+            builder.hnswSearchEf(update.getHnswSearchEf().intValue());
+        }
+        if (update.getHnswNumThreads() != null) {
+            builder.hnswNumThreads(update.getHnswNumThreads().intValue());
+        }
+        if (update.getHnswBatchSize() != null) {
+            builder.hnswBatchSize(update.getHnswBatchSize().intValue());
+        }
+        if (update.getHnswSyncThreshold() != null) {
+            builder.hnswSyncThreshold(update.getHnswSyncThreshold().intValue());
+        }
+        if (update.getHnswResizeFactor() != null) {
+            builder.hnswResizeFactor(update.getHnswResizeFactor().doubleValue());
+        }
+        if (update.getSpannSearchNprobe() != null) {
+            builder.spannSearchNprobe(update.getSpannSearchNprobe().intValue());
+        }
+        if (update.getSpannEfSearch() != null) {
+            builder.spannEfSearch(update.getSpannEfSearch().intValue());
+        }
+        this.configuration = builder.build();
     }
 
     @Override

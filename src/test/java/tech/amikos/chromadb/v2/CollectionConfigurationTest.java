@@ -17,16 +17,24 @@ public class CollectionConfigurationTest {
                 .hnswM(16)
                 .hnswConstructionEf(100)
                 .hnswSearchEf(50)
+                .hnswNumThreads(8)
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
+                .hnswResizeFactor(1.5)
+                .spannSearchNprobe(32)
+                .spannEfSearch(64)
                 .build();
 
         assertEquals(DistanceFunction.COSINE, config.getSpace());
         assertEquals(Integer.valueOf(16), config.getHnswM());
         assertEquals(Integer.valueOf(100), config.getHnswConstructionEf());
         assertEquals(Integer.valueOf(50), config.getHnswSearchEf());
+        assertEquals(Integer.valueOf(8), config.getHnswNumThreads());
         assertEquals(Integer.valueOf(1000), config.getHnswBatchSize());
         assertEquals(Integer.valueOf(500), config.getHnswSyncThreshold());
+        assertEquals(Double.valueOf(1.5), config.getHnswResizeFactor());
+        assertEquals(Integer.valueOf(32), config.getSpannSearchNprobe());
+        assertEquals(Integer.valueOf(64), config.getSpannEfSearch());
     }
 
     @Test
@@ -37,8 +45,12 @@ public class CollectionConfigurationTest {
         assertNull(config.getHnswM());
         assertNull(config.getHnswConstructionEf());
         assertNull(config.getHnswSearchEf());
+        assertNull(config.getHnswNumThreads());
         assertNull(config.getHnswBatchSize());
         assertNull(config.getHnswSyncThreshold());
+        assertNull(config.getHnswResizeFactor());
+        assertNull(config.getSpannSearchNprobe());
+        assertNull(config.getSpannEfSearch());
     }
 
     @Test
@@ -171,6 +183,31 @@ public class CollectionConfigurationTest {
         CollectionConfiguration.builder().hnswSyncThreshold(0);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswNumThreadsRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswNumThreads(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswResizeFactorRejectsNonPositive() {
+        CollectionConfiguration.builder().hnswResizeFactor(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswResizeFactorRejectsNaN() {
+        CollectionConfiguration.builder().hnswResizeFactor(Double.NaN);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSpannSearchNprobeRejectsNonPositive() {
+        CollectionConfiguration.builder().spannSearchNprobe(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSpannEfSearchRejectsNonPositive() {
+        CollectionConfiguration.builder().spannEfSearch(0);
+    }
+
     @Test
     public void testCollectionConfigurationEqualsHashCodeAndToString() {
         CollectionConfiguration a = CollectionConfiguration.builder()
@@ -178,8 +215,12 @@ public class CollectionConfigurationTest {
                 .hnswM(16)
                 .hnswConstructionEf(100)
                 .hnswSearchEf(50)
+                .hnswNumThreads(8)
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
+                .hnswResizeFactor(1.5)
+                .spannSearchNprobe(32)
+                .spannEfSearch(64)
                 .build();
 
         CollectionConfiguration b = CollectionConfiguration.builder()
@@ -187,8 +228,12 @@ public class CollectionConfigurationTest {
                 .hnswM(16)
                 .hnswConstructionEf(100)
                 .hnswSearchEf(50)
+                .hnswNumThreads(8)
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
+                .hnswResizeFactor(1.5)
+                .spannSearchNprobe(32)
+                .spannEfSearch(64)
                 .build();
 
         CollectionConfiguration c = CollectionConfiguration.builder()
@@ -208,8 +253,12 @@ public class CollectionConfigurationTest {
                 .hnswM(32)
                 .hnswConstructionEf(120)
                 .hnswSearchEf(55)
+                .hnswNumThreads(4)
                 .hnswBatchSize(500)
                 .hnswSyncThreshold(250)
+                .hnswResizeFactor(1.2)
+                .spannSearchNprobe(12)
+                .spannEfSearch(24)
                 .build();
 
         Map<String, Object> configMap = ChromaDtos.toConfigurationMap(original);
