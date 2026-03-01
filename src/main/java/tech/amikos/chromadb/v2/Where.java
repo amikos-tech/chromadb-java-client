@@ -266,18 +266,24 @@ public abstract class Where {
         }
     }
 
-    private static Map<String, Object> immutableMapCopy(Map<String, Object> source) {
+    private static Map<String, Object> immutableMapCopy(Map<?, ?> source) {
         Map<String, Object> copy = new LinkedHashMap<String, Object>(source.size());
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            copy.put(entry.getKey(), immutableValueCopy(entry.getValue()));
+        for (Map.Entry<?, ?> entry : source.entrySet()) {
+            Object rawKey = entry.getKey();
+            if (!(rawKey instanceof String)) {
+                String type = rawKey == null ? "null" : rawKey.getClass().getName();
+                throw new IllegalArgumentException(
+                        "where map keys must be String, but found key type " + type
+                );
+            }
+            copy.put((String) rawKey, immutableValueCopy(entry.getValue()));
         }
         return Collections.<String, Object>unmodifiableMap(copy);
     }
 
-    @SuppressWarnings("unchecked")
     private static Object immutableValueCopy(Object value) {
         if (value instanceof Map<?, ?>) {
-            return immutableMapCopy((Map<String, Object>) value);
+            return immutableMapCopy((Map<?, ?>) value);
         }
         if (value instanceof List<?>) {
             List<?> list = (List<?>) value;
@@ -293,7 +299,7 @@ public abstract class Where {
     private static final class MapWhere extends Where {
         private final Map<String, Object> map;
 
-        private MapWhere(Map<String, Object> map) {
+        private MapWhere(Map<?, ?> map) {
             this.map = immutableMapCopy(map);
         }
 

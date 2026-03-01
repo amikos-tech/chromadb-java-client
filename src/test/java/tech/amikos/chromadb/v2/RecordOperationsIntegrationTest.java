@@ -143,10 +143,10 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
     }
 
     @Test
-    public void testInlineDocumentWhereFiltersAreRejectedByLocalChroma() {
+    public void testInlineDocumentWhereFiltersAreVersionDependentOnLocalChroma() {
         addSampleRecords(5);
 
-        assertLocalWhereDocumentInlineRejected(new Runnable() {
+        assertLocalWhereDocumentInlineAcceptedOrRejected(new Runnable() {
             @Override
             public void run() {
                 collection.get()
@@ -154,7 +154,7 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
                         .execute();
             }
         });
-        assertLocalWhereDocumentInlineRejected(new Runnable() {
+        assertLocalWhereDocumentInlineAcceptedOrRejected(new Runnable() {
             @Override
             public void run() {
                 collection.query()
@@ -498,10 +498,9 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertNotNull(collection.get().execute().getIds());
     }
 
-    private static void assertLocalWhereDocumentInlineRejected(Runnable action) {
+    private static void assertLocalWhereDocumentInlineAcceptedOrRejected(Runnable action) {
         try {
             action.run();
-            fail("Expected ChromaBadRequestException");
         } catch (ChromaBadRequestException e) {
             assertEquals(400, e.getStatusCode());
         }

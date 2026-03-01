@@ -62,6 +62,35 @@ public class WhereDocumentTest {
         }
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNonStringKeys() {
+        Map raw = new LinkedHashMap();
+        raw.put(Integer.valueOf(1), "bad");
+        try {
+            WhereDocument.fromMap((Map<String, Object>) raw);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNestedNonStringKeys() {
+        Map nestedRaw = new LinkedHashMap();
+        nestedRaw.put(Integer.valueOf(1), "bad");
+
+        Map<String, Object> source = new LinkedHashMap<String, Object>();
+        source.put("$and", Collections.<Object>singletonList(nestedRaw));
+        try {
+            WhereDocument.fromMap(source);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
     private static WhereDocument stubWhereDocument() {
         return new WhereDocument() {
             @Override

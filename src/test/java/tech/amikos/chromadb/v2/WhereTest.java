@@ -79,6 +79,33 @@ public class WhereTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNonStringKeys() {
+        final Map raw = new LinkedHashMap();
+        raw.put(Integer.valueOf(1), "bad");
+        assertIllegalArgument(new Runnable() {
+            @Override
+            public void run() {
+                Where.fromMap((Map<String, Object>) raw);
+            }
+        });
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNestedNonStringKeys() {
+        Map nestedRaw = new LinkedHashMap();
+        nestedRaw.put(Integer.valueOf(1), "bad");
+        final Map<String, Object> source = singletonMap("meta", nestedRaw);
+        assertIllegalArgument(new Runnable() {
+            @Override
+            public void run() {
+                Where.fromMap(source);
+            }
+        });
+    }
+
+    @Test
     public void testIdFactoriesSerializeSingleElement() {
         Map<String, Object> expected = operatorCondition("#id", "$in", Arrays.asList("id1"));
         assertEquals(expected, Where.idIn("id1").toMap());
