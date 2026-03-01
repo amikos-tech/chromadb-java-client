@@ -26,6 +26,20 @@ public interface Client extends AutoCloseable {
     /** @throws ChromaConnectionException if the server is unreachable */
     String version();
 
+    /**
+     * Performs server capability discovery and returns operational limits.
+     *
+     * @throws ChromaConnectionException if the server is unreachable
+     */
+    PreFlightInfo preFlight();
+
+    /**
+     * Returns identity details for the currently authenticated principal.
+     *
+     * @throws ChromaConnectionException if the server is unreachable
+     */
+    Identity getIdentity();
+
     /** @throws ChromaServerException if the server rejects the reset */
     void reset();
 

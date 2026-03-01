@@ -213,6 +213,42 @@ public final class ChromaClient {
         }
 
         @Override
+        public PreFlightInfo preFlight() {
+            ChromaDtos.PreFlightResponse dto = apiClient.get(
+                    ChromaApiPaths.preFlightChecks(),
+                    ChromaDtos.PreFlightResponse.class);
+            if (dto.maxBatchSize == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned pre-flight payload without required max_batch_size field",
+                        200
+                );
+            }
+            if (dto.maxBatchSize.intValue() < 0) {
+                throw new ChromaDeserializationException(
+                        "Server returned pre-flight payload with invalid max_batch_size field: " + dto.maxBatchSize,
+                        200
+                );
+            }
+            return new PreFlightInfo(dto.maxBatchSize.intValue(), dto.supportsBase64Encoding);
+        }
+
+        @Override
+        public Identity getIdentity() {
+            ChromaDtos.IdentityResponse dto = apiClient.get(
+                    ChromaApiPaths.authIdentity(),
+                    ChromaDtos.IdentityResponse.class);
+            String userId = requireNonBlankField("identity.user_id", dto.userId);
+            String tenantName = requireNonBlankField("identity.tenant", dto.tenant);
+            List<String> databases = requireNonNullListField("identity.databases", dto.databases);
+            List<String> normalizedDatabases = new ArrayList<String>(databases.size());
+            for (int i = 0; i < databases.size(); i++) {
+                normalizedDatabases.add(requireNonBlankField(
+                        "identity.databases[" + i + "]", databases.get(i)));
+            }
+            return new Identity(userId, tenantName, normalizedDatabases);
+        }
+
+        @Override
         public void reset() {
             apiClient.post(ChromaApiPaths.reset(), Collections.emptyMap());
         }
@@ -393,6 +429,16 @@ public final class ChromaClient {
                 );
             }
             return value.trim();
+        }
+
+        private static <T> List<T> requireNonNullListField(String fieldName, List<T> value) {
+            if (value == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid " + fieldName + " field",
+                        200
+                );
+            }
+            return value;
         }
     }
 }

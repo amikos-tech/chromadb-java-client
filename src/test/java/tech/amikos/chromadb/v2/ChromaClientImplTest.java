@@ -5,6 +5,7 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -84,6 +85,133 @@ public class ChromaClientImplTest {
 
         Client c = newClient();
         assertEquals("1.0.0", c.version());
+    }
+
+    // --- preFlight ---
+
+    @Test
+    public void testPreFlight() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"max_batch_size\":123,\"supports_base64_encoding\":true}")));
+
+        Client c = newClient();
+        PreFlightInfo info = c.preFlight();
+        assertEquals(123, info.getMaxBatchSize());
+        assertEquals(Boolean.TRUE, info.getSupportsBase64Encoding());
+    }
+
+    @Test
+    public void testPreFlightWithoutSupportsBase64Encoding() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"max_batch_size\":64}")));
+
+        Client c = newClient();
+        PreFlightInfo info = c.preFlight();
+        assertEquals(64, info.getMaxBatchSize());
+        assertNull(info.getSupportsBase64Encoding());
+    }
+
+    @Test
+    public void testPreFlightMissingMaxBatchSizeThrows() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"supports_base64_encoding\":true}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("max_batch_size"));
+        }
+    }
+
+    @Test
+    public void testPreFlightNegativeMaxBatchSizeThrows() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"max_batch_size\":-1,\"supports_base64_encoding\":false}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("max_batch_size"));
+        }
+    }
+
+    // --- getIdentity ---
+
+    @Test
+    public void testGetIdentity() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"user-1\",\"tenant\":\"tenant-a\",\"databases\":[\"db1\",\"db2\"]}")));
+
+        Client c = newClient();
+        Identity identity = c.getIdentity();
+        assertEquals("user-1", identity.getUserId());
+        assertEquals("tenant-a", identity.getTenant());
+        assertEquals(Arrays.asList("db1", "db2"), identity.getDatabases());
+    }
+
+    @Test
+    public void testGetIdentityMissingUserIdThrows() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"tenant\":\"tenant-a\",\"databases\":[\"db1\"]}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("identity.user_id"));
+        }
+    }
+
+    @Test
+    public void testGetIdentityMissingDatabasesThrows() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"user-1\",\"tenant\":\"tenant-a\"}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("identity.databases"));
+        }
+    }
+
+    @Test
+    public void testGetIdentityBlankDatabaseEntryThrows() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"user-1\",\"tenant\":\"tenant-a\",\"databases\":[\"db1\",\"  \"]}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("identity.databases[1]"));
+        }
     }
 
     // --- reset ---

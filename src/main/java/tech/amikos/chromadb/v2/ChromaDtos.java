@@ -205,6 +205,20 @@ final class ChromaDtos {
         List<String> uris;
     }
 
+    static final class PreFlightResponse {
+        @SerializedName("max_batch_size")
+        Integer maxBatchSize;
+        @SerializedName("supports_base64_encoding")
+        Boolean supportsBase64Encoding;
+    }
+
+    static final class IdentityResponse {
+        @SerializedName("user_id")
+        String userId;
+        String tenant;
+        List<String> databases;
+    }
+
     // --- Helpers ---
 
     static List<Float> toFloatList(float[] array) {

@@ -23,6 +23,14 @@ final class ChromaApiPaths {
         return BASE + "/version";
     }
 
+    static String preFlightChecks() {
+        return BASE + "/pre-flight-checks";
+    }
+
+    static String authIdentity() {
+        return BASE + "/auth/identity";
+    }
+
     static String reset() {
         return BASE + "/reset";
     }
