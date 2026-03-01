@@ -169,6 +169,28 @@ public class WhereTest {
     }
 
     @Test
+    public void testLogicalCombinatorsDefensivelyCopyChildMaps() {
+        Map<String, Object> mutableNested = singletonMap("region", "eu");
+        Map<String, Object> mutableChild = singletonMap("meta", mutableNested);
+        Where combined = Where.and(Where.idIn("id1"), where(mutableChild));
+        int originalHashCode = combined.hashCode();
+
+        Map<String, Object> expectedNested = singletonMap("region", "eu");
+        Map<String, Object> expectedChild = singletonMap("meta", expectedNested);
+        Map<String, Object> expected = new LinkedHashMap<String, Object>();
+        expected.put("$and", Arrays.asList(
+                Where.idIn("id1").toMap(),
+                expectedChild
+        ));
+
+        mutableNested.put("region", "us");
+        mutableChild.put("extra", "x");
+
+        assertEquals(expected, combined.toMap());
+        assertEquals(originalHashCode, combined.hashCode());
+    }
+
+    @Test
     public void testValueSemantics() {
         Where first = Where.idIn("id1", "id2");
         Where second = Where.idIn("id1", "id2");

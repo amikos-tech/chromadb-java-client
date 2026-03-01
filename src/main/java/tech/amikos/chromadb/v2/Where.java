@@ -101,8 +101,8 @@ public abstract class Where {
      *
      * <p><strong>Compatibility:</strong> inline {@code #document} filters in {@code where} are a
      * Chroma Cloud capability and are rejected by local Chroma deployments. For local deployments,
-     * use {@link WhereDocument#contains(String)} via collection builder
-     * {@code whereDocument(...)} methods.</p>
+     * use collection builder {@code whereDocument(...)} methods with a custom
+     * {@link WhereDocument} implementation that overrides {@link WhereDocument#toMap()}.</p>
      *
      * @param text non-blank document text fragment to match; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#document":{"$contains":"..."}}}
@@ -120,8 +120,8 @@ public abstract class Where {
      *
      * <p><strong>Compatibility:</strong> inline {@code #document} filters in {@code where} are a
      * Chroma Cloud capability and are rejected by local Chroma deployments. For local deployments,
-     * use {@link WhereDocument#notContains(String)} via collection builder
-     * {@code whereDocument(...)} methods.</p>
+     * use collection builder {@code whereDocument(...)} methods with a custom
+     * {@link WhereDocument} implementation that overrides {@link WhereDocument#toMap()}.</p>
      *
      * @param text non-blank document text fragment to exclude; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#document":{"$not_contains":"..."}}}
@@ -226,7 +226,7 @@ public abstract class Where {
             if (conditionMap == null) {
                 throw new IllegalArgumentException("conditions[" + i + "].toMap() must not return null");
             }
-            clauses.add(conditionMap);
+            clauses.add(immutableMapCopy(conditionMap));
         }
 
         Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
@@ -250,11 +250,35 @@ public abstract class Where {
         }
     }
 
+    private static Map<String, Object> immutableMapCopy(Map<String, Object> source) {
+        Map<String, Object> copy = new LinkedHashMap<String, Object>(source.size());
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            copy.put(entry.getKey(), immutableValueCopy(entry.getValue()));
+        }
+        return Collections.<String, Object>unmodifiableMap(copy);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object immutableValueCopy(Object value) {
+        if (value instanceof Map<?, ?>) {
+            return immutableMapCopy((Map<String, Object>) value);
+        }
+        if (value instanceof List<?>) {
+            List<?> list = (List<?>) value;
+            List<Object> copy = new ArrayList<Object>(list.size());
+            for (Object item : list) {
+                copy.add(immutableValueCopy(item));
+            }
+            return Collections.<Object>unmodifiableList(copy);
+        }
+        return value;
+    }
+
     private static final class MapWhere extends Where {
         private final Map<String, Object> map;
 
         private MapWhere(Map<String, Object> map) {
-            this.map = Collections.<String, Object>unmodifiableMap(new LinkedHashMap<String, Object>(map));
+            this.map = immutableMapCopy(map);
         }
 
         @Override
