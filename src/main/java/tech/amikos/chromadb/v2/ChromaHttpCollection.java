@@ -128,9 +128,6 @@ final class ChromaHttpCollection implements Collection {
         Objects.requireNonNull(config, "config");
         config.validate();
         Map<String, Object> updatePayload = ChromaDtos.toUpdateConfigurationMap(config);
-        if (updatePayload == null) {
-            throw new IllegalStateException("Validated configuration update must serialize to non-null payload");
-        }
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
         apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(
                 null,
