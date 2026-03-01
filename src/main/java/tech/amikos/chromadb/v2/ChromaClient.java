@@ -246,15 +246,7 @@ public final class ChromaClient {
                 normalizedDatabases.add(requireNonBlankField(
                         "identity.databases[" + i + "]", databases.get(i)));
             }
-            try {
-                return new Identity(userId, tenantName, normalizedDatabases);
-            } catch (NullPointerException | IllegalArgumentException e) {
-                throw new ChromaDeserializationException(
-                        "Server returned identity payload that failed validation: " + e.getMessage(),
-                        200,
-                        e
-                );
-            }
+            return new Identity(userId, tenantName, normalizedDatabases);
         }
 
         @Override

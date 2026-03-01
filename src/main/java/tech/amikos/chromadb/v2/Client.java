@@ -12,6 +12,7 @@ import java.util.List;
  * <p>All methods may throw unchecked exceptions from the {@link ChromaException} hierarchy:
  * <ul>
  *   <li>{@link ChromaConnectionException} — network or timeout errors</li>
+ *   <li>{@link ChromaDeserializationException} — malformed successful responses</li>
  *   <li>{@link ChromaClientException} — HTTP 4xx errors</li>
  *   <li>{@link ChromaServerException} — HTTP 5xx errors</li>
  * </ul>
@@ -20,23 +21,16 @@ public interface Client extends AutoCloseable {
 
     // --- Health & info ---
 
-    /**
-     * @throws ChromaConnectionException if the server is unreachable
-     * @throws ChromaDeserializationException if the response payload is malformed
-     */
+    /** @throws ChromaConnectionException if the server is unreachable */
     String heartbeat();
 
-    /**
-     * @throws ChromaConnectionException if the server is unreachable
-     * @throws ChromaDeserializationException if the response payload is malformed
-     */
+    /** @throws ChromaConnectionException if the server is unreachable */
     String version();
 
     /**
      * Performs server capability discovery and returns operational limits.
      *
      * @throws ChromaConnectionException if the server is unreachable
-     * @throws ChromaDeserializationException if the response payload is malformed
      */
     PreFlightInfo preFlight();
 
@@ -46,7 +40,6 @@ public interface Client extends AutoCloseable {
      * @throws ChromaConnectionException if the server is unreachable
      * @throws ChromaUnauthorizedException if authentication is missing/invalid
      * @throws ChromaForbiddenException if access is denied
-     * @throws ChromaDeserializationException if the response payload is malformed
      */
     Identity getIdentity();
 
