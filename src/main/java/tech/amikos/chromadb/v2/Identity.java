@@ -17,7 +17,7 @@ public final class Identity {
      *
      * @param userId authenticated user identifier
      * @param tenant active tenant identifier
-     * @param databases visible databases for the authenticated user
+     * @param databases visible databases for the authenticated user; may be empty
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code userId}, {@code tenant}, or any database name is blank
      */

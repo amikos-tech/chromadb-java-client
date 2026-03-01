@@ -223,13 +223,14 @@ public final class ChromaClient {
                         200
                 );
             }
-            if (dto.maxBatchSize.intValue() <= 0) {
+            int maxBatchSize = dto.maxBatchSize.intValue();
+            if (maxBatchSize <= 0) {
                 throw new ChromaDeserializationException(
                         "Server returned pre-flight payload with invalid max_batch_size field: " + dto.maxBatchSize,
                         200
                 );
             }
-            return new PreFlightInfo(dto.maxBatchSize.intValue(), dto.supportsBase64Encoding);
+            return new PreFlightInfo(maxBatchSize, dto.supportsBase64Encoding);
         }
 
         @Override
@@ -245,7 +246,15 @@ public final class ChromaClient {
                 normalizedDatabases.add(requireNonBlankField(
                         "identity.databases[" + i + "]", databases.get(i)));
             }
-            return new Identity(userId, tenantName, normalizedDatabases);
+            try {
+                return new Identity(userId, tenantName, normalizedDatabases);
+            } catch (NullPointerException | IllegalArgumentException e) {
+                throw new ChromaDeserializationException(
+                        "Server returned identity payload that failed validation: " + e.getMessage(),
+                        200,
+                        e
+                );
+            }
         }
 
         @Override

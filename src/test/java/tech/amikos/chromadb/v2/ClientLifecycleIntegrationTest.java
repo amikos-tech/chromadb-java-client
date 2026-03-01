@@ -26,6 +26,19 @@ public class ClientLifecycleIntegrationTest extends AbstractChromaIntegrationTes
                 version.matches("\\d+\\.\\d+\\.\\d+.*"));
     }
 
+    // --- preFlight ---
+
+    @Test
+    public void testPreFlightReturnsPositiveBatchLimit() {
+        PreFlightInfo preFlight = client.preFlight();
+        assertNotNull(preFlight);
+        assertTrue("maxBatchSize should be positive, got: " + preFlight.getMaxBatchSize(),
+                preFlight.getMaxBatchSize() > 0);
+
+        // Verify null-safe convenience accessor does not throw.
+        preFlight.supportsBase64Encoding();
+    }
+
     // --- reset ---
 
     @Test

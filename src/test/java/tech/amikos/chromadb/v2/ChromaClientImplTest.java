@@ -118,6 +118,21 @@ public class ChromaClientImplTest {
     }
 
     @Test
+    public void testPreFlightWithSupportsBase64EncodingFalse() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"max_batch_size\":64,\"supports_base64_encoding\":false}")));
+
+        Client c = newClient();
+        PreFlightInfo info = c.preFlight();
+        assertEquals(64, info.getMaxBatchSize());
+        assertEquals(Boolean.FALSE, info.getSupportsBase64Encoding());
+        assertFalse(info.supportsBase64Encoding());
+    }
+
+    @Test
     public void testPreFlightMissingMaxBatchSizeThrows() {
         stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
                 .willReturn(aResponse()
@@ -199,6 +214,22 @@ public class ChromaClientImplTest {
     }
 
     @Test
+    public void testGetIdentityBlankUserIdThrows() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"  \",\"tenant\":\"tenant-a\",\"databases\":[\"db1\"]}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("identity.user_id"));
+        }
+    }
+
+    @Test
     public void testGetIdentityMissingTenantThrows() {
         stubFor(get(urlEqualTo("/api/v2/auth/identity"))
                 .willReturn(aResponse()
@@ -244,6 +275,20 @@ public class ChromaClientImplTest {
         } catch (ChromaDeserializationException e) {
             assertTrue(e.getMessage().contains("identity.databases[1]"));
         }
+    }
+
+    @Test
+    public void testGetIdentityWithEmptyDatabasesList() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"user-1\",\"tenant\":\"tenant-a\",\"databases\":[]}")));
+
+        Identity identity = newClient().getIdentity();
+        assertNotNull(identity);
+        assertNotNull(identity.getDatabases());
+        assertTrue(identity.getDatabases().isEmpty());
     }
 
     @Test(expected = ChromaUnauthorizedException.class)

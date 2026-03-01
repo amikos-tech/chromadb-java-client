@@ -20,10 +20,16 @@ public interface Client extends AutoCloseable {
 
     // --- Health & info ---
 
-    /** @throws ChromaConnectionException if the server is unreachable */
+    /**
+     * @throws ChromaConnectionException if the server is unreachable
+     * @throws ChromaDeserializationException if the response payload is malformed
+     */
     String heartbeat();
 
-    /** @throws ChromaConnectionException if the server is unreachable */
+    /**
+     * @throws ChromaConnectionException if the server is unreachable
+     * @throws ChromaDeserializationException if the response payload is malformed
+     */
     String version();
 
     /**

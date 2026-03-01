@@ -27,6 +27,13 @@ public class IdentityPreFlightInfoTest {
         assertFalse(info.supportsBase64Encoding());
     }
 
+    @Test
+    public void testPreFlightInfoSupportsBase64EncodingFalseWhenExplicitlyFalse() {
+        PreFlightInfo info = new PreFlightInfo(100, Boolean.FALSE);
+        assertEquals(Boolean.FALSE, info.getSupportsBase64Encoding());
+        assertFalse(info.supportsBase64Encoding());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testPreFlightInfoRejectsNegativeMaxBatchSize() {
         new PreFlightInfo(-1, Boolean.FALSE);
