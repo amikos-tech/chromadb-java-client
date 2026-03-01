@@ -1,7 +1,6 @@
 package tech.amikos.chromadb.v2;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -69,13 +68,6 @@ public abstract class AbstractChromaIntegrationTest {
         if (client != null) {
             client.close();
             client = null;
-        }
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-        if (CHROMA != null && CHROMA.isRunning()) {
-            CHROMA.stop();
         }
     }
 
