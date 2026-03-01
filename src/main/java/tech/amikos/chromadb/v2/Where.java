@@ -9,10 +9,11 @@ import java.util.Map;
 /**
  * Type-safe filter DSL for metadata, ID, and document conditions.
  *
- * <p><strong>Current status:</strong> ID/document filters and logical combinators are implemented.
- * The remaining metadata factory methods are placeholders and currently throw
- * {@link UnsupportedOperationException}. As a temporary fallback, use
- * {@link #fromMap(Map)} to pass raw where clauses.</p>
+ * <p>Typed factory methods cover standard Chroma {@code where} operators for metadata, inline
+ * ID/document filters, and logical combinators.
+ *
+ * <p><strong>Compatibility:</strong> this DSL serializes to Chroma {@code where} JSON shape.
+ * Operation support/semantics may vary by Chroma deployment and version.</p>
  */
 public abstract class Where {
 
@@ -21,6 +22,12 @@ public abstract class Where {
 
     private static final String OP_IN = "$in";
     private static final String OP_NIN = "$nin";
+    private static final String OP_EQ = "$eq";
+    private static final String OP_NE = "$ne";
+    private static final String OP_GT = "$gt";
+    private static final String OP_GTE = "$gte";
+    private static final String OP_LT = "$lt";
+    private static final String OP_LTE = "$lte";
     private static final String OP_CONTAINS = "$contains";
     private static final String OP_NOT_CONTAINS = "$not_contains";
     private static final String OP_AND = "$and";
@@ -31,8 +38,7 @@ public abstract class Where {
     /**
      * Builds a {@code Where} from a raw map payload.
      *
-     * <p>This is primarily a temporary escape hatch while typed metadata factories are still
-     * being implemented.</p>
+     * <p>This is an escape hatch for filter shapes not yet covered by typed factory methods.</p>
      *
      * @param map non-null Chroma where JSON structure
      * @return immutable where wrapper around the provided map shape
@@ -45,35 +51,61 @@ public abstract class Where {
 
     // --- Equality ---
 
-    public static Where eq(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where eq(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where eq(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where eq(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata equality for string values (value may be empty but must not be null). */
+    public static Where eq(String key, String value) { return metadataStringCondition(key, OP_EQ, value); }
+    /** Metadata equality for integer values. */
+    public static Where eq(String key, int value) { return metadataScalarCondition(key, OP_EQ, Integer.valueOf(value)); }
+    /** Metadata equality for float values (must be finite). */
+    public static Where eq(String key, float value) { return metadataScalarCondition(key, OP_EQ, Float.valueOf(value)); }
+    /** Metadata equality for boolean values. */
+    public static Where eq(String key, boolean value) { return metadataScalarCondition(key, OP_EQ, Boolean.valueOf(value)); }
 
-    public static Where ne(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where ne(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where ne(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where ne(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata inequality for string values (value may be empty but must not be null). */
+    public static Where ne(String key, String value) { return metadataStringCondition(key, OP_NE, value); }
+    /** Metadata inequality for integer values. */
+    public static Where ne(String key, int value) { return metadataScalarCondition(key, OP_NE, Integer.valueOf(value)); }
+    /** Metadata inequality for float values (must be finite). */
+    public static Where ne(String key, float value) { return metadataScalarCondition(key, OP_NE, Float.valueOf(value)); }
+    /** Metadata inequality for boolean values. */
+    public static Where ne(String key, boolean value) { return metadataScalarCondition(key, OP_NE, Boolean.valueOf(value)); }
 
     // --- Comparison ---
 
-    public static Where gt(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where gt(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where gte(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where gte(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where lt(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where lt(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where lte(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where lte(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata greater-than for integer values. */
+    public static Where gt(String key, int value) { return metadataScalarCondition(key, OP_GT, Integer.valueOf(value)); }
+    /** Metadata greater-than for float values (must be finite). */
+    public static Where gt(String key, float value) { return metadataScalarCondition(key, OP_GT, Float.valueOf(value)); }
+    /** Metadata greater-than-or-equal for integer values. */
+    public static Where gte(String key, int value) { return metadataScalarCondition(key, OP_GTE, Integer.valueOf(value)); }
+    /** Metadata greater-than-or-equal for float values (must be finite). */
+    public static Where gte(String key, float value) { return metadataScalarCondition(key, OP_GTE, Float.valueOf(value)); }
+    /** Metadata less-than for integer values. */
+    public static Where lt(String key, int value) { return metadataScalarCondition(key, OP_LT, Integer.valueOf(value)); }
+    /** Metadata less-than for float values (must be finite). */
+    public static Where lt(String key, float value) { return metadataScalarCondition(key, OP_LT, Float.valueOf(value)); }
+    /** Metadata less-than-or-equal for integer values. */
+    public static Where lte(String key, int value) { return metadataScalarCondition(key, OP_LTE, Integer.valueOf(value)); }
+    /** Metadata less-than-or-equal for float values (must be finite). */
+    public static Where lte(String key, float value) { return metadataScalarCondition(key, OP_LTE, Float.valueOf(value)); }
 
     // --- Set operations ---
 
-    public static Where in(String key, String... values) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where in(String key, int... values) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where in(String key, float... values) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where nin(String key, String... values) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where nin(String key, int... values) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where nin(String key, float... values) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata set inclusion for string values (elements may be empty but must not be null). */
+    public static Where in(String key, String... values) { return metadataStringSetCondition(key, OP_IN, values); }
+    /** Metadata set inclusion for integer values. */
+    public static Where in(String key, int... values) { return metadataIntSetCondition(key, OP_IN, values); }
+    /** Metadata set inclusion for float values (all elements must be finite). */
+    public static Where in(String key, float... values) { return metadataFloatSetCondition(key, OP_IN, values); }
+    /** Metadata set inclusion for boolean values. */
+    public static Where in(String key, boolean... values) { return metadataBooleanSetCondition(key, OP_IN, values); }
+    /** Metadata set exclusion for string values (elements may be empty but must not be null). */
+    public static Where nin(String key, String... values) { return metadataStringSetCondition(key, OP_NIN, values); }
+    /** Metadata set exclusion for integer values. */
+    public static Where nin(String key, int... values) { return metadataIntSetCondition(key, OP_NIN, values); }
+    /** Metadata set exclusion for float values (all elements must be finite). */
+    public static Where nin(String key, float... values) { return metadataFloatSetCondition(key, OP_NIN, values); }
+    /** Metadata set exclusion for boolean values. */
+    public static Where nin(String key, boolean... values) { return metadataBooleanSetCondition(key, OP_NIN, values); }
 
     // --- ID operations ---
 
@@ -149,24 +181,35 @@ public abstract class Where {
 
     // --- Array metadata operators ---
 
-    public static Where contains(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where contains(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where contains(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where contains(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata array containment for string values (value must be non-null and non-empty). */
+    public static Where contains(String key, String value) { return metadataContainsStringCondition(key, OP_CONTAINS, value); }
+    /** Metadata array containment for integer values. */
+    public static Where contains(String key, int value) { return metadataScalarCondition(key, OP_CONTAINS, Integer.valueOf(value)); }
+    /** Metadata array containment for float values (must be finite). */
+    public static Where contains(String key, float value) { return metadataScalarCondition(key, OP_CONTAINS, Float.valueOf(value)); }
+    /** Metadata array containment for boolean values. */
+    public static Where contains(String key, boolean value) { return metadataScalarCondition(key, OP_CONTAINS, Boolean.valueOf(value)); }
 
-    public static Where notContains(String key, String value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where notContains(String key, int value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where notContains(String key, float value) { throw new UnsupportedOperationException("Not yet implemented"); }
-    public static Where notContains(String key, boolean value) { throw new UnsupportedOperationException("Not yet implemented"); }
+    /** Metadata array non-containment for string values (value must be non-null and non-empty). */
+    public static Where notContains(String key, String value) { return metadataContainsStringCondition(key, OP_NOT_CONTAINS, value); }
+    /** Metadata array non-containment for integer values. */
+    public static Where notContains(String key, int value) { return metadataScalarCondition(key, OP_NOT_CONTAINS, Integer.valueOf(value)); }
+    /** Metadata array non-containment for float values (must be finite). */
+    public static Where notContains(String key, float value) { return metadataScalarCondition(key, OP_NOT_CONTAINS, Float.valueOf(value)); }
+    /** Metadata array non-containment for boolean values. */
+    public static Where notContains(String key, boolean value) { return metadataScalarCondition(key, OP_NOT_CONTAINS, Boolean.valueOf(value)); }
 
     // --- Logical combinators ---
 
     /**
      * Logical conjunction of child clauses.
      *
-     * @param conditions two or more non-null where clauses
+     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
+     * Some Chroma deployments may require two or more clauses.</p>
+     *
+     * @param conditions one or more non-null where clauses
      * @return where clause equivalent to {@code {"$and":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than two clauses,
+     * @throws IllegalArgumentException if {@code conditions} is null, empty,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where and(Where... conditions) { return logicalCondition(OP_AND, conditions); }
@@ -174,9 +217,12 @@ public abstract class Where {
     /**
      * Logical disjunction of child clauses.
      *
-     * @param conditions two or more non-null where clauses
+     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
+     * Some Chroma deployments may require two or more clauses.</p>
+     *
+     * @param conditions one or more non-null where clauses
      * @return where clause equivalent to {@code {"$or":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than two clauses,
+     * @throws IllegalArgumentException if {@code conditions} is null, empty,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where or(Where... conditions) { return logicalCondition(OP_OR, conditions); }
@@ -198,6 +244,56 @@ public abstract class Where {
     /** Serialize to the Chroma filter JSON structure. */
     public abstract Map<String, Object> toMap();
 
+    private static Where metadataStringCondition(String key, String operator, String value) {
+        requireNonNullArgument(value, "value");
+        return operatorCondition(requireMetadataKey(key), operator, value);
+    }
+
+    private static Where metadataContainsStringCondition(String key, String operator, String value) {
+        return operatorCondition(requireMetadataKey(key), operator, requireNonEmpty(value, "value"));
+    }
+
+    private static Where metadataScalarCondition(String key, String operator, Object value) {
+        requireNonNullArgument(value, "value");
+        if (value instanceof Float) {
+            requireFiniteFloat(((Float) value).floatValue(), "value");
+        }
+        return operatorCondition(requireMetadataKey(key), operator, value);
+    }
+
+    private static Where metadataStringSetCondition(String key, String operator, String... values) {
+        String metadataKey = requireMetadataKey(key);
+        requireNonNullArgument(values, "values");
+        if (values.length == 0) {
+            throw new IllegalArgumentException("values must not be empty");
+        }
+
+        List<String> operands = new ArrayList<String>(values.length);
+        for (int i = 0; i < values.length; i++) {
+            String value = values[i];
+            requireNonNullArgument(value, "values[" + i + "]");
+            operands.add(value);
+        }
+
+        return operatorCondition(
+                metadataKey,
+                operator,
+                Collections.<String>unmodifiableList(operands)
+        );
+    }
+
+    private static Where metadataIntSetCondition(String key, String operator, int... values) {
+        return intSetCondition(requireMetadataKey(key), operator, "values", values);
+    }
+
+    private static Where metadataFloatSetCondition(String key, String operator, float... values) {
+        return floatSetCondition(requireMetadataKey(key), operator, "values", values);
+    }
+
+    private static Where metadataBooleanSetCondition(String key, String operator, boolean... values) {
+        return booleanSetCondition(requireMetadataKey(key), operator, "values", values);
+    }
+
     private static Where stringSetCondition(String key, String operator, String fieldName, String... values) {
         requireNonNullArgument(values, fieldName);
         if (values.length == 0) {
@@ -216,6 +312,45 @@ public abstract class Where {
         return operatorCondition(key, operator, requireNonBlank(value, fieldName));
     }
 
+    private static Where intSetCondition(String key, String operator, String fieldName, int... values) {
+        requireNonNullArgument(values, fieldName);
+        if (values.length == 0) {
+            throw new IllegalArgumentException(fieldName + " must not be empty");
+        }
+
+        List<Integer> operands = new ArrayList<Integer>(values.length);
+        for (int i = 0; i < values.length; i++) {
+            operands.add(Integer.valueOf(values[i]));
+        }
+        return operatorCondition(key, operator, Collections.<Integer>unmodifiableList(operands));
+    }
+
+    private static Where floatSetCondition(String key, String operator, String fieldName, float... values) {
+        requireNonNullArgument(values, fieldName);
+        if (values.length == 0) {
+            throw new IllegalArgumentException(fieldName + " must not be empty");
+        }
+
+        List<Float> operands = new ArrayList<Float>(values.length);
+        for (int i = 0; i < values.length; i++) {
+            operands.add(Float.valueOf(requireFiniteFloat(values[i], fieldName + "[" + i + "]")));
+        }
+        return operatorCondition(key, operator, Collections.<Float>unmodifiableList(operands));
+    }
+
+    private static Where booleanSetCondition(String key, String operator, String fieldName, boolean... values) {
+        requireNonNullArgument(values, fieldName);
+        if (values.length == 0) {
+            throw new IllegalArgumentException(fieldName + " must not be empty");
+        }
+
+        List<Boolean> operands = new ArrayList<Boolean>(values.length);
+        for (int i = 0; i < values.length; i++) {
+            operands.add(Boolean.valueOf(values[i]));
+        }
+        return operatorCondition(key, operator, Collections.<Boolean>unmodifiableList(operands));
+    }
+
     private static Where operatorCondition(String key, String operator, Object operand) {
         Map<String, Object> operatorMap = new LinkedHashMap<String, Object>();
         operatorMap.put(operator, operand);
@@ -226,10 +361,28 @@ public abstract class Where {
         return new MapWhere(conditionMap);
     }
 
+    private static String requireMetadataKey(String key) {
+        String validated = requireNonEmpty(key, "key");
+        if (validated.trim().isEmpty()) {
+            throw new IllegalArgumentException("key must not be blank (whitespace-only)");
+        }
+        if (validated.startsWith("#")) {
+            throw new IllegalArgumentException(
+                    "key must not start with '#'; use dedicated factories for #id and #document filters"
+            );
+        }
+        if (validated.startsWith("$")) {
+            throw new IllegalArgumentException(
+                    "key must not start with '$' (reserved for operators): " + key
+            );
+        }
+        return validated;
+    }
+
     private static Where logicalCondition(String operator, Where... conditions) {
         requireNonNullArgument(conditions, "conditions");
-        if (conditions.length < 2) {
-            throw new IllegalArgumentException("conditions must contain at least 2 clauses");
+        if (conditions.length == 0) {
+            throw new IllegalArgumentException("conditions must contain at least 1 clause");
         }
 
         List<Map<String, Object>> clauses = new ArrayList<Map<String, Object>>(conditions.length);
@@ -258,6 +411,21 @@ public abstract class Where {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return normalized;
+    }
+
+    private static String requireNonEmpty(String value, String fieldName) {
+        requireNonNullArgument(value, fieldName);
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " must not be empty");
+        }
+        return value;
+    }
+
+    private static float requireFiniteFloat(float value, String fieldName) {
+        if (!Float.isFinite(value)) {
+            throw new IllegalArgumentException(fieldName + " must be a finite float");
+        }
+        return value;
     }
 
     private static void requireNonNullArgument(Object value, String fieldName) {

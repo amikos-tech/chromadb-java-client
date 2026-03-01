@@ -12,37 +12,67 @@ import static org.junit.Assert.fail;
 public class WhereTest {
 
     @Test
-    public void testEqualityFactoriesThrowUnsupportedOperationException() {
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.eq("k", "v"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.eq("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.eq("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.eq("k", true); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.ne("k", "v"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.ne("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.ne("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.ne("k", false); } });
+    public void testEqualityFactoriesSerializeToMap() {
+        assertEquals(operatorCondition("k", "$eq", "v"), Where.eq("k", "v").toMap());
+        assertEquals(operatorCondition("k", "$eq", Integer.valueOf(1)), Where.eq("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$eq", Float.valueOf(1.0f)), Where.eq("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$eq", Boolean.TRUE), Where.eq("k", true).toMap());
+
+        assertEquals(operatorCondition("k", "$ne", "v"), Where.ne("k", "v").toMap());
+        assertEquals(operatorCondition("k", "$ne", Integer.valueOf(1)), Where.ne("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$ne", Float.valueOf(1.0f)), Where.ne("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$ne", Boolean.FALSE), Where.ne("k", false).toMap());
     }
 
     @Test
-    public void testComparisonFactoriesThrowUnsupportedOperationException() {
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.gt("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.gt("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.gte("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.gte("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.lt("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.lt("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.lte("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.lte("k", 1.0f); } });
+    public void testComparisonFactoriesSerializeToMap() {
+        assertEquals(operatorCondition("k", "$gt", Integer.valueOf(1)), Where.gt("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$gt", Float.valueOf(1.0f)), Where.gt("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$gte", Integer.valueOf(1)), Where.gte("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$gte", Float.valueOf(1.0f)), Where.gte("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$lt", Integer.valueOf(1)), Where.lt("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$lt", Float.valueOf(1.0f)), Where.lt("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$lte", Integer.valueOf(1)), Where.lte("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$lte", Float.valueOf(1.0f)), Where.lte("k", 1.0f).toMap());
     }
 
     @Test
-    public void testSetFactoriesThrowUnsupportedOperationException() {
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.in("k", "a", "b"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.in("k", 1, 2); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.in("k", 1.0f, 2.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.nin("k", "a", "b"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.nin("k", 1, 2); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.nin("k", 1.0f, 2.0f); } });
+    public void testSetFactoriesSerializeToMap() {
+        assertEquals(operatorCondition("k", "$in", Arrays.asList("a", "b")), Where.in("k", "a", "b").toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Integer.valueOf(1), Integer.valueOf(2))),
+                Where.in("k", 1, 2).toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Float.valueOf(1.0f), Float.valueOf(2.0f))),
+                Where.in("k", 1.0f, 2.0f).toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Boolean.TRUE, Boolean.FALSE)),
+                Where.in("k", true, false).toMap());
+
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList("a", "b")), Where.nin("k", "a", "b").toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Integer.valueOf(1), Integer.valueOf(2))),
+                Where.nin("k", 1, 2).toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Float.valueOf(1.0f), Float.valueOf(2.0f))),
+                Where.nin("k", 1.0f, 2.0f).toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Boolean.TRUE, Boolean.FALSE)),
+                Where.nin("k", true, false).toMap());
+    }
+
+    @Test
+    public void testSetFactoriesSerializeSingleElement() {
+        assertEquals(operatorCondition("k", "$in", Arrays.asList("a")), Where.in("k", "a").toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList("a")), Where.nin("k", "a").toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Integer.valueOf(1))), Where.in("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Integer.valueOf(1))), Where.nin("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Float.valueOf(1.0f))), Where.in("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Float.valueOf(1.0f))), Where.nin("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$in", Arrays.asList(Boolean.TRUE)), Where.in("k", true).toMap());
+        assertEquals(operatorCondition("k", "$nin", Arrays.asList(Boolean.TRUE)), Where.nin("k", true).toMap());
+    }
+
+    @Test
+    public void testMetadataStringFactoriesPreserveWhitespaceAndAllowEmptyValues() {
+        assertEquals(operatorCondition(" topic ", "$eq", "  news\t"), Where.eq(" topic ", "  news\t").toMap());
+        assertEquals(operatorCondition("topic", "$eq", ""), Where.eq("topic", "").toMap());
+        assertEquals(operatorCondition(" topic ", "$in", Arrays.asList("", " news ", "\tsports\t")),
+                Where.in(" topic ", "", " news ", "\tsports\t").toMap());
     }
 
     @Test
@@ -136,21 +166,21 @@ public class WhereTest {
     }
 
     @Test
-    public void testArrayMetadataFactoriesRemainNotImplemented() {
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", "v"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.contains("k", true); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", "v"); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", 1); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", 1.0f); } });
-        assertNotImplemented(new Runnable() { @Override public void run() { Where.notContains("k", false); } });
+    public void testArrayMetadataFactoriesSerializeToMap() {
+        assertEquals(operatorCondition("k", "$contains", "v"), Where.contains("k", "v").toMap());
+        assertEquals(operatorCondition("k", "$contains", Integer.valueOf(1)), Where.contains("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$contains", Float.valueOf(1.0f)), Where.contains("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$contains", Boolean.TRUE), Where.contains("k", true).toMap());
+        assertEquals(operatorCondition("k", "$not_contains", "v"), Where.notContains("k", "v").toMap());
+        assertEquals(operatorCondition("k", "$not_contains", Integer.valueOf(1)), Where.notContains("k", 1).toMap());
+        assertEquals(operatorCondition("k", "$not_contains", Float.valueOf(1.0f)), Where.notContains("k", 1.0f).toMap());
+        assertEquals(operatorCondition("k", "$not_contains", Boolean.FALSE), Where.notContains("k", false).toMap());
     }
 
     @Test
     public void testLogicalCombinatorsSerializeNestedConditions() {
         final Where idFilter = Where.idIn("id1", "id2");
-        final Where metadataFilter = where(singletonMap("topic", "news"));
+        final Where metadataFilter = Where.eq("topic", "news");
         final Where documentFilter = Where.documentContains("ai");
 
         Map<String, Object> expectedAnd = new LinkedHashMap<String, Object>();
@@ -167,6 +197,30 @@ public class WhereTest {
 
         assertEquals(expectedAnd, Where.and(idFilter, metadataFilter, documentFilter).toMap());
         assertEquals(expectedOr, Where.or(idFilter, documentFilter).toMap());
+    }
+
+    @Test
+    public void testMetadataFactoriesInteroperateWithNestedIdAndDocumentFilters() {
+        Where where = Where.and(
+                Where.eq("topic", "news"),
+                Where.or(
+                        Where.idIn("id1"),
+                        Where.documentContains("ai")
+                )
+        );
+
+        Map<String, Object> expectedInnerOr = new LinkedHashMap<String, Object>();
+        expectedInnerOr.put("$or", Arrays.asList(
+                Where.idIn("id1").toMap(),
+                Where.documentContains("ai").toMap()
+        ));
+        Map<String, Object> expected = new LinkedHashMap<String, Object>();
+        expected.put("$and", Arrays.asList(
+                Where.eq("topic", "news").toMap(),
+                expectedInnerOr
+        ));
+
+        assertEquals(expected, where.toMap());
     }
 
     @Test
@@ -190,6 +244,98 @@ public class WhereTest {
     }
 
     @Test
+    public void testMetadataFactoriesRejectInvalidArguments() {
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq(null, "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("   ", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("k", (String) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.ne(null, "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.ne("", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.ne("   ", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.ne("k", null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.gt(null, 1); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.gte("", 1); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.lt(null, 1.0f); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.lte("", 1.0f); } });
+
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in(null, "a"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("", "a"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", new String[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", (String[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", "a", null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", (int[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", new int[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", (float[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", new float[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", (boolean[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", new boolean[0]); } });
+
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin(null, "a"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("", "a"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", new String[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", (String[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", "a", null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", (int[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", new int[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", (float[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", new float[0]); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", (boolean[]) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", new boolean[0]); } });
+    }
+
+    @Test
+    public void testMetadataFactoriesRejectReservedKeyPrefixes() {
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("#id", "x"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("$and", "x"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("#document", "x"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("$contains", "x"); } });
+    }
+
+    @Test
+    public void testMetadataFactoryToMapIsUnmodifiable() {
+        Map<String, Object> map = Where.eq("k", "v").toMap();
+        try {
+            map.put("new", "x");
+            fail("Expected UnsupportedOperationException");
+        } catch (UnsupportedOperationException expected) {
+            // expected
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> inner = (Map<String, Object>) map.get("k");
+        try {
+            inner.put("$eq", "x");
+            fail("Expected UnsupportedOperationException");
+        } catch (UnsupportedOperationException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testFloatFactoriesRejectNonFiniteValues() {
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.eq("k", Float.NaN); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.ne("k", Float.POSITIVE_INFINITY); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.gt("k", Float.NEGATIVE_INFINITY); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("k", Float.NaN); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.in("k", 1.0f, Float.NaN); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.nin("k", 1.0f, Float.POSITIVE_INFINITY); } });
+    }
+
+    @Test
+    public void testMetadataContainsStringFactoriesRejectNullOrEmptyValue() {
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains(null, "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("   ", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.notContains(null, "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.notContains("", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.notContains("   ", "v"); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("k", (String) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.notContains("k", (String) null); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.contains("k", ""); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.notContains("k", ""); } });
+    }
+
+    @Test
     public void testInlineDocumentFactoriesRejectInvalidArguments() {
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.documentContains(null); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.documentNotContains(null); } });
@@ -201,12 +347,18 @@ public class WhereTest {
     public void testLogicalCombinatorsRejectInvalidArguments() {
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.and(); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.or(); } });
-        assertIllegalArgument(new Runnable() { @Override public void run() { Where.and(new Where[]{Where.idIn("id1")}); } });
-        assertIllegalArgument(new Runnable() { @Override public void run() { Where.or(new Where[]{Where.idIn("id1")}); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.and((Where[]) null); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.or((Where[]) null); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.and(Where.idIn("id1"), null); } });
         assertIllegalArgument(new Runnable() { @Override public void run() { Where.or(Where.idIn("id1"), null); } });
+    }
+
+    @Test
+    public void testLogicalCombinatorsAcceptSingleClause() {
+        assertEquals(singletonMap("$and", Arrays.asList(Where.idIn("id1").toMap())),
+                Where.and(new Where[]{Where.idIn("id1")}).toMap());
+        assertEquals(singletonMap("$or", Arrays.asList(Where.idIn("id1").toMap())),
+                Where.or(new Where[]{Where.idIn("id1")}).toMap());
     }
 
     @Test
@@ -269,15 +421,6 @@ public class WhereTest {
                 return map;
             }
         };
-    }
-
-    private static void assertNotImplemented(Runnable runnable) {
-        try {
-            runnable.run();
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
     }
 
     private static void assertIllegalArgument(Runnable runnable) {

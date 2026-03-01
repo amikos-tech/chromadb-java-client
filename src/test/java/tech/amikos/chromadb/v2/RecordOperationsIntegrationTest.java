@@ -143,6 +143,19 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
     }
 
     @Test
+    public void testGetWithMetadataWhereEqFilter() {
+        addSampleRecords(5);
+
+        GetResult result = collection.get()
+                .where(Where.eq("category", "odd"))
+                .execute();
+
+        assertEquals(2, result.getIds().size());
+        assertTrue(result.getIds().contains("id1"));
+        assertTrue(result.getIds().contains("id3"));
+    }
+
+    @Test
     public void testInlineDocumentWhereFiltersAreVersionDependentOnLocalChroma() {
         addSampleRecords(5);
 
@@ -302,6 +315,24 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertEquals(1, result.getIds().size());
     }
 
+    @Test
+    public void testQueryWithMetadataWhereGtFilter() {
+        addSampleRecords(5);
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{0.5f, 0.51f, 0.52f})
+                .nResults(5)
+                .where(Where.gt("index", 2))
+                .execute();
+
+        assertNotNull(result.getIds());
+        assertEquals(1, result.getIds().size());
+        assertEquals(2, result.getIds().get(0).size());
+        for (String id : result.getIds().get(0)) {
+            assertTrue("unexpected id for index > 2: " + id, "id3".equals(id) || "id4".equals(id));
+        }
+    }
+
     // --- query: all include fields ---
 
     @Test
@@ -456,6 +487,23 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         collection.delete()
                 .where(where(whereMap))
                 .whereDocument(whereDocument(whereDocumentMap))
+                .execute();
+
+        assertEquals(3, collection.count());
+        GetResult result = collection.get().execute();
+        assertEquals(3, result.getIds().size());
+        assertTrue(result.getIds().contains("id0"));
+        assertTrue(result.getIds().contains("id2"));
+        assertTrue(result.getIds().contains("id4"));
+    }
+
+    @Test
+    public void testDeleteWithMetadataWhereInFilter() {
+        addSampleRecords(5);
+        assertEquals(5, collection.count());
+
+        collection.delete()
+                .where(Where.in("category", "odd"))
                 .execute();
 
         assertEquals(3, collection.count());
