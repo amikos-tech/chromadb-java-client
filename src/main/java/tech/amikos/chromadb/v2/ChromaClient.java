@@ -275,8 +275,9 @@ public final class ChromaClient {
 
         @Override
         public void useTenant(Tenant tenant) {
-            sessionContext.set(new SessionContext(
-                    Objects.requireNonNull(tenant, "tenant"),
+            Tenant validatedTenant = Objects.requireNonNull(tenant, "tenant");
+            sessionContext.updateAndGet(current -> new SessionContext(
+                    validatedTenant,
                     Database.defaultDatabase()));
         }
 
@@ -287,9 +288,10 @@ public final class ChromaClient {
 
         @Override
         public void useDatabase(Database database) {
+            Database validatedDatabase = Objects.requireNonNull(database, "database");
             sessionContext.updateAndGet(current -> new SessionContext(
                     current.tenant,
-                    Objects.requireNonNull(database, "database")));
+                    validatedDatabase));
         }
 
         @Override
@@ -468,8 +470,16 @@ public final class ChromaClient {
             private final Database database;
 
             private SessionContext(Tenant tenant, Database database) {
-                this.tenant = tenant;
-                this.database = database;
+                this.tenant = Objects.requireNonNull(tenant, "tenant");
+                this.database = Objects.requireNonNull(database, "database");
+            }
+
+            @Override
+            public String toString() {
+                return "SessionContext{"
+                        + "tenant=" + tenant
+                        + ", database=" + database
+                        + '}';
             }
         }
 
