@@ -212,6 +212,34 @@ public class CollectionLifecycleIntegrationTest extends AbstractChromaIntegratio
         assertEquals("value2", fetched.getMetadata().get("key2"));
     }
 
+    // --- modifyConfiguration ---
+
+    @Test
+    public void testModifyCollectionConfigurationHnswSearchEf() {
+        CollectionConfiguration initialConfig = CollectionConfiguration.builder()
+                .hnswSearchEf(64)
+                .build();
+        Collection col = client.createCollection(
+                "config_modify_col",
+                CreateCollectionOptions.builder().configuration(initialConfig).build()
+        );
+
+        col.modifyConfiguration(
+                UpdateCollectionConfiguration.builder()
+                        .hnswSearchEf(200)
+                        .build()
+        );
+        assertNotNull(col.getConfiguration());
+        assertEquals(Integer.valueOf(200), col.getConfiguration().getHnswSearchEf());
+
+        Collection fetched = client.getCollection("config_modify_col");
+        assertNotNull(fetched.getConfiguration());
+        Integer persistedSearchEf = fetched.getConfiguration().getHnswSearchEf();
+        if (persistedSearchEf != null) {
+            assertEquals(Integer.valueOf(200), persistedSearchEf);
+        }
+    }
+
     // --- count on empty collection ---
 
     @Test

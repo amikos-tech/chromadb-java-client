@@ -142,6 +142,119 @@ public class ChromaHttpCollectionTest {
         collection.modifyMetadata(null);
     }
 
+    // --- modifyConfiguration ---
+
+    @Test
+    public void testModifyConfigurationHnsw() {
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.ef_search", equalTo("200")))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.num_threads", equalTo("4")))
+                .willReturn(aResponse().withStatus(200)));
+
+        UpdateCollectionConfiguration cfg = UpdateCollectionConfiguration.builder()
+                .hnswSearchEf(200)
+                .hnswNumThreads(4)
+                .build();
+        collection.modifyConfiguration(cfg);
+
+        assertNotNull(collection.getConfiguration());
+        assertEquals(Integer.valueOf(200), collection.getConfiguration().getHnswSearchEf());
+        assertEquals(Integer.valueOf(4), collection.getConfiguration().getHnswNumThreads());
+    }
+
+    @Test
+    public void testModifyConfigurationHnswNumThreadsAndResizeFromNullConfiguration() {
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.num_threads", equalTo("6")))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.resize_factor", equalTo("1.25")))
+                .willReturn(aResponse().withStatus(200)));
+
+        UpdateCollectionConfiguration cfg = UpdateCollectionConfiguration.builder()
+                .hnswNumThreads(6)
+                .hnswResizeFactor(1.25)
+                .build();
+        collection.modifyConfiguration(cfg);
+
+        assertNotNull(collection.getConfiguration());
+        assertEquals(Integer.valueOf(6), collection.getConfiguration().getHnswNumThreads());
+        assertEquals(Double.valueOf(1.25), collection.getConfiguration().getHnswResizeFactor());
+    }
+
+    @Test
+    public void testModifyConfigurationSpann() {
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.spann.search_nprobe", equalTo("32")))
+                .withRequestBody(matchingJsonPath("$.new_configuration.spann.ef_search", equalTo("64")))
+                .willReturn(aResponse().withStatus(200)));
+
+        UpdateCollectionConfiguration cfg = UpdateCollectionConfiguration.builder()
+                .spannSearchNprobe(32)
+                .spannEfSearch(64)
+                .build();
+        collection.modifyConfiguration(cfg);
+
+        assertNotNull(collection.getConfiguration());
+        assertEquals(Integer.valueOf(32), collection.getConfiguration().getSpannSearchNprobe());
+        assertEquals(Integer.valueOf(64), collection.getConfiguration().getSpannEfSearch());
+    }
+
+    @Test
+    public void testModifyConfigurationPreservesExistingConfigurationFields() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"configuration_json\":{\"hnsw:space\":\"cosine\",\"hnsw:M\":16,\"hnsw:construction_ef\":100,\"hnsw:search_ef\":50,\"hnsw:num_threads\":2}}")));
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.ef_search", equalTo("200")))
+                .willReturn(aResponse().withStatus(200)));
+
+        Collection col = client.getCollection("test_col");
+        col.modifyConfiguration(UpdateCollectionConfiguration.builder().hnswSearchEf(200).build());
+
+        assertNotNull(col.getConfiguration());
+        assertEquals(DistanceFunction.COSINE, col.getConfiguration().getSpace());
+        assertEquals(Integer.valueOf(16), col.getConfiguration().getHnswM());
+        assertEquals(Integer.valueOf(100), col.getConfiguration().getHnswConstructionEf());
+        assertEquals(Integer.valueOf(2), col.getConfiguration().getHnswNumThreads());
+        assertEquals(Integer.valueOf(200), col.getConfiguration().getHnswSearchEf());
+    }
+
+    @Test(expected = ChromaNotFoundException.class)
+    public void testModifyConfigurationPropagatesNotFound() {
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .willReturn(aResponse()
+                        .withStatus(404)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"not found\"}")));
+
+        collection.modifyConfiguration(
+                UpdateCollectionConfiguration.builder()
+                        .hnswSearchEf(200)
+                        .build()
+        );
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testModifyConfigurationRejectsNull() {
+        collection.modifyConfiguration(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testModifyConfigurationRejectsEmpty() {
+        collection.modifyConfiguration(UpdateCollectionConfiguration.builder().build());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testModifyConfigurationRejectsMixedGroups() {
+        collection.modifyConfiguration(
+                UpdateCollectionConfiguration.builder()
+                        .hnswSearchEf(200)
+                        .spannEfSearch(64)
+                        .build()
+        );
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testCollectionMetadataIsUnmodifiable() {
         stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
