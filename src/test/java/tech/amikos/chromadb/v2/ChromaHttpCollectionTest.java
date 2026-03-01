@@ -137,6 +137,11 @@ public class ChromaHttpCollectionTest {
         assertEquals("new_val", col.getMetadata().get("new_key"));
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testModifyMetadataRejectsNull() {
+        collection.modifyMetadata(null);
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testCollectionMetadataIsUnmodifiable() {
         stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
@@ -192,6 +197,14 @@ public class ChromaHttpCollectionTest {
         collection.add().ids(Collections.<String>emptyList()).execute();
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddRejectsMismatchedDocumentsSize() {
+        collection.add()
+                .ids("id1", "id2")
+                .documents("doc1")
+                .execute();
+    }
+
     // --- upsert ---
 
     @Test
@@ -221,9 +234,33 @@ public class ChromaHttpCollectionTest {
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert")));
     }
 
+    @Test
+    public void testUpsertWithListArgs() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.upsert()
+                .ids(Collections.singletonList("id1"))
+                .embeddings(Collections.singletonList(new float[]{1.0f}))
+                .documents(Collections.singletonList("doc1"))
+                .metadatas(Collections.singletonList(Collections.<String, Object>singletonMap("k", "v")))
+                .uris(Collections.singletonList("uri1"))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert")));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testUpsertRequiresIds() {
         collection.upsert().documents("doc1").execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertRejectsMismatchedEmbeddingsSize() {
+        collection.upsert()
+                .ids("id1", "id2")
+                .embeddings(Collections.singletonList(new float[]{1.0f}))
+                .execute();
     }
 
     // --- update ---
@@ -241,9 +278,32 @@ public class ChromaHttpCollectionTest {
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/update")));
     }
 
+    @Test
+    public void testUpdateWithListArgs() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/update"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.update()
+                .ids(Collections.singletonList("id1"))
+                .embeddings(Collections.singletonList(new float[]{1.0f}))
+                .documents(Collections.singletonList("doc1"))
+                .metadatas(Collections.singletonList(Collections.<String, Object>singletonMap("k", "v")))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/update")));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testUpdateRequiresIds() {
         collection.update().documents("doc1").execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpdateRejectsMismatchedMetadatasSize() {
+        collection.update()
+                .ids("id1", "id2")
+                .metadatas(Collections.singletonList(Collections.<String, Object>singletonMap("k", "v")))
+                .execute();
     }
 
     // --- delete ---
@@ -268,6 +328,22 @@ public class ChromaHttpCollectionTest {
 
         collection.delete()
                 .ids(Arrays.asList("id1", "id2"))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteWithWhereOnly() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(matchingJsonPath("$.where.topic", equalTo("news")))
+                .willReturn(aResponse().withStatus(200)));
+
+        Map<String, Object> whereMap = new LinkedHashMap<String, Object>();
+        whereMap.put("topic", "news");
+
+        collection.delete()
+                .where(where(whereMap))
                 .execute();
 
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
@@ -645,5 +721,47 @@ public class ChromaHttpCollectionTest {
                 .execute();
 
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add")));
+    }
+
+    // --- factory input guards ---
+
+    @Test(expected = NullPointerException.class)
+    public void testFromRejectsNullApiClient() {
+        ChromaHttpCollection.from(validCollectionDto(), null, Tenant.defaultTenant(), Database.defaultDatabase());
+    }
+
+    @Test
+    public void testFromRejectsNullTenant() {
+        ChromaApiClient api = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(), null, null, null, null, null);
+        try {
+            ChromaHttpCollection.from(validCollectionDto(), api, null, Database.defaultDatabase());
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("tenant", e.getMessage());
+        } finally {
+            api.close();
+        }
+    }
+
+    @Test
+    public void testFromRejectsNullDatabase() {
+        ChromaApiClient api = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(), null, null, null, null, null);
+        try {
+            ChromaHttpCollection.from(validCollectionDto(), api, Tenant.defaultTenant(), null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("database", e.getMessage());
+        } finally {
+            api.close();
+        }
+    }
+
+    private static ChromaDtos.CollectionResponse validCollectionDto() {
+        ChromaDtos.CollectionResponse dto = new ChromaDtos.CollectionResponse();
+        dto.id = "col-id";
+        dto.name = "col-name";
+        return dto;
     }
 }

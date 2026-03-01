@@ -6,9 +6,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Package-private {@link Collection} implementation backed by HTTP transport.
+ *
+ * <p>Mutable properties use {@code volatile} fields so getter calls observe updates across
+ * threads. This class does not provide full transactional thread-safety for concurrent
+ * mutations; concurrent writes are last-write-wins. Metadata merge updates are synchronized
+ * locally to avoid lost updates from concurrent read-modify-write sequences.</p>
  */
 final class ChromaHttpCollection implements Collection {
 
@@ -17,10 +23,10 @@ final class ChromaHttpCollection implements Collection {
     private final Tenant tenant;
     private final Database database;
 
-    private String name;
-    private Map<String, Object> metadata;
-    private Integer dimension;
-    private CollectionConfiguration configuration;
+    private volatile String name;
+    private volatile Map<String, Object> metadata;
+    private volatile Integer dimension;
+    private volatile CollectionConfiguration configuration;
 
     private ChromaHttpCollection(ChromaApiClient apiClient, String id, String name,
                                  Tenant tenant, Database database,
@@ -45,6 +51,9 @@ final class ChromaHttpCollection implements Collection {
                     200
             );
         }
+        Objects.requireNonNull(apiClient, "apiClient");
+        Objects.requireNonNull(tenant, "tenant");
+        Objects.requireNonNull(database, "database");
         return new ChromaHttpCollection(
                 apiClient,
                 requireNonBlankField("collection.id", dto.id),
@@ -101,25 +110,28 @@ final class ChromaHttpCollection implements Collection {
     @Override
     public void modifyName(String newName) {
         String normalizedName = requireNonBlankArgument("newName", newName);
-        String path = ChromaApiPaths.collection(tenant.getName(), database.getName(), id);
+        String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
         apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(normalizedName, null));
         this.name = normalizedName;
     }
 
     @Override
     public void modifyMetadata(Map<String, Object> metadata) {
-        String path = ChromaApiPaths.collection(tenant.getName(), database.getName(), id);
+        Objects.requireNonNull(metadata, "metadata");
+        String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
         apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(null, metadata));
-        if (metadata == null) {
-            this.metadata = null;
-            return;
-        }
+        mergeLocalMetadata(metadata);
+    }
+
+    private void mergeLocalMetadata(Map<String, Object> metadataUpdate) {
         Map<String, Object> merged = new LinkedHashMap<String, Object>();
-        if (this.metadata != null) {
-            merged.putAll(this.metadata);
+        synchronized (this) {
+            if (this.metadata != null) {
+                merged.putAll(this.metadata);
+            }
+            merged.putAll(copyMetadata(metadataUpdate));
+            this.metadata = merged;
         }
-        merged.putAll(copyMetadata(metadata));
-        this.metadata = merged;
     }
 
     @Override
@@ -220,6 +232,11 @@ final class ChromaHttpCollection implements Collection {
             if (ids == null || ids.isEmpty()) {
                 throw new IllegalArgumentException("ids must not be empty");
             }
+            int idsSize = ids.size();
+            validateSizeMatchesIds("embeddings", embeddings, idsSize);
+            validateSizeMatchesIds("documents", documents, idsSize);
+            validateSizeMatchesIds("metadatas", metadatas, idsSize);
+            validateSizeMatchesIds("uris", uris, idsSize);
             String path = ChromaApiPaths.collectionAdd(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.AddRequest(
                     ids,
@@ -297,6 +314,11 @@ final class ChromaHttpCollection implements Collection {
             if (ids == null || ids.isEmpty()) {
                 throw new IllegalArgumentException("ids must not be empty");
             }
+            int idsSize = ids.size();
+            validateSizeMatchesIds("embeddings", embeddings, idsSize);
+            validateSizeMatchesIds("documents", documents, idsSize);
+            validateSizeMatchesIds("metadatas", metadatas, idsSize);
+            validateSizeMatchesIds("uris", uris, idsSize);
             String path = ChromaApiPaths.collectionUpsert(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.UpsertRequest(
                     ids,
@@ -521,6 +543,10 @@ final class ChromaHttpCollection implements Collection {
             if (ids == null || ids.isEmpty()) {
                 throw new IllegalArgumentException("ids must not be empty");
             }
+            int idsSize = ids.size();
+            validateSizeMatchesIds("embeddings", embeddings, idsSize);
+            validateSizeMatchesIds("documents", documents, idsSize);
+            validateSizeMatchesIds("metadatas", metadatas, idsSize);
             String path = ChromaApiPaths.collectionUpdate(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.UpdateRequest(
                     ids,
@@ -600,5 +626,13 @@ final class ChromaHttpCollection implements Collection {
 
     private static Map<String, Object> copyMetadata(Map<String, Object> metadata) {
         return metadata == null ? null : new LinkedHashMap<String, Object>(metadata);
+    }
+
+    private static void validateSizeMatchesIds(String fieldName, List<?> values, int idsSize) {
+        if (values != null && values.size() != idsSize) {
+            throw new IllegalArgumentException(
+                    fieldName + " size must match ids size (" + idsSize + ")"
+            );
+        }
     }
 }

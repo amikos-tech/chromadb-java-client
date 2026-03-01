@@ -635,7 +635,7 @@ public class ChromaApiClientTest {
     }
 
     @Test
-    public void testAuthProviderFailureIsWrapped() {
+    public void testAuthProviderFailureIsPropagated() {
         ChromaApiClient c = newClient(new AuthProvider() {
             @Override
             public void applyAuth(Map<String, String> headers) {
@@ -645,12 +645,9 @@ public class ChromaApiClientTest {
 
         try {
             c.get("/api/v2/test", String.class);
-            fail("Expected ChromaException");
-        } catch (ChromaException e) {
-            assertEquals(ChromaException.STATUS_CODE_UNAVAILABLE, e.getStatusCode());
-            assertEquals("Failed to apply authentication headers", e.getMessage());
-            assertNotNull(e.getCause());
-            assertEquals("bad auth state", e.getCause().getMessage());
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertEquals("bad auth state", e.getMessage());
         }
     }
 

@@ -17,7 +17,6 @@ import java.util.Map;
  * QueryResult result = collection.query()
  *     .queryEmbeddings(new float[]{0.12f, 0.34f, 0.56f})
  *     .nResults(10)
- *     .where(Where.eq("type", "article"))
  *     .include(Include.DOCUMENTS, Include.DISTANCES)
  *     .execute();
  * }</pre>
@@ -62,7 +61,14 @@ public interface Collection {
     /** @throws ChromaNotFoundException if the collection no longer exists */
     void modifyName(String newName);
 
-    /** @throws ChromaNotFoundException if the collection no longer exists */
+    /**
+     * Sends a partial metadata update to the server and applies the same merge to this local
+     * collection snapshot (last write wins on key collisions).
+     *
+     * @param metadata non-null map of metadata keys to merge
+     * @throws NullPointerException if {@code metadata} is null
+     * @throws ChromaNotFoundException if the collection no longer exists
+     */
     void modifyMetadata(Map<String, Object> metadata);
 
     // --- Builders ---
@@ -82,7 +88,20 @@ public interface Collection {
     }
 
     interface QueryBuilder {
+        /**
+         * Not yet supported in the v2 HTTP collection implementation.
+         *
+         * @throws UnsupportedOperationException in the current HTTP implementation, until
+         *                                       embedding-function support is added
+         */
         QueryBuilder queryTexts(String... texts);
+
+        /**
+         * Not yet supported in the v2 HTTP collection implementation.
+         *
+         * @throws UnsupportedOperationException in the current HTTP implementation, until
+         *                                       embedding-function support is added
+         */
         QueryBuilder queryTexts(List<String> texts);
         QueryBuilder queryEmbeddings(float[]... embeddings);
         QueryBuilder queryEmbeddings(List<float[]> embeddings);

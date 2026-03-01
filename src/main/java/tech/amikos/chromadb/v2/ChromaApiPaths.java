@@ -53,42 +53,48 @@ final class ChromaApiPaths {
         return database(tenant, db) + "/collections";
     }
 
-    static String collection(String tenant, String db, String name) {
-        return collections(tenant, db) + "/" + encode(name);
+    // These currently produce identical URL shapes in the v2 API, but keep distinct methods
+    // for semantic clarity at call sites and to preserve future flexibility.
+    static String collectionByName(String tenant, String db, String collectionName) {
+        return collections(tenant, db) + "/" + encode(collectionName);
+    }
+
+    static String collectionById(String tenant, String db, String collectionId) {
+        return collections(tenant, db) + "/" + encode(collectionId);
     }
 
     static String collectionsCount(String tenant, String db) {
         return database(tenant, db) + "/collections_count";
     }
 
-    // Record operations (the caller provides the collection ID as the "id" argument).
+    // Record operations (always addressed by collection ID).
 
     static String collectionAdd(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/add";
+        return collectionById(tenant, db, id) + "/add";
     }
 
     static String collectionQuery(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/query";
+        return collectionById(tenant, db, id) + "/query";
     }
 
     static String collectionGet(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/get";
+        return collectionById(tenant, db, id) + "/get";
     }
 
     static String collectionUpdate(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/update";
+        return collectionById(tenant, db, id) + "/update";
     }
 
     static String collectionUpsert(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/upsert";
+        return collectionById(tenant, db, id) + "/upsert";
     }
 
     static String collectionDelete(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/delete";
+        return collectionById(tenant, db, id) + "/delete";
     }
 
     static String collectionCount(String tenant, String db, String id) {
-        return collections(tenant, db) + "/" + encode(id) + "/count";
+        return collectionById(tenant, db, id) + "/count";
     }
 
     // URLEncoder produces '+' for spaces (form encoding); path segments need '%20' per RFC 3986 §3.3.

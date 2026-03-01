@@ -4,7 +4,8 @@ package tech.amikos.chromadb.v2;
  * Base exception for all ChromaDB errors. Unchecked for fluent API ergonomics.
  *
  * <p>Use {@link ChromaExceptions#fromHttpResponse(int, String, String)} to map HTTP errors to
- * the appropriate subclass. Direct instantiation is reserved for subclasses.</p>
+ * the appropriate subclass. This base type is also used directly for internal
+ * non-HTTP and unexpected protocol cases where no specific subclass applies.</p>
  */
 public class ChromaException extends RuntimeException {
 
