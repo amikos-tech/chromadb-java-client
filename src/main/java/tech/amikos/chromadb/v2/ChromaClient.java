@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Entry point for creating ChromaDB clients.
@@ -183,13 +184,13 @@ public final class ChromaClient {
     private static final class ChromaClientImpl implements Client {
 
         private final ChromaApiClient apiClient;
-        private final Tenant tenant;
-        private final Database database;
+        private final AtomicReference<SessionContext> sessionContext;
 
         ChromaClientImpl(ChromaApiClient apiClient, Tenant tenant, Database database) {
             this.apiClient = Objects.requireNonNull(apiClient, "apiClient");
-            this.tenant = Objects.requireNonNull(tenant, "tenant");
-            this.database = Objects.requireNonNull(database, "database");
+            this.sessionContext = new AtomicReference<SessionContext>(new SessionContext(
+                    Objects.requireNonNull(tenant, "tenant"),
+                    Objects.requireNonNull(database, "database")));
         }
 
         @Override
@@ -273,9 +274,36 @@ public final class ChromaClient {
         }
 
         @Override
+        public void useTenant(Tenant tenant) {
+            Tenant validatedTenant = Objects.requireNonNull(tenant, "tenant");
+            sessionContext.updateAndGet(current -> new SessionContext(
+                    validatedTenant,
+                    Database.defaultDatabase()));
+        }
+
+        @Override
+        public Tenant currentTenant() {
+            return sessionContext.get().tenant;
+        }
+
+        @Override
+        public void useDatabase(Database database) {
+            Database validatedDatabase = Objects.requireNonNull(database, "database");
+            sessionContext.updateAndGet(current -> new SessionContext(
+                    current.tenant,
+                    validatedDatabase));
+        }
+
+        @Override
+        public Database currentDatabase() {
+            return sessionContext.get().database;
+        }
+
+        @Override
         public Database createDatabase(String name) {
             String databaseName = requireNonBlank("name", name);
-            apiClient.post(ChromaApiPaths.databases(tenant.getName()),
+            SessionContext context = sessionContext.get();
+            apiClient.post(ChromaApiPaths.databases(context.tenant.getName()),
                     new ChromaDtos.CreateDatabaseRequest(databaseName),
                     ChromaDtos.DatabaseResponse.class);
             return Database.of(databaseName);
@@ -284,16 +312,18 @@ public final class ChromaClient {
         @Override
         public Database getDatabase(String name) {
             String databaseName = requireNonBlank("name", name);
+            SessionContext context = sessionContext.get();
             ChromaDtos.DatabaseResponse dto = apiClient.get(
-                    ChromaApiPaths.database(tenant.getName(), databaseName),
+                    ChromaApiPaths.database(context.tenant.getName(), databaseName),
                     ChromaDtos.DatabaseResponse.class);
             return Database.of(requireNonBlankField("database.name", dto.name));
         }
 
         @Override
         public List<Database> listDatabases() {
+            SessionContext context = sessionContext.get();
             List<ChromaDtos.DatabaseResponse> dtos = apiClient.get(
-                    ChromaApiPaths.databases(tenant.getName()),
+                    ChromaApiPaths.databases(context.tenant.getName()),
                     new TypeToken<List<ChromaDtos.DatabaseResponse>>() {}.getType());
             List<Database> result = new ArrayList<Database>(dtos.size());
             for (int i = 0; i < dtos.size(); i++) {
@@ -312,7 +342,8 @@ public final class ChromaClient {
         @Override
         public void deleteDatabase(String name) {
             String databaseName = requireNonBlank("name", name);
-            apiClient.delete(ChromaApiPaths.database(tenant.getName(), databaseName));
+            SessionContext context = sessionContext.get();
+            apiClient.delete(ChromaApiPaths.database(context.tenant.getName(), databaseName));
         }
 
         @Override
@@ -328,10 +359,14 @@ public final class ChromaClient {
         @Override
         public Collection getCollection(String name) {
             String collectionName = requireNonBlank("name", name);
+            SessionContext context = sessionContext.get();
             ChromaDtos.CollectionResponse dto = apiClient.get(
-                    ChromaApiPaths.collectionByName(tenant.getName(), database.getName(), collectionName),
+                    ChromaApiPaths.collectionByName(
+                            context.tenant.getName(),
+                            context.database.getName(),
+                            collectionName),
                     ChromaDtos.CollectionResponse.class);
-            return ChromaHttpCollection.from(dto, apiClient, tenant, database);
+            return ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database);
         }
 
         @Override
@@ -346,10 +381,11 @@ public final class ChromaClient {
 
         @Override
         public List<Collection> listCollections() {
+            SessionContext context = sessionContext.get();
             List<ChromaDtos.CollectionResponse> dtos = apiClient.get(
-                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    ChromaApiPaths.collections(context.tenant.getName(), context.database.getName()),
                     new TypeToken<List<ChromaDtos.CollectionResponse>>() {}.getType());
-            return toCollections(dtos);
+            return toCollections(dtos, context);
         }
 
         @Override
@@ -363,23 +399,29 @@ public final class ChromaClient {
             Map<String, String> queryParams = new LinkedHashMap<String, String>();
             queryParams.put("limit", String.valueOf(limit));
             queryParams.put("offset", String.valueOf(offset));
+            SessionContext context = sessionContext.get();
             List<ChromaDtos.CollectionResponse> dtos = apiClient.get(
-                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    ChromaApiPaths.collections(context.tenant.getName(), context.database.getName()),
                     queryParams,
                     new TypeToken<List<ChromaDtos.CollectionResponse>>() {}.getType());
-            return toCollections(dtos);
+            return toCollections(dtos, context);
         }
 
         @Override
         public void deleteCollection(String name) {
             String collectionName = requireNonBlank("name", name);
-            apiClient.delete(ChromaApiPaths.collectionByName(tenant.getName(), database.getName(), collectionName));
+            SessionContext context = sessionContext.get();
+            apiClient.delete(ChromaApiPaths.collectionByName(
+                    context.tenant.getName(),
+                    context.database.getName(),
+                    collectionName));
         }
 
         @Override
         public int countCollections() {
+            SessionContext context = sessionContext.get();
             return apiClient.get(
-                    ChromaApiPaths.collectionsCount(tenant.getName(), database.getName()),
+                    ChromaApiPaths.collectionsCount(context.tenant.getName(), context.database.getName()),
                     Integer.class);
         }
 
@@ -391,17 +433,18 @@ public final class ChromaClient {
         private Collection postCollection(String name, CreateCollectionOptions options, boolean getOrCreate) {
             Map<String, Object> metadata = options != null ? options.getMetadata() : null;
             CollectionConfiguration config = options != null ? options.getConfiguration() : null;
+            SessionContext context = sessionContext.get();
             ChromaDtos.CollectionResponse dto = apiClient.post(
-                    ChromaApiPaths.collections(tenant.getName(), database.getName()),
+                    ChromaApiPaths.collections(context.tenant.getName(), context.database.getName()),
                     new ChromaDtos.CreateCollectionRequest(
                             name, metadata,
                             ChromaDtos.toConfigurationMap(config),
                             getOrCreate),
                     ChromaDtos.CollectionResponse.class);
-            return ChromaHttpCollection.from(dto, apiClient, tenant, database);
+            return ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database);
         }
 
-        private List<Collection> toCollections(List<ChromaDtos.CollectionResponse> dtos) {
+        private List<Collection> toCollections(List<ChromaDtos.CollectionResponse> dtos, SessionContext context) {
             if (dtos == null) {
                 throw new ChromaDeserializationException(
                         "Server returned collections payload as null",
@@ -417,9 +460,27 @@ public final class ChromaClient {
                             200
                     );
                 }
-                result.add(ChromaHttpCollection.from(dto, apiClient, tenant, database));
+                result.add(ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database));
             }
             return result;
+        }
+
+        private static final class SessionContext {
+            private final Tenant tenant;
+            private final Database database;
+
+            private SessionContext(Tenant tenant, Database database) {
+                this.tenant = Objects.requireNonNull(tenant, "tenant");
+                this.database = Objects.requireNonNull(database, "database");
+            }
+
+            @Override
+            public String toString() {
+                return "SessionContext{"
+                        + "tenant=" + tenant
+                        + ", database=" + database
+                        + '}';
+            }
         }
 
         private static String requireNonBlankField(String fieldName, String value) {

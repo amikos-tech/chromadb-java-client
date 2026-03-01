@@ -5,9 +5,14 @@ import java.util.List;
 /**
  * ChromaDB client interface.
  *
- * <p>All implementations manage tenant/database context set at construction time.
+ * <p>All implementations manage mutable tenant/database session context.
  * Use {@link ChromaClient#builder()} for self-hosted deployments or
  * {@link ChromaClient#cloud()} for Chroma Cloud.</p>
+ *
+ * <p>Session context reads/writes are atomic. Each operation snapshots the active tenant/database
+ * at method start and uses that snapshot for the full operation. Multi-call sequences
+ * (for example, switching context and then issuing another call) are not externally synchronized
+ * across threads.</p>
  *
  * <p>All methods may throw unchecked exceptions from the {@link ChromaException} hierarchy:
  * <ul>
@@ -59,6 +64,32 @@ public interface Client extends AutoCloseable {
      */
     Tenant getTenant(String name);
 
+    // --- Session context ---
+
+    /**
+     * Switches the active tenant for subsequent tenant-scoped operations.
+     *
+     * <p>When switching tenant, the active database is reset to
+     * {@link Database#defaultDatabase()}.</p>
+     *
+     * <p>Existing {@link Collection} instances are permanently bound to the tenant/database
+     * captured when they were created.</p>
+     *
+     * <p>This method updates only local client session context and does not verify that the
+     * tenant exists on the server.</p>
+     *
+     * @param tenant tenant to use for subsequent tenant-scoped calls
+     * @throws NullPointerException if {@code tenant} is null
+     */
+    void useTenant(Tenant tenant);
+
+    /**
+     * Returns the active tenant in this client session.
+     *
+     * @return current non-null tenant snapshot
+     */
+    Tenant currentTenant();
+
     // --- Database ---
 
     /**
@@ -71,6 +102,27 @@ public interface Client extends AutoCloseable {
      * @throws ChromaNotFoundException if the database does not exist
      */
     Database getDatabase(String name);
+
+    /**
+     * Switches the active database for subsequent collection operations.
+     *
+     * <p>Existing {@link Collection} instances are permanently bound to the tenant/database
+     * captured when they were created.</p>
+     *
+     * <p>This method updates only local client session context and does not verify that the
+     * database exists on the server.</p>
+     *
+     * @param database database to use for subsequent collection calls
+     * @throws NullPointerException if {@code database} is null
+     */
+    void useDatabase(Database database);
+
+    /**
+     * Returns the active database in this client session.
+     *
+     * @return current non-null database snapshot
+     */
+    Database currentDatabase();
 
     /** @throws ChromaServerException on server errors */
     List<Database> listDatabases();

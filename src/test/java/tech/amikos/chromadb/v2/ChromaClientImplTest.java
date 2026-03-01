@@ -794,6 +794,270 @@ public class ChromaClientImplTest {
         assertEquals(5, c.countCollections());
     }
 
+    // --- session context switching ---
+
+    @Test
+    public void testCurrentTenantAndDatabaseDefaults() {
+        Client c = newClient();
+        assertEquals(Tenant.defaultTenant(), c.currentTenant());
+        assertEquals(Database.defaultDatabase(), c.currentDatabase());
+    }
+
+    @Test
+    public void testUseDatabaseSwitchesDatabaseOnly() {
+        Client c = newClient("tenant_a", "db_a");
+        c.useDatabase(Database.of("db_b"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_b"), c.currentDatabase());
+    }
+
+    @Test
+    public void testUseTenantSwitchesTenantAndResetsDatabase() {
+        Client c = newClient("tenant_a", "db_a");
+        c.useTenant(Tenant.of("tenant_b"));
+
+        assertEquals(Tenant.of("tenant_b"), c.currentTenant());
+        assertEquals(Database.defaultDatabase(), c.currentDatabase());
+    }
+
+    @Test
+    public void testIdempotentSwitchingKeepsCurrentContext() {
+        Client c = newClient("tenant_a", "db_a");
+
+        c.useTenant(Tenant.of("tenant_a"));
+        c.useDatabase(Database.of("db_a"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_a"), c.currentDatabase());
+    }
+
+    @Test
+    public void testRoundTripSwitchingUpdatesCurrentContext() {
+        Client c = newClient("tenant_a", "db_a");
+
+        c.useTenant(Tenant.of("tenant_b"));
+        c.useDatabase(Database.of("db_b"));
+        c.useTenant(Tenant.of("tenant_a"));
+        c.useDatabase(Database.of("db_a"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_a"), c.currentDatabase());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUseTenantRejectsNull() {
+        newClient().useTenant(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUseDatabaseRejectsNull() {
+        newClient().useDatabase(null);
+    }
+
+    @Test
+    public void testCollectionOpsUseSwitchedTenantAndDatabase() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        Collection col = c.createCollection("test_col");
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.of("db_switched"), col.getDatabase());
+    }
+
+    @Test
+    public void testUseTenantResetsDatabaseForCollectionOperations() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases/default_database/collections"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+
+        Client c = newClient("tenant_a", "db_a");
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        Collection col = c.createCollection("test_col");
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.defaultDatabase(), col.getDatabase());
+    }
+
+    @Test
+    public void testDatabaseOpsUseSwitchedTenant() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"db_new\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"db_new\",\"tenant\":\"tenant_switched\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        Database db = c.createDatabase("db_new");
+        assertEquals(Database.of("db_new"), db);
+    }
+
+    @Test
+    public void testGetDatabaseUsesSwitchedTenant() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_new"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"db_new\",\"tenant\":\"tenant_switched\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        Database db = c.getDatabase("db_new");
+        assertEquals(Database.of("db_new"), db);
+    }
+
+    @Test
+    public void testListDatabasesUsesSwitchedTenant() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/tenant_switched/databases"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"name\":\"db1\",\"tenant\":\"tenant_switched\"}]")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        List<Database> dbs = c.listDatabases();
+        assertEquals(1, dbs.size());
+        assertEquals(Database.of("db1"), dbs.get(0));
+    }
+
+    @Test
+    public void testDeleteDatabaseUsesSwitchedTenant() {
+        stubFor(delete(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_old"))
+                .willReturn(aResponse().withStatus(200)));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.deleteDatabase("db_old");
+
+        verify(deleteRequestedFor(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_old")));
+    }
+
+    @Test
+    public void testGetCollectionUsesSwitchedTenantAndDatabase() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        Collection col = c.getCollection("test_col");
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.of("db_switched"), col.getDatabase());
+    }
+
+    @Test
+    public void testGetOrCreateCollectionUsesSwitchedTenantAndDatabase() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections"))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("test_col")))
+                .withRequestBody(matchingJsonPath("$.get_or_create", equalTo("true")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-2\",\"name\":\"test_col\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        Collection col = c.getOrCreateCollection("test_col");
+        assertEquals("col-id-2", col.getId());
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.of("db_switched"), col.getDatabase());
+    }
+
+    @Test
+    public void testListCollectionsUsesSwitchedTenantAndDatabase() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"id\":\"id1\",\"name\":\"col1\"}]")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        List<Collection> cols = c.listCollections();
+        assertEquals(1, cols.size());
+        assertEquals(Tenant.of("tenant_switched"), cols.get(0).getTenant());
+        assertEquals(Database.of("db_switched"), cols.get(0).getDatabase());
+    }
+
+    @Test
+    public void testDeleteCollectionUsesSwitchedTenantAndDatabase() {
+        stubFor(delete(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections/test_col"))
+                .willReturn(aResponse().withStatus(200)));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+        c.deleteCollection("test_col");
+
+        verify(deleteRequestedFor(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections/test_col")));
+    }
+
+    @Test
+    public void testCountCollectionsUsesSwitchedTenantAndDatabase() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections_count"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("3")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        assertEquals(3, c.countCollections());
+    }
+
+    @Test
+    public void testCollectionInstancesRemainBoundAfterContextSwitch() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_a/databases/db_a/collections"))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("old_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-old\",\"name\":\"old_col\"}")));
+
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_b/databases/default_database/collections"))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("new_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-new\",\"name\":\"new_col\"}")));
+
+        Client c = newClient("tenant_a", "db_a");
+        Collection oldCollection = c.createCollection("old_col");
+
+        c.useTenant(Tenant.of("tenant_b"));
+        Collection newCollection = c.createCollection("new_col");
+
+        assertEquals(Tenant.of("tenant_a"), oldCollection.getTenant());
+        assertEquals(Database.of("db_a"), oldCollection.getDatabase());
+        assertEquals(Tenant.of("tenant_b"), newCollection.getTenant());
+        assertEquals(Database.defaultDatabase(), newCollection.getDatabase());
+    }
+
     // --- close ---
 
     @Test
