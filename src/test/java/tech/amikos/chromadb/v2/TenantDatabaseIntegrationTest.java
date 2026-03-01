@@ -45,13 +45,13 @@ public class TenantDatabaseIntegrationTest extends AbstractChromaIntegrationTest
         client.getTenant("no_such_tenant");
     }
 
-    // --- Database: get default ---
+    // --- Database: get configured ---
 
     @Test
-    public void testGetDefaultDatabase() {
-        Database db = client.getDatabase("default_database");
+    public void testGetConfiguredDatabase() {
+        Database db = client.getDatabase(databaseName);
         assertNotNull(db);
-        assertEquals("default_database", db.getName());
+        assertEquals(databaseName, db.getName());
     }
 
     // --- Database: create and get ---
@@ -81,23 +81,23 @@ public class TenantDatabaseIntegrationTest extends AbstractChromaIntegrationTest
         client.getDatabase("no_such_db");
     }
 
-    // --- Database: list includes default and created ---
+    // --- Database: list includes configured and created ---
 
     @Test
-    public void testListDatabasesIncludesDefaultAndCreated() {
+    public void testListDatabasesIncludesConfiguredAndCreated() {
         client.createDatabase("extra_db");
 
         List<Database> databases = client.listDatabases();
         assertNotNull(databases);
         assertTrue("should contain at least 2 databases", databases.size() >= 2);
 
-        boolean hasDefault = false;
+        boolean hasConfigured = false;
         boolean hasExtra = false;
         for (Database db : databases) {
-            if ("default_database".equals(db.getName())) hasDefault = true;
+            if (databaseName.equals(db.getName())) hasConfigured = true;
             if ("extra_db".equals(db.getName())) hasExtra = true;
         }
-        assertTrue("should contain default_database", hasDefault);
+        assertTrue("should contain configured database", hasConfigured);
         assertTrue("should contain extra_db", hasExtra);
     }
 

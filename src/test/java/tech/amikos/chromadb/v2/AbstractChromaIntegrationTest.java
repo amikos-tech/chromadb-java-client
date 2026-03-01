@@ -23,14 +23,16 @@ public abstract class AbstractChromaIntegrationTest {
     }
 
     protected Client client;
+    protected String tenantName;
+    protected String databaseName;
 
     @Before
     public void setUp() {
         if (client != null) {
             client.close();
         }
-        String tenantName = uniqueName("it_tenant_");
-        String databaseName = uniqueName("it_db_");
+        tenantName = uniqueName("it_tenant_");
+        databaseName = uniqueName("it_db_");
 
         Client bootstrapClient = ChromaClient.builder()
                 .baseUrl(CHROMA.getEndpoint())
