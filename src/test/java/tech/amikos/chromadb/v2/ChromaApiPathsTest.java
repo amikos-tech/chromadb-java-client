@@ -19,6 +19,16 @@ public class ChromaApiPathsTest {
     }
 
     @Test
+    public void testPreFlightChecks() {
+        assertEquals("/api/v2/pre-flight-checks", ChromaApiPaths.preFlightChecks());
+    }
+
+    @Test
+    public void testAuthIdentity() {
+        assertEquals("/api/v2/auth/identity", ChromaApiPaths.authIdentity());
+    }
+
+    @Test
     public void testReset() {
         assertEquals("/api/v2/reset", ChromaApiPaths.reset());
     }
