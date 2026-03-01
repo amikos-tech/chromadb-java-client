@@ -223,7 +223,7 @@ public final class ChromaClient {
                         200
                 );
             }
-            if (dto.maxBatchSize.intValue() < 0) {
+            if (dto.maxBatchSize.intValue() <= 0) {
                 throw new ChromaDeserializationException(
                         "Server returned pre-flight payload with invalid max_batch_size field: " + dto.maxBatchSize,
                         200
@@ -434,7 +434,7 @@ public final class ChromaClient {
         private static <T> List<T> requireNonNullListField(String fieldName, List<T> value) {
             if (value == null) {
                 throw new ChromaDeserializationException(
-                        "Server returned invalid " + fieldName + " field",
+                        "Server returned payload without required " + fieldName + " field",
                         200
                 );
             }

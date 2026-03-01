@@ -30,6 +30,7 @@ public interface Client extends AutoCloseable {
      * Performs server capability discovery and returns operational limits.
      *
      * @throws ChromaConnectionException if the server is unreachable
+     * @throws ChromaDeserializationException if the response payload is malformed
      */
     PreFlightInfo preFlight();
 
@@ -37,6 +38,9 @@ public interface Client extends AutoCloseable {
      * Returns identity details for the currently authenticated principal.
      *
      * @throws ChromaConnectionException if the server is unreachable
+     * @throws ChromaUnauthorizedException if authentication is missing/invalid
+     * @throws ChromaForbiddenException if access is denied
+     * @throws ChromaDeserializationException if the response payload is malformed
      */
     Identity getIdentity();
 

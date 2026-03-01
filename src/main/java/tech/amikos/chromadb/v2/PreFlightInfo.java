@@ -13,12 +13,12 @@ public final class PreFlightInfo {
      *
      * @param maxBatchSize maximum records accepted in a batch operation
      * @param supportsBase64Encoding whether the server supports base64 encoding; may be {@code null}
-     *                               when unavailable on older servers
-     * @throws IllegalArgumentException if {@code maxBatchSize < 0}
+     *                               if the server does not report this capability
+     * @throws IllegalArgumentException if {@code maxBatchSize <= 0}
      */
     public PreFlightInfo(int maxBatchSize, Boolean supportsBase64Encoding) {
-        if (maxBatchSize < 0) {
-            throw new IllegalArgumentException("maxBatchSize must be >= 0");
+        if (maxBatchSize <= 0) {
+            throw new IllegalArgumentException("maxBatchSize must be > 0");
         }
         this.maxBatchSize = maxBatchSize;
         this.supportsBase64Encoding = supportsBase64Encoding;
@@ -30,6 +30,11 @@ public final class PreFlightInfo {
 
     public Boolean getSupportsBase64Encoding() {
         return supportsBase64Encoding;
+    }
+
+    /** Returns {@code true} only if the server explicitly reports base64 support. */
+    public boolean supportsBase64Encoding() {
+        return Boolean.TRUE.equals(supportsBase64Encoding);
     }
 
     @Override

@@ -149,6 +149,22 @@ public class ChromaClientImplTest {
         }
     }
 
+    @Test
+    public void testPreFlightZeroMaxBatchSizeThrows() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"max_batch_size\":0,\"supports_base64_encoding\":false}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("max_batch_size"));
+        }
+    }
+
     // --- getIdentity ---
 
     @Test
@@ -183,6 +199,22 @@ public class ChromaClientImplTest {
     }
 
     @Test
+    public void testGetIdentityMissingTenantThrows() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"user_id\":\"user-1\",\"databases\":[\"db1\"]}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("identity.tenant"));
+        }
+    }
+
+    @Test
     public void testGetIdentityMissingDatabasesThrows() {
         stubFor(get(urlEqualTo("/api/v2/auth/identity"))
                 .willReturn(aResponse()
@@ -212,6 +244,17 @@ public class ChromaClientImplTest {
         } catch (ChromaDeserializationException e) {
             assertTrue(e.getMessage().contains("identity.databases[1]"));
         }
+    }
+
+    @Test(expected = ChromaUnauthorizedException.class)
+    public void testGetIdentityUnauthorized() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(401)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"unauthorized\"}")));
+
+        newClient().getIdentity();
     }
 
     // --- reset ---
