@@ -821,6 +821,30 @@ public class ChromaClientImplTest {
         assertEquals(Database.defaultDatabase(), c.currentDatabase());
     }
 
+    @Test
+    public void testIdempotentSwitchingKeepsCurrentContext() {
+        Client c = newClient("tenant_a", "db_a");
+
+        c.useTenant(Tenant.of("tenant_a"));
+        c.useDatabase(Database.of("db_a"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_a"), c.currentDatabase());
+    }
+
+    @Test
+    public void testRoundTripSwitchingUpdatesCurrentContext() {
+        Client c = newClient("tenant_a", "db_a");
+
+        c.useTenant(Tenant.of("tenant_b"));
+        c.useDatabase(Database.of("db_b"));
+        c.useTenant(Tenant.of("tenant_a"));
+        c.useDatabase(Database.of("db_a"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_a"), c.currentDatabase());
+    }
+
     @Test(expected = NullPointerException.class)
     public void testUseTenantRejectsNull() {
         newClient().useTenant(null);
