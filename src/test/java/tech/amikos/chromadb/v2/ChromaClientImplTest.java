@@ -794,6 +794,92 @@ public class ChromaClientImplTest {
         assertEquals(5, c.countCollections());
     }
 
+    // --- session context switching ---
+
+    @Test
+    public void testCurrentTenantAndDatabaseDefaults() {
+        Client c = newClient();
+        assertEquals(Tenant.defaultTenant(), c.currentTenant());
+        assertEquals(Database.defaultDatabase(), c.currentDatabase());
+    }
+
+    @Test
+    public void testUseDatabaseSwitchesDatabaseOnly() {
+        Client c = newClient("tenant_a", "db_a");
+        c.useDatabase(Database.of("db_b"));
+
+        assertEquals(Tenant.of("tenant_a"), c.currentTenant());
+        assertEquals(Database.of("db_b"), c.currentDatabase());
+    }
+
+    @Test
+    public void testUseTenantSwitchesTenantAndResetsDatabase() {
+        Client c = newClient("tenant_a", "db_a");
+        c.useTenant(Tenant.of("tenant_b"));
+
+        assertEquals(Tenant.of("tenant_b"), c.currentTenant());
+        assertEquals(Database.defaultDatabase(), c.currentDatabase());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUseTenantRejectsNull() {
+        newClient().useTenant(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUseDatabaseRejectsNull() {
+        newClient().useDatabase(null);
+    }
+
+    @Test
+    public void testCollectionOpsUseSwitchedTenantAndDatabase() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases/db_switched/collections"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+        c.useDatabase(Database.of("db_switched"));
+
+        Collection col = c.createCollection("test_col");
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.of("db_switched"), col.getDatabase());
+    }
+
+    @Test
+    public void testUseTenantResetsDatabaseForCollectionOperations() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases/default_database/collections"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+
+        Client c = newClient("tenant_a", "db_a");
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        Collection col = c.createCollection("test_col");
+        assertEquals(Tenant.of("tenant_switched"), col.getTenant());
+        assertEquals(Database.defaultDatabase(), col.getDatabase());
+    }
+
+    @Test
+    public void testDatabaseOpsUseSwitchedTenant() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/tenant_switched/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"db_new\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"db_new\",\"tenant\":\"tenant_switched\"}")));
+
+        Client c = newClient();
+        c.useTenant(Tenant.of("tenant_switched"));
+
+        Database db = c.createDatabase("db_new");
+        assertEquals(Database.of("db_new"), db);
+    }
+
     // --- close ---
 
     @Test

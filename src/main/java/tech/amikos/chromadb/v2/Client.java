@@ -5,9 +5,12 @@ import java.util.List;
 /**
  * ChromaDB client interface.
  *
- * <p>All implementations manage tenant/database context set at construction time.
+ * <p>All implementations manage mutable tenant/database session context.
  * Use {@link ChromaClient#builder()} for self-hosted deployments or
  * {@link ChromaClient#cloud()} for Chroma Cloud.</p>
+ *
+ * <p>Session context updates are thread-safe and visible atomically to subsequent calls.
+ * Each operation uses the tenant/database snapshot active when that operation starts.</p>
  *
  * <p>All methods may throw unchecked exceptions from the {@link ChromaException} hierarchy:
  * <ul>
@@ -59,6 +62,26 @@ public interface Client extends AutoCloseable {
      */
     Tenant getTenant(String name);
 
+    // --- Session context ---
+
+    /**
+     * Switches the active tenant for subsequent database and collection operations.
+     *
+     * <p>When switching tenant, the active database is reset to
+     * {@link Database#defaultDatabase()}.</p>
+     *
+     * <p>Existing {@link Collection} instances retain the tenant/database snapshot captured
+     * when they were created.</p>
+     *
+     * @throws NullPointerException if {@code tenant} is null
+     */
+    void useTenant(Tenant tenant);
+
+    /**
+     * Returns the active tenant in this client session.
+     */
+    Tenant currentTenant();
+
     // --- Database ---
 
     /**
@@ -71,6 +94,21 @@ public interface Client extends AutoCloseable {
      * @throws ChromaNotFoundException if the database does not exist
      */
     Database getDatabase(String name);
+
+    /**
+     * Switches the active database for subsequent collection operations.
+     *
+     * <p>Existing {@link Collection} instances retain the tenant/database snapshot captured
+     * when they were created.</p>
+     *
+     * @throws NullPointerException if {@code database} is null
+     */
+    void useDatabase(Database database);
+
+    /**
+     * Returns the active database in this client session.
+     */
+    Database currentDatabase();
 
     /** @throws ChromaServerException on server errors */
     List<Database> listDatabases();
