@@ -8,6 +8,11 @@ import java.util.Map;
  * <p><strong>Current status:</strong> static factory methods are placeholders and currently throw
  * {@link UnsupportedOperationException}. Use custom {@link WhereDocument} implementations that
  * override {@link #toMap()} until the fluent DSL is implemented.</p>
+ *
+ * <p>For inline document filtering inside {@link Where} clauses, see
+ * {@link Where#documentContains(String)} and {@link Where#documentNotContains(String)}. Note that
+ * inline {@code #document} filters are Cloud-oriented and may be rejected by local Chroma
+ * deployments; this {@code WhereDocument} API remains the local-compatible path.</p>
  */
 public abstract class WhereDocument {
 

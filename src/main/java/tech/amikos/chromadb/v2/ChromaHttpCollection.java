@@ -465,6 +465,8 @@ final class ChromaHttpCollection implements Collection {
             if (queryEmbeddings == null || queryEmbeddings.isEmpty()) {
                 throw new IllegalArgumentException("queryEmbeddings must be provided");
             }
+            Map<String, Object> whereMap = requireNonNullMap(where, "where");
+            Map<String, Object> whereDocumentMap = requireNonNullMap(whereDocument, "whereDocument");
             List<String> includeValues = null;
             if (include != null) {
                 includeValues = new ArrayList<String>(include.size());
@@ -476,8 +478,8 @@ final class ChromaHttpCollection implements Collection {
             ChromaDtos.QueryResponse dto = apiClient.post(path, new ChromaDtos.QueryRequest(
                     ChromaDtos.toFloatLists(queryEmbeddings),
                     nResults,
-                    where != null ? where.toMap() : null,
-                    whereDocument != null ? whereDocument.toMap() : null,
+                    whereMap,
+                    whereDocumentMap,
                     includeValues
             ), ChromaDtos.QueryResponse.class);
             return QueryResultImpl.from(dto);
@@ -542,6 +544,8 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public GetResult execute() {
+            Map<String, Object> whereMap = requireNonNullMap(where, "where");
+            Map<String, Object> whereDocumentMap = requireNonNullMap(whereDocument, "whereDocument");
             List<String> includeValues = null;
             if (include != null) {
                 includeValues = new ArrayList<String>(include.size());
@@ -552,8 +556,8 @@ final class ChromaHttpCollection implements Collection {
             String path = ChromaApiPaths.collectionGet(tenant.getName(), database.getName(), id);
             ChromaDtos.GetResponse dto = apiClient.post(path, new ChromaDtos.GetRequest(
                     ids,
-                    where != null ? where.toMap() : null,
-                    whereDocument != null ? whereDocument.toMap() : null,
+                    whereMap,
+                    whereDocumentMap,
                     includeValues,
                     limit,
                     offset
@@ -666,11 +670,18 @@ final class ChromaHttpCollection implements Collection {
                         "delete requires at least one criterion: ids, where, or whereDocument"
                 );
             }
+            Map<String, Object> whereMap = requireNonNullMap(where, "where");
+            Map<String, Object> whereDocumentMap = requireNonNullMap(whereDocument, "whereDocument");
+            if (whereMap != null && containsFieldInWhere(whereMap, Where.KEY_ID)) {
+                throw new IllegalArgumentException(
+                        "delete where filters must not contain #id clauses; use delete().ids(...) instead"
+                );
+            }
             String path = ChromaApiPaths.collectionDelete(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.DeleteRequest(
                     ids,
-                    where != null ? where.toMap() : null,
-                    whereDocument != null ? whereDocument.toMap() : null
+                    whereMap,
+                    whereDocumentMap
             ));
         }
     }
@@ -706,5 +717,52 @@ final class ChromaHttpCollection implements Collection {
                     fieldName + " size must match ids size (" + idsSize + ")"
             );
         }
+    }
+
+    private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
+        if (where == null) {
+            return null;
+        }
+        Map<String, Object> map = where.toMap();
+        if (map == null) {
+            throw new IllegalArgumentException(fieldName + ".toMap() must not return null");
+        }
+        return map;
+    }
+
+    private static Map<String, Object> requireNonNullMap(WhereDocument whereDocument, String fieldName) {
+        if (whereDocument == null) {
+            return null;
+        }
+        Map<String, Object> map = whereDocument.toMap();
+        if (map == null) {
+            throw new IllegalArgumentException(fieldName + ".toMap() must not return null");
+        }
+        return map;
+    }
+
+    private static boolean containsFieldInWhere(Object node, String fieldName) {
+        if (node instanceof Map<?, ?>) {
+            Map<?, ?> map = (Map<?, ?>) node;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                Object key = entry.getKey();
+                if (fieldName.equals(key)) {
+                    return true;
+                }
+                if (containsFieldInWhere(entry.getValue(), fieldName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (node instanceof List<?>) {
+            List<?> list = (List<?>) node;
+            for (Object item : list) {
+                if (containsFieldInWhere(item, fieldName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

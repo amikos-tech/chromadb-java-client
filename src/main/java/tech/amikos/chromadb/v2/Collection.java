@@ -166,9 +166,21 @@ public interface Collection {
     interface DeleteBuilder {
         DeleteBuilder ids(String... ids);
         DeleteBuilder ids(List<String> ids);
+        /**
+         * Applies a {@link Where} filter to restrict which records are deleted.
+         *
+         * <p>Validation is performed at {@link #execute()} time. For safety, delete filters
+         * containing {@code #id} are rejected by the client. Use {@link #ids(String...)} /
+         * {@link #ids(List)} for ID-based deletions.</p>
+         */
         DeleteBuilder where(Where where);
         DeleteBuilder whereDocument(WhereDocument whereDocument);
-        /** @throws ChromaBadRequestException if the filter is invalid */
+        /**
+         * @throws IllegalArgumentException if no criteria are provided or if {@code where}
+         *                                  contains {@code #id} clauses or if {@code where}/{@code whereDocument}
+         *                                  return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the filter is invalid
+         */
         void execute();
     }
 }
