@@ -1,5 +1,6 @@
 package tech.amikos.chromadb.v2;
 
+import org.junit.After;
 import org.junit.Before;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -10,13 +11,15 @@ import java.util.UUID;
 
 public abstract class AbstractChromaIntegrationTest {
 
+    private static final String DEFAULT_CHROMA_VERSION = "1.0.0";
     private static final ChromaDBContainer CHROMA;
 
     static {
-        String version = System.getenv("CHROMA_VERSION");
-        String image = (version != null && !version.isEmpty())
-                ? "chromadb/chroma:" + version
-                : "chromadb/chroma:latest";
+        String envVersion = System.getenv("CHROMA_VERSION");
+        String version = (envVersion != null && !envVersion.isEmpty())
+                ? envVersion
+                : DEFAULT_CHROMA_VERSION;
+        String image = "chromadb/chroma:" + version;
         CHROMA = new ChromaDBContainer(DockerImageName.parse(image))
                 .withEnv("ALLOW_RESET", "TRUE");
         CHROMA.start();
@@ -58,6 +61,14 @@ public abstract class AbstractChromaIntegrationTest {
                 .tenant(tenantName)
                 .database(databaseName)
                 .build();
+    }
+
+    @After
+    public void tearDown() {
+        if (client != null) {
+            client.close();
+            client = null;
+        }
     }
 
     protected static String endpoint() {

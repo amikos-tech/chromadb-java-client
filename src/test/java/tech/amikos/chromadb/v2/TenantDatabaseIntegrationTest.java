@@ -1,6 +1,5 @@
 package tech.amikos.chromadb.v2;
 
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.List;
@@ -125,10 +124,4 @@ public class TenantDatabaseIntegrationTest extends AbstractChromaIntegrationTest
         client.deleteDatabase("nonexistent_db");
     }
 
-    @After
-    public void tearDown() {
-        if (client != null) {
-            client.close();
-        }
-    }
 }

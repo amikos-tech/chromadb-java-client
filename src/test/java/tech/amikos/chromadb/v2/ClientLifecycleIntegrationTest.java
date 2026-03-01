@@ -1,6 +1,5 @@
 package tech.amikos.chromadb.v2;
 
-import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -54,9 +53,12 @@ public class ClientLifecycleIntegrationTest extends AbstractChromaIntegrationTes
         Client newClient = ChromaClient.builder()
                 .baseUrl(endpoint())
                 .build();
-        String heartbeat = newClient.heartbeat();
-        assertNotNull(heartbeat);
-        newClient.close();
+        try {
+            String heartbeat = newClient.heartbeat();
+            assertNotNull(heartbeat);
+        } finally {
+            newClient.close();
+        }
     }
 
     // --- double close ---
@@ -67,10 +69,4 @@ public class ClientLifecycleIntegrationTest extends AbstractChromaIntegrationTes
         client.close(); // should not throw
     }
 
-    @After
-    public void tearDown() {
-        if (client != null) {
-            client.close();
-        }
-    }
 }

@@ -22,10 +22,18 @@ public abstract class WhereDocument {
     public static WhereDocument and(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static WhereDocument or(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
 
-    /** Chain combinator equivalent to {@code WhereDocument.and(this, other)}. */
+    /**
+     * Chain combinator equivalent to {@code WhereDocument.and(this, other)}.
+     *
+     * @throws UnsupportedOperationException in the current placeholder implementation
+     */
     public WhereDocument and(WhereDocument other) { return WhereDocument.and(this, other); }
 
-    /** Chain combinator equivalent to {@code WhereDocument.or(this, other)}. */
+    /**
+     * Chain combinator equivalent to {@code WhereDocument.or(this, other)}.
+     *
+     * @throws UnsupportedOperationException in the current placeholder implementation
+     */
     public WhereDocument or(WhereDocument other) { return WhereDocument.or(this, other); }
 
     /** Serialize to the Chroma filter JSON structure. */

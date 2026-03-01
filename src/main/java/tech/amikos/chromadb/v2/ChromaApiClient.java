@@ -26,6 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Package-private HTTP transport for the Chroma v2 REST API.
  * Owns the {@link OkHttpClient} and {@link Gson} instances and must be closed
  * to release HTTP thread and connection-pool resources.
+ *
+ * <p>Note: {@link #close()} performs both dispatcher shutdown and connection-pool eviction and
+ * may throw unchecked exceptions from those underlying OkHttp operations.</p>
  */
 class ChromaApiClient implements AutoCloseable {
 
@@ -140,6 +143,11 @@ class ChromaApiClient implements AutoCloseable {
         return gson;
     }
 
+    /**
+     * Releases owned HTTP resources.
+     *
+     * @throws RuntimeException if dispatcher shutdown and/or connection-pool eviction fails
+     */
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) {

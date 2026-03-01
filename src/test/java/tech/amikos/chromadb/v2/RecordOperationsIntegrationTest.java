@@ -1,6 +1,5 @@
 package tech.amikos.chromadb.v2;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -407,10 +406,4 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertTrue(result.getIds().contains("id4"));
     }
 
-    @After
-    public void tearDown() {
-        if (client != null) {
-            client.close();
-        }
-    }
 }

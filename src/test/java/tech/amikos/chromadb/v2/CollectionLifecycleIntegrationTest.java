@@ -1,6 +1,5 @@
 package tech.amikos.chromadb.v2;
 
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -221,10 +220,4 @@ public class CollectionLifecycleIntegrationTest extends AbstractChromaIntegratio
         assertEquals(0, col.count());
     }
 
-    @After
-    public void tearDown() {
-        if (client != null) {
-            client.close();
-        }
-    }
 }
