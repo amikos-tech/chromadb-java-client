@@ -475,7 +475,7 @@ public class ChromaHttpCollectionTest {
     @Test
     public void testDeleteWithInlineDocumentWhereFilter() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
-                .withRequestBody(containing("\"#document\":{\"$contains\":\"ai\"}"))
+                .withRequestBody(matchingJsonPath("$.where['#document']['$contains']", equalTo("ai")))
                 .willReturn(aResponse().withStatus(200)));
 
         collection.delete()
@@ -488,7 +488,8 @@ public class ChromaHttpCollectionTest {
     @Test
     public void testDeleteAllowsInlineIdWhereFilterShape() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
-                .withRequestBody(containing("\"#id\":{\"$in\":[\"id1\",\"id2\"]}"))
+                .withRequestBody(matchingJsonPath("$.where['#id']['$in'][0]", equalTo("id1")))
+                .withRequestBody(matchingJsonPath("$.where['#id']['$in'][1]", equalTo("id2")))
                 .willReturn(aResponse().withStatus(200)));
 
         collection.delete()
@@ -501,7 +502,8 @@ public class ChromaHttpCollectionTest {
     @Test
     public void testDeleteAllowsNestedInlineIdWhereFilterShape() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
-                .withRequestBody(containing("\"#id\":{\"$nin\":[\"id1\"]}"))
+                .withRequestBody(matchingJsonPath("$.where['$and'][0].topic", equalTo("news")))
+                .withRequestBody(matchingJsonPath("$.where['$and'][1]['#id']['$nin'][0]", equalTo("id1")))
                 .willReturn(aResponse().withStatus(200)));
 
         Map<String, Object> whereMap = new LinkedHashMap<String, Object>();
@@ -517,7 +519,11 @@ public class ChromaHttpCollectionTest {
     @Test
     public void testDeleteAllowsDeeplyNestedInlineIdWhereFilterShape() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
-                .withRequestBody(containing("\"#id\":{\"$in\":[\"id1\"]}"))
+                .withRequestBody(matchingJsonPath("$.where['$and'][0].topic", equalTo("news")))
+                .withRequestBody(matchingJsonPath(
+                        "$.where['$and'][1]['$or'][1]['$and'][1]['#id']['$in'][0]",
+                        equalTo("id1")
+                ))
                 .willReturn(aResponse().withStatus(200)));
 
         Map<String, Object> topic = new LinkedHashMap<String, Object>();

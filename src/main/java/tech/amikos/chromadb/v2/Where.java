@@ -11,7 +11,8 @@ import java.util.Map;
  *
  * <p><strong>Current status:</strong> ID/document filters and logical combinators are implemented.
  * The remaining metadata factory methods are placeholders and currently throw
- * {@link UnsupportedOperationException}.</p>
+ * {@link UnsupportedOperationException}. As a temporary fallback, use
+ * {@link #fromMap(Map)} to pass raw where clauses.</p>
  */
 public abstract class Where {
 
@@ -26,6 +27,21 @@ public abstract class Where {
     private static final String OP_OR = "$or";
 
     Where() {}
+
+    /**
+     * Builds a {@code Where} from a raw map payload.
+     *
+     * <p>This is primarily a temporary escape hatch while typed metadata factories are still
+     * being implemented.</p>
+     *
+     * @param map non-null Chroma where JSON structure
+     * @return immutable where wrapper around the provided map shape
+     * @throws IllegalArgumentException if {@code map} is null
+     */
+    public static Where fromMap(Map<String, Object> map) {
+        requireNonNullArgument(map, "map");
+        return new MapWhere(map);
+    }
 
     // --- Equality ---
 
@@ -101,8 +117,8 @@ public abstract class Where {
      *
      * <p><strong>Compatibility:</strong> inline {@code #document} filters in {@code where} are a
      * Chroma Cloud capability and are rejected by local Chroma deployments. For local deployments,
-     * use collection builder {@code whereDocument(...)} methods with a custom
-     * {@link WhereDocument} implementation that overrides {@link WhereDocument#toMap()}.</p>
+     * use collection builder {@code whereDocument(...)} methods with
+     * {@link WhereDocument#fromMap(Map)}.</p>
      *
      * @param text non-blank document text fragment to match; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#document":{"$contains":"..."}}}
@@ -120,8 +136,8 @@ public abstract class Where {
      *
      * <p><strong>Compatibility:</strong> inline {@code #document} filters in {@code where} are a
      * Chroma Cloud capability and are rejected by local Chroma deployments. For local deployments,
-     * use collection builder {@code whereDocument(...)} methods with a custom
-     * {@link WhereDocument} implementation that overrides {@link WhereDocument#toMap()}.</p>
+     * use collection builder {@code whereDocument(...)} methods with
+     * {@link WhereDocument#fromMap(Map)}.</p>
      *
      * @param text non-blank document text fragment to exclude; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#document":{"$not_contains":"..."}}}

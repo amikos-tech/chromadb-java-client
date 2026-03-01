@@ -121,7 +121,10 @@ public interface Collection {
         QueryBuilder where(Where where);
         QueryBuilder whereDocument(WhereDocument whereDocument);
         QueryBuilder include(Include... include);
-        /** @throws ChromaBadRequestException if the query is invalid */
+        /**
+         * @throws IllegalArgumentException if {@code where}/{@code whereDocument} return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the query is invalid
+         */
         QueryResult execute();
     }
 
@@ -133,7 +136,10 @@ public interface Collection {
         GetBuilder include(Include... include);
         GetBuilder limit(int limit);
         GetBuilder offset(int offset);
-        /** @throws ChromaBadRequestException if the request is invalid */
+        /**
+         * @throws IllegalArgumentException if {@code where}/{@code whereDocument} return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the request is invalid
+         */
         GetResult execute();
     }
 

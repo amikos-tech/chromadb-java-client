@@ -55,6 +55,30 @@ public class WhereTest {
     }
 
     @Test
+    public void testFromMapFactoryCopiesInput() {
+        Map<String, Object> nested = singletonMap("$gt", 3);
+        Map<String, Object> source = singletonMap("index", nested);
+        Where fromMap = Where.fromMap(source);
+
+        nested.put("$gt", 9);
+        source.put("extra", true);
+
+        Map<String, Object> expectedNested = singletonMap("$gt", 3);
+        Map<String, Object> expected = singletonMap("index", expectedNested);
+        assertEquals(expected, fromMap.toMap());
+    }
+
+    @Test
+    public void testFromMapFactoryRejectsNull() {
+        assertIllegalArgument(new Runnable() {
+            @Override
+            public void run() {
+                Where.fromMap(null);
+            }
+        });
+    }
+
+    @Test
     public void testIdFactoriesSerializeSingleElement() {
         Map<String, Object> expected = operatorCondition("#id", "$in", Arrays.asList("id1"));
         assertEquals(expected, Where.idIn("id1").toMap());
