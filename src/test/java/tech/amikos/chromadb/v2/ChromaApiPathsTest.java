@@ -67,9 +67,15 @@ public class ChromaApiPathsTest {
     }
 
     @Test
-    public void testCollection() {
+    public void testCollectionByName() {
         assertEquals("/api/v2/tenants/t1/databases/db1/collections/my_col",
-                ChromaApiPaths.collection("t1", "db1", "my_col"));
+                ChromaApiPaths.collectionByName("t1", "db1", "my_col"));
+    }
+
+    @Test
+    public void testCollectionById() {
+        assertEquals("/api/v2/tenants/t1/databases/db1/collections/col-id",
+                ChromaApiPaths.collectionById("t1", "db1", "col-id"));
     }
 
     @Test
@@ -167,7 +173,7 @@ public class ChromaApiPathsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullCollectionNameThrows() {
-        ChromaApiPaths.collection("t1", "db1", null);
+        ChromaApiPaths.collectionByName("t1", "db1", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -182,6 +188,6 @@ public class ChromaApiPathsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyCollectionNameThrows() {
-        ChromaApiPaths.collection("t1", "db1", "");
+        ChromaApiPaths.collectionByName("t1", "db1", "");
     }
 }

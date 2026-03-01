@@ -75,6 +75,9 @@ public final class ChromaClient {
          *
          * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
          * method invoked determines the effective authentication.</p>
+         *
+         * <p>This configures standard bearer auth and sends
+         * {@code Authorization: Bearer &lt;token&gt;}.</p>
          */
         public Builder apiKey(String apiKey) {
             this.authProvider = TokenAuth.of(apiKey);
@@ -126,6 +129,12 @@ public final class ChromaClient {
 
         CloudBuilder() {}
 
+        /**
+         * Sets Chroma Cloud API key.
+         *
+         * <p>This configures Chroma Cloud token auth and sends
+         * {@code X-Chroma-Token: &lt;token&gt;} (not bearer auth).</p>
+         */
         public CloudBuilder apiKey(String apiKey) {
             this.apiKey = requireNonBlank("apiKey", apiKey);
             return this;
@@ -162,10 +171,11 @@ public final class ChromaClient {
 
     private static String requireNonBlank(String fieldName, String value) {
         String nonNullValue = Objects.requireNonNull(value, fieldName);
-        if (nonNullValue.trim().isEmpty()) {
+        String normalized = nonNullValue.trim();
+        if (normalized.isEmpty()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
-        return nonNullValue;
+        return normalized;
     }
 
     // --- Private implementation ---
@@ -177,9 +187,9 @@ public final class ChromaClient {
         private final Database database;
 
         ChromaClientImpl(ChromaApiClient apiClient, Tenant tenant, Database database) {
-            this.apiClient = apiClient;
-            this.tenant = tenant;
-            this.database = database;
+            this.apiClient = Objects.requireNonNull(apiClient, "apiClient");
+            this.tenant = Objects.requireNonNull(tenant, "tenant");
+            this.database = Objects.requireNonNull(database, "database");
         }
 
         @Override
@@ -282,7 +292,7 @@ public final class ChromaClient {
         public Collection getCollection(String name) {
             String collectionName = requireNonBlank("name", name);
             ChromaDtos.CollectionResponse dto = apiClient.get(
-                    ChromaApiPaths.collection(tenant.getName(), database.getName(), collectionName),
+                    ChromaApiPaths.collectionByName(tenant.getName(), database.getName(), collectionName),
                     ChromaDtos.CollectionResponse.class);
             return ChromaHttpCollection.from(dto, apiClient, tenant, database);
         }
@@ -326,7 +336,7 @@ public final class ChromaClient {
         @Override
         public void deleteCollection(String name) {
             String collectionName = requireNonBlank("name", name);
-            apiClient.delete(ChromaApiPaths.collection(tenant.getName(), database.getName(), collectionName));
+            apiClient.delete(ChromaApiPaths.collectionByName(tenant.getName(), database.getName(), collectionName));
         }
 
         @Override

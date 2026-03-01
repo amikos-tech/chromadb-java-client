@@ -5,11 +5,9 @@ import java.util.Map;
 /**
  * Type-safe metadata filter DSL.
  *
- * <pre>{@code
- * Where.eq("type", "article")
- * Where.and(Where.eq("type", "article"), Where.gt("views", 1000))
- * Where.eq("status", "active").and(Where.lt("age", 30))
- * }</pre>
+ * <p><strong>Current status:</strong> static factory methods are placeholders and currently throw
+ * {@link UnsupportedOperationException}. Use custom {@link Where} implementations that override
+ * {@link #toMap()} until the fluent DSL is implemented.</p>
  */
 public abstract class Where {
 
@@ -64,10 +62,18 @@ public abstract class Where {
     public static Where and(Where... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static Where or(Where... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
 
-    /** Chain: {@code Where.eq("a", 1).and(Where.eq("b", 2))} */
+    /**
+     * Chain combinator equivalent to {@code Where.and(this, other)}.
+     *
+     * @throws UnsupportedOperationException in the current placeholder implementation
+     */
     public Where and(Where other) { return Where.and(this, other); }
 
-    /** Chain: {@code Where.eq("a", 1).or(Where.eq("b", 2))} */
+    /**
+     * Chain combinator equivalent to {@code Where.or(this, other)}.
+     *
+     * @throws UnsupportedOperationException in the current placeholder implementation
+     */
     public Where or(Where other) { return Where.or(this, other); }
 
     /** Serialize to the Chroma filter JSON structure. */

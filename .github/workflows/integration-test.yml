@@ -24,3 +24,18 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
+
+  v2-integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: maven
+      - name: Run v2 integration tests
+        run: mvn --batch-mode test -Pintegration
+        env:
+          CHROMA_VERSION: 1.0.0

@@ -145,10 +145,23 @@ class ChromaApiClient implements AutoCloseable {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
+        RuntimeException closeFailure = null;
         try {
             httpClient.dispatcher().executorService().shutdown();
-        } finally {
+        } catch (RuntimeException e) {
+            closeFailure = e;
+        }
+        try {
             httpClient.connectionPool().evictAll();
+        } catch (RuntimeException e) {
+            if (closeFailure == null) {
+                closeFailure = e;
+            } else {
+                closeFailure.addSuppressed(e);
+            }
+        }
+        if (closeFailure != null) {
+            throw closeFailure;
         }
     }
 
@@ -203,11 +216,7 @@ class ChromaApiClient implements AutoCloseable {
 
         if (authProvider != null) {
             Map<String, String> authHeaders = new LinkedHashMap<String, String>();
-            try {
-                authProvider.applyAuth(authHeaders);
-            } catch (RuntimeException e) {
-                throw new ChromaException("Failed to apply authentication headers", e);
-            }
+            authProvider.applyAuth(authHeaders);
             for (Map.Entry<String, String> entry : authHeaders.entrySet()) {
                 builder.header(entry.getKey(), entry.getValue());
             }

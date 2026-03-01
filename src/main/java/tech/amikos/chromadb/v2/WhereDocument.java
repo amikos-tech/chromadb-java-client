@@ -5,12 +5,9 @@ import java.util.Map;
 /**
  * Document content filter DSL.
  *
- * <pre>{@code
- * WhereDocument.contains("machine learning")
- * WhereDocument.regex("\\bAI\\b")
- * WhereDocument.and(WhereDocument.contains("AI"), WhereDocument.notContains("deprecated"))
- * WhereDocument.contains("AI").and(WhereDocument.notContains("deprecated"))
- * }</pre>
+ * <p><strong>Current status:</strong> static factory methods are placeholders and currently throw
+ * {@link UnsupportedOperationException}. Use custom {@link WhereDocument} implementations that
+ * override {@link #toMap()} until the fluent DSL is implemented.</p>
  */
 public abstract class WhereDocument {
 
@@ -25,10 +22,10 @@ public abstract class WhereDocument {
     public static WhereDocument and(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
     public static WhereDocument or(WhereDocument... conditions) { throw new UnsupportedOperationException("Not yet implemented"); }
 
-    /** Chain: {@code WhereDocument.contains("AI").and(WhereDocument.notContains("old"))} */
+    /** Chain combinator equivalent to {@code WhereDocument.and(this, other)}. */
     public WhereDocument and(WhereDocument other) { return WhereDocument.and(this, other); }
 
-    /** Chain: {@code WhereDocument.contains("AI").or(WhereDocument.contains("ML"))} */
+    /** Chain combinator equivalent to {@code WhereDocument.or(this, other)}. */
     public WhereDocument or(WhereDocument other) { return WhereDocument.or(this, other); }
 
     /** Serialize to the Chroma filter JSON structure. */
