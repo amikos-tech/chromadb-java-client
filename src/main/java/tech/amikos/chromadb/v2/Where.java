@@ -67,9 +67,8 @@ public abstract class Where {
      * <p>Can be used as a standalone clause or combined inside {@link #and(Where...)} /
      * {@link #or(Where...)}.</p>
      *
-     * <p><strong>Compatibility:</strong> this maps to a {@code #id} filter in {@code where}. Local
-     * Chroma support varies for read operations. For safety, delete operations reject {@code #id}
-     * in {@code where}; use {@code delete().ids(...)} instead.</p>
+     * <p><strong>Compatibility:</strong> this maps to a {@code #id} filter in {@code where}. Support
+     * and semantics may vary by Chroma deployment and operation.</p>
      *
      * @param ids one or more non-blank IDs; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#id":{"$in":[...]}}}
@@ -83,9 +82,8 @@ public abstract class Where {
      * <p>Can be used as a standalone clause or combined inside {@link #and(Where...)} /
      * {@link #or(Where...)}.</p>
      *
-     * <p><strong>Compatibility:</strong> this maps to a {@code #id} filter in {@code where}. Local
-     * Chroma support varies for read operations. For safety, delete operations reject {@code #id}
-     * in {@code where}; use {@code delete().ids(...)} instead.</p>
+     * <p><strong>Compatibility:</strong> this maps to a {@code #id} filter in {@code where}. Support
+     * and semantics may vary by Chroma deployment and operation.</p>
      *
      * @param ids one or more non-blank IDs; leading/trailing whitespace is trimmed
      * @return where clause equivalent to {@code {"#id":{"$nin":[...]}}}

@@ -467,37 +467,35 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
     }
 
     @Test
-    public void testDeleteRejectsWhereIdNotInFilter() {
+    public void testDeleteAcceptsWhereIdNotInFilterWithoutClientError() {
         addSampleRecords(5);
 
         Map<String, Object> categoryOdd = new LinkedHashMap<String, Object>();
         categoryOdd.put("category", "odd");
 
-        try {
-            collection.delete()
-                    .where(Where.and(
-                            Where.idNotIn("id1"),
-                            where(categoryOdd)
-                    ))
-                    .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("#id"));
-        }
+        collection.delete()
+                .where(Where.and(
+                        Where.idNotIn("id1"),
+                        where(categoryOdd)
+                ))
+                .execute();
+
+        // Local Chroma delete semantics for inline #id filters may vary by server version;
+        // this test pins request acceptance (no client-side rejection).
+        assertNotNull(collection.get().execute().getIds());
     }
 
     @Test
-    public void testDeleteRejectsWhereIdInFilter() {
+    public void testDeleteAcceptsWhereIdInFilterWithoutClientError() {
         addSampleRecords(5);
 
-        try {
-            collection.delete()
-                    .where(Where.idIn("id1", "id2"))
-                    .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("#id"));
-        }
+        collection.delete()
+                .where(Where.idIn("id1", "id2"))
+                .execute();
+
+        // Local Chroma delete semantics for inline #id filters may vary by server version;
+        // this test pins request acceptance (no client-side rejection).
+        assertNotNull(collection.get().execute().getIds());
     }
 
     private static void assertLocalWhereDocumentInlineRejected(Runnable action) {

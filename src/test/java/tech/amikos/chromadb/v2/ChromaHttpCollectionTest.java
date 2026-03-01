@@ -486,34 +486,40 @@ public class ChromaHttpCollectionTest {
     }
 
     @Test
-    public void testDeleteRejectsInlineIdWhereFilter() {
-        try {
-            collection.delete()
-                    .where(Where.idIn("id1", "id2"))
-                    .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("#id"));
-        }
+    public void testDeleteAllowsInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(containing("\"#id\":{\"$in\":[\"id1\",\"id2\"]}"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.delete()
+                .where(Where.idIn("id1", "id2"))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
     }
 
     @Test
-    public void testDeleteRejectsNestedInlineIdWhereFilter() {
+    public void testDeleteAllowsNestedInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(containing("\"#id\":{\"$nin\":[\"id1\"]}"))
+                .willReturn(aResponse().withStatus(200)));
+
         Map<String, Object> whereMap = new LinkedHashMap<String, Object>();
         whereMap.put("topic", "news");
 
-        try {
-            collection.delete()
-                    .where(Where.and(where(whereMap), Where.idNotIn("id1")))
-                    .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("#id"));
-        }
+        collection.delete()
+                .where(Where.and(where(whereMap), Where.idNotIn("id1")))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
     }
 
     @Test
-    public void testDeleteRejectsDeeplyNestedInlineIdWhereFilter() {
+    public void testDeleteAllowsDeeplyNestedInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(containing("\"#id\":{\"$in\":[\"id1\"]}"))
+                .willReturn(aResponse().withStatus(200)));
+
         Map<String, Object> topic = new LinkedHashMap<String, Object>();
         topic.put("topic", "news");
         Map<String, Object> region = new LinkedHashMap<String, Object>();
@@ -521,20 +527,17 @@ public class ChromaHttpCollectionTest {
         Map<String, Object> lang = new LinkedHashMap<String, Object>();
         lang.put("lang", "en");
 
-        try {
-            collection.delete()
-                    .where(Where.and(
-                            where(topic),
-                            Where.or(
-                                    where(region),
-                                    Where.and(where(lang), Where.idIn("id1"))
-                            )
-                    ))
-                    .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("#id"));
-        }
+        collection.delete()
+                .where(Where.and(
+                        where(topic),
+                        Where.or(
+                                where(region),
+                                Where.and(where(lang), Where.idIn("id1"))
+                        )
+                ))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
     }
 
     @Test

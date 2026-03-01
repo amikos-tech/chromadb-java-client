@@ -672,11 +672,6 @@ final class ChromaHttpCollection implements Collection {
             }
             Map<String, Object> whereMap = requireNonNullMap(where, "where");
             Map<String, Object> whereDocumentMap = requireNonNullMap(whereDocument, "whereDocument");
-            if (whereMap != null && containsFieldInWhere(whereMap, Where.KEY_ID)) {
-                throw new IllegalArgumentException(
-                        "delete where filters must not contain #id clauses; use delete().ids(...) instead"
-                );
-            }
             String path = ChromaApiPaths.collectionDelete(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.DeleteRequest(
                     ids,
@@ -739,30 +734,5 @@ final class ChromaHttpCollection implements Collection {
             throw new IllegalArgumentException(fieldName + ".toMap() must not return null");
         }
         return map;
-    }
-
-    private static boolean containsFieldInWhere(Object node, String fieldName) {
-        if (node instanceof Map<?, ?>) {
-            Map<?, ?> map = (Map<?, ?>) node;
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                Object key = entry.getKey();
-                if (fieldName.equals(key)) {
-                    return true;
-                }
-                if (containsFieldInWhere(entry.getValue(), fieldName)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        if (node instanceof List<?>) {
-            List<?> list = (List<?>) node;
-            for (Object item : list) {
-                if (containsFieldInWhere(item, fieldName)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }
