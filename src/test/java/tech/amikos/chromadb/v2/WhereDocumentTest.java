@@ -3,8 +3,10 @@ package tech.amikos.chromadb.v2;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class WhereDocumentTest {
@@ -35,6 +37,58 @@ public class WhereDocumentTest {
         final WhereDocument second = stubWhereDocument();
         assertNotImplemented(new Runnable() { @Override public void run() { first.and(second); } });
         assertNotImplemented(new Runnable() { @Override public void run() { first.or(second); } });
+    }
+
+    @Test
+    public void testFromMapFactoryCopiesInput() {
+        Map<String, Object> source = new LinkedHashMap<String, Object>();
+        source.put("$contains", "hello");
+
+        WhereDocument fromMap = WhereDocument.fromMap(source);
+        source.put("$contains", "changed");
+
+        Map<String, Object> expected = new LinkedHashMap<String, Object>();
+        expected.put("$contains", "hello");
+        assertEquals(expected, fromMap.toMap());
+    }
+
+    @Test
+    public void testFromMapFactoryRejectsNull() {
+        try {
+            WhereDocument.fromMap(null);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNonStringKeys() {
+        Map raw = new LinkedHashMap();
+        raw.put(Integer.valueOf(1), "bad");
+        try {
+            WhereDocument.fromMap((Map<String, Object>) raw);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFromMapFactoryRejectsNestedNonStringKeys() {
+        Map nestedRaw = new LinkedHashMap();
+        nestedRaw.put(Integer.valueOf(1), "bad");
+
+        Map<String, Object> source = new LinkedHashMap<String, Object>();
+        source.put("$and", Collections.<Object>singletonList(nestedRaw));
+        try {
+            WhereDocument.fromMap(source);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
     }
 
     private static WhereDocument stubWhereDocument() {

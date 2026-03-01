@@ -121,7 +121,10 @@ public interface Collection {
         QueryBuilder where(Where where);
         QueryBuilder whereDocument(WhereDocument whereDocument);
         QueryBuilder include(Include... include);
-        /** @throws ChromaBadRequestException if the query is invalid */
+        /**
+         * @throws IllegalArgumentException if {@code where}/{@code whereDocument} return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the query is invalid
+         */
         QueryResult execute();
     }
 
@@ -133,7 +136,10 @@ public interface Collection {
         GetBuilder include(Include... include);
         GetBuilder limit(int limit);
         GetBuilder offset(int offset);
-        /** @throws ChromaBadRequestException if the request is invalid */
+        /**
+         * @throws IllegalArgumentException if {@code where}/{@code whereDocument} return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the request is invalid
+         */
         GetResult execute();
     }
 
@@ -166,9 +172,18 @@ public interface Collection {
     interface DeleteBuilder {
         DeleteBuilder ids(String... ids);
         DeleteBuilder ids(List<String> ids);
+        /**
+         * Applies a {@link Where} filter to restrict which records are deleted.
+         *
+         * <p>Validation is performed at {@link #execute()} time.</p>
+         */
         DeleteBuilder where(Where where);
         DeleteBuilder whereDocument(WhereDocument whereDocument);
-        /** @throws ChromaBadRequestException if the filter is invalid */
+        /**
+         * @throws IllegalArgumentException if no criteria are provided or if {@code where}/{@code whereDocument}
+         *                                  return null from {@code toMap()}
+         * @throws ChromaBadRequestException if the filter is invalid
+         */
         void execute();
     }
 }

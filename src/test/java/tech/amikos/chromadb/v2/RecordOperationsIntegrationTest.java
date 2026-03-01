@@ -142,6 +142,51 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertTrue(result.getIds().contains("id2"));
     }
 
+    @Test
+    public void testInlineDocumentWhereFiltersAreVersionDependentOnLocalChroma() {
+        addSampleRecords(5);
+
+        assertLocalWhereDocumentInlineAcceptedOrRejected(new Runnable() {
+            @Override
+            public void run() {
+                collection.get()
+                        .where(Where.documentContains("document 4"))
+                        .execute();
+            }
+        });
+        assertLocalWhereDocumentInlineAcceptedOrRejected(new Runnable() {
+            @Override
+            public void run() {
+                collection.query()
+                        .queryEmbeddings(new float[]{0.1f, 0.11f, 0.12f})
+                        .nResults(5)
+                        .where(Where.documentNotContains("document 3"))
+                        .execute();
+            }
+        });
+
+        // Ensure the legacy whereDocument path still works on local Chroma.
+        Map<String, Object> whereDocumentMap = new LinkedHashMap<String, Object>();
+        whereDocumentMap.put("$contains", "document 4");
+        GetResult getResult = collection.get()
+                .whereDocument(whereDocument(whereDocumentMap))
+                .execute();
+        assertEquals(1, getResult.getIds().size());
+        assertEquals("id4", getResult.getIds().get(0));
+    }
+
+    @Test
+    public void testGetAcceptsWhereIdInFilterWithoutClientError() {
+        addSampleRecords(5);
+
+        GetResult result = collection.get()
+                .where(Where.idIn("id1", "id3"))
+                .execute();
+
+        // Local Chroma ID-filter semantics may vary by server version; this test pins request acceptance.
+        assertNotNull(result.getIds());
+    }
+
     // --- get: all records ---
 
     @Test
@@ -240,6 +285,21 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertEquals(2, result.getIds().size()); // two queries → two result lists
         assertEquals("mq1", result.getIds().get(0).get(0));
         assertEquals("mq2", result.getIds().get(1).get(0));
+    }
+
+    @Test
+    public void testQueryAcceptsWhereIdNotInFilterWithoutClientError() {
+        addSampleRecords(5);
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{0.1f, 0.11f, 0.12f})
+                .nResults(3)
+                .where(Where.idNotIn("id4"))
+                .execute();
+
+        // Local Chroma ID-filter semantics may vary by server version; this test pins request acceptance.
+        assertNotNull(result.getIds());
+        assertEquals(1, result.getIds().size());
     }
 
     // --- query: all include fields ---
@@ -404,6 +464,46 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertTrue(result.getIds().contains("id0"));
         assertTrue(result.getIds().contains("id2"));
         assertTrue(result.getIds().contains("id4"));
+    }
+
+    @Test
+    public void testDeleteAcceptsWhereIdNotInFilterWithoutClientError() {
+        addSampleRecords(5);
+
+        Map<String, Object> categoryOdd = new LinkedHashMap<String, Object>();
+        categoryOdd.put("category", "odd");
+
+        collection.delete()
+                .where(Where.and(
+                        Where.idNotIn("id1"),
+                        where(categoryOdd)
+                ))
+                .execute();
+
+        // Local Chroma delete semantics for inline #id filters may vary by server version;
+        // this test pins request acceptance (no client-side rejection).
+        assertNotNull(collection.get().execute().getIds());
+    }
+
+    @Test
+    public void testDeleteAcceptsWhereIdInFilterWithoutClientError() {
+        addSampleRecords(5);
+
+        collection.delete()
+                .where(Where.idIn("id1", "id2"))
+                .execute();
+
+        // Local Chroma delete semantics for inline #id filters may vary by server version;
+        // this test pins request acceptance (no client-side rejection).
+        assertNotNull(collection.get().execute().getIds());
+    }
+
+    private static void assertLocalWhereDocumentInlineAcceptedOrRejected(Runnable action) {
+        try {
+            action.run();
+        } catch (ChromaBadRequestException e) {
+            assertEquals(400, e.getStatusCode());
+        }
     }
 
 }

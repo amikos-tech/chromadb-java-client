@@ -473,6 +473,136 @@ public class ChromaHttpCollectionTest {
     }
 
     @Test
+    public void testDeleteWithInlineDocumentWhereFilter() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(matchingJsonPath("$.where['#document']['$contains']", equalTo("ai")))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.delete()
+                .where(Where.documentContains("ai"))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteAllowsInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(matchingJsonPath("$.where['#id']['$in'][0]", equalTo("id1")))
+                .withRequestBody(matchingJsonPath("$.where['#id']['$in'][1]", equalTo("id2")))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.delete()
+                .where(Where.idIn("id1", "id2"))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteAllowsNestedInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(matchingJsonPath("$.where['$and'][0].topic", equalTo("news")))
+                .withRequestBody(matchingJsonPath("$.where['$and'][1]['#id']['$nin'][0]", equalTo("id1")))
+                .willReturn(aResponse().withStatus(200)));
+
+        Map<String, Object> whereMap = new LinkedHashMap<String, Object>();
+        whereMap.put("topic", "news");
+
+        collection.delete()
+                .where(Where.and(where(whereMap), Where.idNotIn("id1")))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteAllowsDeeplyNestedInlineIdWhereFilterShape() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .withRequestBody(matchingJsonPath("$.where['$and'][0].topic", equalTo("news")))
+                .withRequestBody(matchingJsonPath(
+                        "$.where['$and'][1]['$or'][1]['$and'][1]['#id']['$in'][0]",
+                        equalTo("id1")
+                ))
+                .willReturn(aResponse().withStatus(200)));
+
+        Map<String, Object> topic = new LinkedHashMap<String, Object>();
+        topic.put("topic", "news");
+        Map<String, Object> region = new LinkedHashMap<String, Object>();
+        region.put("region", "eu");
+        Map<String, Object> lang = new LinkedHashMap<String, Object>();
+        lang.put("lang", "en");
+
+        collection.delete()
+                .where(Where.and(
+                        where(topic),
+                        Where.or(
+                                where(region),
+                                Where.and(where(lang), Where.idIn("id1"))
+                        )
+                ))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteAcceptsNestedWhereWithoutInlineIdFilters() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
+                .willReturn(aResponse().withStatus(200)));
+
+        Map<String, Object> topic = new LinkedHashMap<String, Object>();
+        topic.put("topic", "news");
+        Map<String, Object> region = new LinkedHashMap<String, Object>();
+        region.put("region", "eu");
+        Map<String, Object> lang = new LinkedHashMap<String, Object>();
+        lang.put("lang", "en");
+
+        collection.delete()
+                .where(Where.and(
+                        where(topic),
+                        Where.or(where(region), where(lang))
+                ))
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete")));
+    }
+
+    @Test
+    public void testDeleteRejectsWhereToMapReturningNull() {
+        try {
+            collection.delete()
+                    .where(new Where() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("toMap"));
+        }
+    }
+
+    @Test
+    public void testDeleteRejectsWhereDocumentToMapReturningNull() {
+        try {
+            collection.delete()
+                    .whereDocument(new WhereDocument() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("whereDocument.toMap"));
+        }
+    }
+
+    @Test
     public void testDeleteWithWhereAndWhereDocument() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/delete"))
                 .withRequestBody(matchingJsonPath("$.where.topic", equalTo("news")))
@@ -566,6 +696,42 @@ public class ChromaHttpCollectionTest {
         assertEquals(1, result.getIds().size());
     }
 
+    @Test
+    public void testQueryRejectsWhereToMapReturningNull() {
+        try {
+            collection.query()
+                    .queryEmbeddings(new float[]{1.0f})
+                    .where(new Where() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("where.toMap"));
+        }
+    }
+
+    @Test
+    public void testQueryRejectsWhereDocumentToMapReturningNull() {
+        try {
+            collection.query()
+                    .queryEmbeddings(new float[]{1.0f})
+                    .whereDocument(new WhereDocument() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("whereDocument.toMap"));
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testQueryRequiresEmbeddings() {
         collection.query().nResults(10).execute();
@@ -656,6 +822,40 @@ public class ChromaHttpCollectionTest {
                 .execute();
 
         assertEquals(1, result.getIds().size());
+    }
+
+    @Test
+    public void testGetRejectsWhereToMapReturningNull() {
+        try {
+            collection.get()
+                    .where(new Where() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("where.toMap"));
+        }
+    }
+
+    @Test
+    public void testGetRejectsWhereDocumentToMapReturningNull() {
+        try {
+            collection.get()
+                    .whereDocument(new WhereDocument() {
+                        @Override
+                        public Map<String, Object> toMap() {
+                            return null;
+                        }
+                    })
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("whereDocument.toMap"));
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)
