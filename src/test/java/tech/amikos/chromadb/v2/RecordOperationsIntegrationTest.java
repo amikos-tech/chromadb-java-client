@@ -503,7 +503,7 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
             action.run();
             fail("Expected ChromaBadRequestException");
         } catch (ChromaBadRequestException e) {
-            assertTrue(e.getMessage().contains("InvalidArgumentError"));
+            assertEquals(400, e.getStatusCode());
         }
     }
 

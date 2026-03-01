@@ -226,7 +226,7 @@ public abstract class Where {
             if (conditionMap == null) {
                 throw new IllegalArgumentException("conditions[" + i + "].toMap() must not return null");
             }
-            clauses.add(immutableMapCopy(conditionMap));
+            clauses.add(conditionMap);
         }
 
         Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
