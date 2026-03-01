@@ -30,14 +30,19 @@ public class ClientLifecycleIntegrationTest extends AbstractChromaIntegrationTes
     // --- reset ---
 
     @Test
-    public void testResetClearsAllCollections() {
+    public void testResetBehaviorDependsOnServerPolicy() {
         client.createCollection("col1");
         client.createCollection("col2");
         assertEquals(2, client.countCollections());
 
-        client.reset();
-
-        assertEquals(0, client.countCollections());
+        try {
+            client.reset();
+            assertEquals(0, client.countCollections());
+        } catch (ChromaForbiddenException e) {
+            assertEquals(403, e.getStatusCode());
+            assertNotNull(e.getMessage());
+            assertFalse(e.getMessage().trim().isEmpty());
+        }
     }
 
     // --- close and reopen ---

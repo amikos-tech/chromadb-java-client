@@ -6,6 +6,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class AbstractChromaIntegrationTest {
 
@@ -28,10 +29,33 @@ public abstract class AbstractChromaIntegrationTest {
         if (client != null) {
             client.close();
         }
-        client = ChromaClient.builder()
+        String tenantName = uniqueName("it_tenant_");
+        String databaseName = uniqueName("it_db_");
+
+        Client bootstrapClient = ChromaClient.builder()
                 .baseUrl(CHROMA.getEndpoint())
                 .build();
-        client.reset();
+        try {
+            bootstrapClient.createTenant(tenantName);
+        } finally {
+            bootstrapClient.close();
+        }
+
+        Client tenantClient = ChromaClient.builder()
+                .baseUrl(CHROMA.getEndpoint())
+                .tenant(tenantName)
+                .build();
+        try {
+            tenantClient.createDatabase(databaseName);
+        } finally {
+            tenantClient.close();
+        }
+
+        client = ChromaClient.builder()
+                .baseUrl(CHROMA.getEndpoint())
+                .tenant(tenantName)
+                .database(databaseName)
+                .build();
     }
 
     protected static String endpoint() {
@@ -56,5 +80,9 @@ public abstract class AbstractChromaIntegrationTest {
             list.add(v);
         }
         return list;
+    }
+
+    private static String uniqueName(String prefix) {
+        return prefix + UUID.randomUUID().toString().replace("-", "");
     }
 }
