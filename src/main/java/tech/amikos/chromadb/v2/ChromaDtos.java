@@ -348,9 +348,10 @@ final class ChromaDtos {
             Map<String, Object> keys = new LinkedHashMap<String, Object>();
             for (Map.Entry<String, ValueTypes> entry : schema.getKeys().entrySet()) {
                 Map<String, Object> valueTypes = toValueTypesMap(entry.getValue());
-                if (valueTypes != null) {
-                    keys.put(entry.getKey(), valueTypes);
+                if (valueTypes == null) {
+                    valueTypes = new LinkedHashMap<String, Object>();
                 }
+                keys.put(entry.getKey(), valueTypes);
             }
             if (!keys.isEmpty()) {
                 map.put("keys", keys);

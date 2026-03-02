@@ -157,6 +157,10 @@ public interface Client extends AutoCloseable {
      * <p>The embedding function is not sent to the server; it is used client-side for
      * operations such as {@code collection.query().queryTexts(...)}.</p>
      *
+     * <p>The default implementation keeps backward compatibility by delegating to
+     * {@link #getCollection(String)} and does not bind {@code embeddingFunction}.
+     * Implementations should override this method to attach runtime embedding functions.</p>
+     *
      * @throws ChromaNotFoundException if the collection does not exist
      */
     default Collection getCollection(String name, tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction) {

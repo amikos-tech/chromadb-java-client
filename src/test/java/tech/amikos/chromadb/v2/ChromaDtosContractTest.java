@@ -358,6 +358,26 @@ public class ChromaDtosContractTest {
     }
 
     @Test
+    public void testToSchemaMapPreservesEmptyValueTypesInKeys() {
+        Schema schema = Schema.builder()
+                .key("topic", ValueTypes.builder().build())
+                .build();
+
+        Map<String, Object> serialized = ChromaDtos.toSchemaMap(schema);
+        assertNotNull(serialized);
+        assertTrue(serialized.containsKey("keys"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> keys = (Map<String, Object>) serialized.get("keys");
+        assertTrue(keys.containsKey("topic"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> topic = (Map<String, Object>) keys.get("topic");
+        assertNotNull(topic);
+        assertTrue(topic.isEmpty());
+    }
+
+    @Test
     public void testParseSchemaIgnoresUnknownSparseEmbeddingFunctionShape() {
         Map<String, Object> schema = new LinkedHashMap<String, Object>();
         Map<String, Object> defaults = new LinkedHashMap<String, Object>();
