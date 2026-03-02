@@ -355,6 +355,50 @@ public class ChromaHttpCollectionTest {
         );
     }
 
+    @Test
+    public void testModifyConfigurationRejectsSwitchFromHnswToSpannClientSide() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"configuration_json\":{\"hnsw:search_ef\":50}}")));
+
+        Collection col = client.getCollection("test_col");
+
+        try {
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .spannSearchNprobe(32)
+                    .build());
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot switch collection index parameters between HNSW and SPANN"));
+        }
+
+        verify(0, putRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1")));
+    }
+
+    @Test
+    public void testModifyConfigurationRejectsSwitchFromSpannToHnswClientSide() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"configuration_json\":{\"spann:search_nprobe\":32}}")));
+
+        Collection col = client.getCollection("test_col");
+
+        try {
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .hnswSearchEf(120)
+                    .build());
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot switch collection index parameters between HNSW and SPANN"));
+        }
+
+        verify(0, putRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1")));
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testCollectionMetadataIsUnmodifiable() {
         stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))

@@ -166,6 +166,7 @@ final class ChromaHttpCollection implements Collection {
     public void modifyConfiguration(UpdateCollectionConfiguration config) {
         Objects.requireNonNull(config, "config");
         config.validate();
+        validateConfigurationGroupCompatibility(config);
         Map<String, Object> updatePayload = ChromaDtos.toUpdateConfigurationMap(config);
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
         apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(
@@ -248,7 +249,15 @@ final class ChromaHttpCollection implements Collection {
         if (update.getSpannEfSearch() != null) {
             builder.spannEfSearch(update.getSpannEfSearch().intValue());
         }
-        CollectionConfiguration mergedConfiguration = builder.build();
+        CollectionConfiguration mergedConfiguration;
+        try {
+            mergedConfiguration = builder.build();
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    "cannot mix HNSW and SPANN parameters in local collection configuration",
+                    e
+            );
+        }
         this.configuration = mergedConfiguration;
         if (this.schema == null && mergedConfiguration.getSchema() != null) {
             this.schema = mergedConfiguration.getSchema();
@@ -268,6 +277,39 @@ final class ChromaHttpCollection implements Collection {
             this.embeddingFunctionSpec = effectiveSpec;
             this.embeddingFunction = null;
         }
+    }
+
+    private void validateConfigurationGroupCompatibility(UpdateCollectionConfiguration update) {
+        CollectionConfiguration current = this.configuration;
+        if (current == null) {
+            return;
+        }
+        boolean currentHasHnsw = hasAnyHnswParameters(current);
+        boolean currentHasSpann = hasAnySpannParameters(current);
+        if (!currentHasHnsw && !currentHasSpann) {
+            return;
+        }
+
+        if ((update.hasHnswUpdates() && currentHasSpann) || (update.hasSpannUpdates() && currentHasHnsw)) {
+            throw new IllegalArgumentException(
+                    "cannot switch collection index parameters between HNSW and SPANN in modifyConfiguration"
+            );
+        }
+    }
+
+    private static boolean hasAnyHnswParameters(CollectionConfiguration configuration) {
+        return configuration.getHnswM() != null
+                || configuration.getHnswConstructionEf() != null
+                || configuration.getHnswSearchEf() != null
+                || configuration.getHnswNumThreads() != null
+                || configuration.getHnswBatchSize() != null
+                || configuration.getHnswSyncThreshold() != null
+                || configuration.getHnswResizeFactor() != null;
+    }
+
+    private static boolean hasAnySpannParameters(CollectionConfiguration configuration) {
+        return configuration.getSpannSearchNprobe() != null
+                || configuration.getSpannEfSearch() != null;
     }
 
     @Override

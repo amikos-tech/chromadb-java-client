@@ -89,7 +89,8 @@ public interface Collection {
      *
      * @param config non-null runtime configuration update
      * @throws NullPointerException if {@code config} is null
-     * @throws IllegalArgumentException if {@code config} is empty or mixes HNSW and SPANN fields
+     * @throws IllegalArgumentException if {@code config} is empty, mixes HNSW and SPANN fields,
+     *                                  or conflicts with the currently active index group
      * @throws ChromaNotFoundException if the collection no longer exists
      */
     void modifyConfiguration(UpdateCollectionConfiguration config);
