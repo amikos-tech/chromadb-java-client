@@ -152,6 +152,18 @@ public interface Client extends AutoCloseable {
     Collection getCollection(String name);
 
     /**
+     * Retrieves a collection and binds an explicit runtime embedding function for local text-query flows.
+     *
+     * <p>The embedding function is not sent to the server; it is used client-side for
+     * operations such as {@code collection.query().queryTexts(...)}.</p>
+     *
+     * @throws ChromaNotFoundException if the collection does not exist
+     */
+    default Collection getCollection(String name, tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction) {
+        return getCollection(name);
+    }
+
+    /**
      * @throws ChromaServerException on server errors
      */
     Collection getOrCreateCollection(String name);

@@ -2,7 +2,7 @@ package tech.amikos.chromadb.v2;
 
 import java.util.Objects;
 
-/** Immutable collection configuration (HNSW/SPANN parameters). */
+/** Immutable collection configuration (flat HNSW/SPANN params + optional schema/embedding descriptor). */
 public final class CollectionConfiguration {
 
     private final DistanceFunction space;
@@ -15,6 +15,8 @@ public final class CollectionConfiguration {
     private final Double hnswResizeFactor;
     private final Integer spannSearchNprobe;
     private final Integer spannEfSearch;
+    private final Schema schema;
+    private final EmbeddingFunctionSpec embeddingFunction;
 
     private CollectionConfiguration(Builder builder) {
         this.space = builder.space;
@@ -27,6 +29,8 @@ public final class CollectionConfiguration {
         this.hnswResizeFactor = builder.hnswResizeFactor;
         this.spannSearchNprobe = builder.spannSearchNprobe;
         this.spannEfSearch = builder.spannEfSearch;
+        this.schema = builder.schema;
+        this.embeddingFunction = builder.embeddingFunction;
     }
 
     public static Builder builder() {
@@ -43,6 +47,8 @@ public final class CollectionConfiguration {
     public Double getHnswResizeFactor() { return hnswResizeFactor; }
     public Integer getSpannSearchNprobe() { return spannSearchNprobe; }
     public Integer getSpannEfSearch() { return spannEfSearch; }
+    public Schema getSchema() { return schema; }
+    public EmbeddingFunctionSpec getEmbeddingFunction() { return embeddingFunction; }
 
     @Override
     public boolean equals(Object o) {
@@ -58,7 +64,9 @@ public final class CollectionConfiguration {
                 && Objects.equals(hnswSyncThreshold, that.hnswSyncThreshold)
                 && Objects.equals(hnswResizeFactor, that.hnswResizeFactor)
                 && Objects.equals(spannSearchNprobe, that.spannSearchNprobe)
-                && Objects.equals(spannEfSearch, that.spannEfSearch);
+                && Objects.equals(spannEfSearch, that.spannEfSearch)
+                && Objects.equals(schema, that.schema)
+                && Objects.equals(embeddingFunction, that.embeddingFunction);
     }
 
     @Override
@@ -73,7 +81,9 @@ public final class CollectionConfiguration {
                 hnswSyncThreshold,
                 hnswResizeFactor,
                 spannSearchNprobe,
-                spannEfSearch
+                spannEfSearch,
+                schema,
+                embeddingFunction
         );
     }
 
@@ -90,6 +100,8 @@ public final class CollectionConfiguration {
                 + ", hnswResizeFactor=" + hnswResizeFactor
                 + ", spannSearchNprobe=" + spannSearchNprobe
                 + ", spannEfSearch=" + spannEfSearch
+                + ", schema=" + schema
+                + ", embeddingFunction=" + embeddingFunction
                 + '}';
     }
 
@@ -104,6 +116,8 @@ public final class CollectionConfiguration {
         private Double hnswResizeFactor;
         private Integer spannSearchNprobe;
         private Integer spannEfSearch;
+        private Schema schema;
+        private EmbeddingFunctionSpec embeddingFunction;
 
         Builder() {}
 
@@ -116,10 +130,10 @@ public final class CollectionConfiguration {
         public Builder hnswSearchEf(int ef) { this.hnswSearchEf = requirePositive("hnswSearchEf", ef); return this; }
         /** @throws IllegalArgumentException if {@code threads <= 0} */
         public Builder hnswNumThreads(int threads) { this.hnswNumThreads = requirePositive("hnswNumThreads", threads); return this; }
-        /** @throws IllegalArgumentException if {@code size <= 0} */
-        public Builder hnswBatchSize(int size) { this.hnswBatchSize = requirePositive("hnswBatchSize", size); return this; }
-        /** @throws IllegalArgumentException if {@code threshold <= 0} */
-        public Builder hnswSyncThreshold(int threshold) { this.hnswSyncThreshold = requirePositive("hnswSyncThreshold", threshold); return this; }
+        /** @throws IllegalArgumentException if {@code size < 2} */
+        public Builder hnswBatchSize(int size) { this.hnswBatchSize = requireAtLeast("hnswBatchSize", size, 2); return this; }
+        /** @throws IllegalArgumentException if {@code threshold < 2} */
+        public Builder hnswSyncThreshold(int threshold) { this.hnswSyncThreshold = requireAtLeast("hnswSyncThreshold", threshold, 2); return this; }
         /** @throws IllegalArgumentException if {@code factor <= 0} or not finite */
         public Builder hnswResizeFactor(double factor) {
             this.hnswResizeFactor = Double.valueOf(requirePositiveFinite("hnswResizeFactor", factor));
@@ -129,14 +143,45 @@ public final class CollectionConfiguration {
         public Builder spannSearchNprobe(int nprobe) { this.spannSearchNprobe = requirePositive("spannSearchNprobe", nprobe); return this; }
         /** @throws IllegalArgumentException if {@code ef <= 0} */
         public Builder spannEfSearch(int ef) { this.spannEfSearch = requirePositive("spannEfSearch", ef); return this; }
+        public Builder schema(Schema schema) { this.schema = schema; return this; }
+        public Builder embeddingFunction(EmbeddingFunctionSpec embeddingFunction) {
+            this.embeddingFunction = embeddingFunction;
+            return this;
+        }
 
         public CollectionConfiguration build() {
+            if (hasAnyHnswField() && hasAnySpannField()) {
+                throw new IllegalStateException(
+                        "CollectionConfiguration cannot define both HNSW and SPANN parameters"
+                );
+            }
             return new CollectionConfiguration(this);
+        }
+
+        private boolean hasAnyHnswField() {
+            return hnswM != null
+                    || hnswConstructionEf != null
+                    || hnswSearchEf != null
+                    || hnswNumThreads != null
+                    || hnswBatchSize != null
+                    || hnswSyncThreshold != null
+                    || hnswResizeFactor != null;
+        }
+
+        private boolean hasAnySpannField() {
+            return spannSearchNprobe != null || spannEfSearch != null;
         }
 
         private static int requirePositive(String name, int value) {
             if (value <= 0) {
                 throw new IllegalArgumentException(name + " must be > 0, got " + value);
+            }
+            return value;
+        }
+
+        private static int requireAtLeast(String name, int value, int min) {
+            if (value < min) {
+                throw new IllegalArgumentException(name + " must be >= " + min + ", got " + value);
             }
             return value;
         }

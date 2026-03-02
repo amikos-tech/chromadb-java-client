@@ -1,6 +1,7 @@
 package tech.amikos.chromadb.v2;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.testcontainers.chromadb.ChromaDBContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -11,18 +12,27 @@ import java.util.UUID;
 
 public abstract class AbstractChromaIntegrationTest {
 
-    private static final String DEFAULT_CHROMA_VERSION = "1.0.0";
+    private static final String DEFAULT_CHROMA_VERSION = "1.5.2";
     private static final ChromaDBContainer CHROMA;
+    private static final RuntimeException CHROMA_STARTUP_FAILURE;
 
     static {
+        ChromaDBContainer chroma = null;
+        RuntimeException startupFailure = null;
         String envVersion = System.getenv("CHROMA_VERSION");
         String version = (envVersion != null && !envVersion.isEmpty())
                 ? envVersion
                 : DEFAULT_CHROMA_VERSION;
         String image = "chromadb/chroma:" + version;
-        CHROMA = new ChromaDBContainer(DockerImageName.parse(image))
-                .withEnv("ALLOW_RESET", "TRUE");
-        CHROMA.start();
+        try {
+            chroma = new ChromaDBContainer(DockerImageName.parse(image))
+                    .withEnv("ALLOW_RESET", "TRUE");
+            chroma.start();
+        } catch (RuntimeException e) {
+            startupFailure = e;
+        }
+        CHROMA = chroma;
+        CHROMA_STARTUP_FAILURE = startupFailure;
     }
 
     protected Client client;
@@ -31,6 +41,11 @@ public abstract class AbstractChromaIntegrationTest {
 
     @Before
     public void setUp() {
+        Assume.assumeTrue(
+                "Skipping integration tests because Chroma Testcontainer failed to start"
+                        + " (image tag: " + configuredChromaVersion() + ")",
+                CHROMA_STARTUP_FAILURE == null
+        );
         if (client != null) {
             client.close();
         }
@@ -72,7 +87,21 @@ public abstract class AbstractChromaIntegrationTest {
     }
 
     protected static String endpoint() {
+        if (CHROMA == null) {
+            throw new IllegalStateException(
+                    "Chroma Testcontainer is not available"
+                            + " (image tag: " + configuredChromaVersion() + ")",
+                    CHROMA_STARTUP_FAILURE
+            );
+        }
         return CHROMA.getEndpoint();
+    }
+
+    protected static String configuredChromaVersion() {
+        String envVersion = System.getenv("CHROMA_VERSION");
+        return (envVersion != null && !envVersion.isEmpty())
+                ? envVersion
+                : DEFAULT_CHROMA_VERSION;
     }
 
     protected static float[] embedding(int dim) {

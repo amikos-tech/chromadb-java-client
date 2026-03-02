@@ -5,11 +5,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +49,60 @@ public class ChromaHttpCollectionTest {
                 return copy;
             }
         };
+    }
+
+    private static EmbeddingFunction fixedEmbeddingFunction(final float[] embedding) {
+        return new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) throws EFException {
+                return new Embedding(embedding);
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+                List<Embedding> result = new ArrayList<Embedding>(documents.size());
+                for (int i = 0; i < documents.size(); i++) {
+                    result.add(new Embedding(embedding));
+                }
+                return result;
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) throws EFException {
+                return embedDocuments(Arrays.asList(documents));
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) throws EFException {
+                return embedDocuments(queries);
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) throws EFException {
+                return embedQueries(Arrays.asList(queries));
+            }
+        };
+    }
+
+    private static String schemaWithEmbeddingProviderJson(String providerName) {
+        return "{"
+                + "\"keys\":{"
+                + "\"" + Schema.EMBEDDING_KEY + "\":{"
+                + "\"float_list\":{"
+                + "\"vector_index\":{"
+                + "\"enabled\":true,"
+                + "\"config\":{"
+                + "\"embedding_function\":{"
+                + "\"type\":\"known\","
+                + "\"name\":\"" + providerName + "\","
+                + "\"config\":{}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
     }
 
     @Before
@@ -218,6 +276,48 @@ public class ChromaHttpCollectionTest {
         assertEquals(Integer.valueOf(100), col.getConfiguration().getHnswConstructionEf());
         assertEquals(Integer.valueOf(2), col.getConfiguration().getHnswNumThreads());
         assertEquals(Integer.valueOf(200), col.getConfiguration().getHnswSearchEf());
+    }
+
+    @Test
+    public void testModifyConfigurationPreservesSchemaAndEmbeddingFunctionSpec() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"configuration_json\":{"
+                                + "\"hnsw:space\":\"cosine\","
+                                + "\"hnsw:search_ef\":50,"
+                                + "\"embedding_function\":{\"type\":\"known\",\"name\":\"openai\",\"config\":{\"api_key_env_var\":\"OPENAI_API_KEY\"}},"
+                                + "\"schema\":{"
+                                + "\"keys\":{"
+                                + "\"" + Schema.EMBEDDING_KEY + "\":{"
+                                + "\"float_list\":{"
+                                + "\"vector_index\":{"
+                                + "\"enabled\":true,"
+                                + "\"config\":{"
+                                + "\"space\":\"ip\","
+                                + "\"embedding_function\":{\"type\":\"known\",\"name\":\"cohere\",\"config\":{\"api_key_env_var\":\"COHERE_API_KEY\"}}"
+                                + "}"
+                                + "}"
+                                + "}"
+                                + "}"
+                                + "}"
+                                + "}"
+                                + "}}")));
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-1"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.ef_search", equalTo("200")))
+                .willReturn(aResponse().withStatus(200)));
+
+        Collection col = client.getCollection("test_col");
+        col.modifyConfiguration(UpdateCollectionConfiguration.builder().hnswSearchEf(200).build());
+
+        assertNotNull(col.getConfiguration());
+        assertEquals(Integer.valueOf(200), col.getConfiguration().getHnswSearchEf());
+        assertNotNull(col.getConfiguration().getEmbeddingFunction());
+        assertEquals("openai", col.getConfiguration().getEmbeddingFunction().getName());
+        assertNotNull(col.getConfiguration().getSchema());
+        assertNotNull(col.getConfiguration().getSchema().getDefaultEmbeddingFunctionSpec());
+        assertEquals("cohere", col.getConfiguration().getSchema().getDefaultEmbeddingFunctionSpec().getName());
     }
 
     @Test(expected = ChromaNotFoundException.class)
@@ -742,14 +842,522 @@ public class ChromaHttpCollectionTest {
         collection.query().nResults(0);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testQueryTextsVarargsNotSupported() {
-        collection.query().queryTexts("text");
+    @Test
+    public void testQueryTextsWithoutEmbeddingFunctionFailsOnExecute() {
+        try {
+            collection.query().queryTexts("text").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("queryTexts requires an embedding function"));
+        }
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testQueryTextsListNotSupported() {
-        collection.query().queryTexts(Collections.singletonList("text"));
+    @Test
+    public void testQueryRejectsMixedQueryTextsAndEmbeddings() {
+        try {
+            collection.query()
+                    .queryTexts("text")
+                    .queryEmbeddings(new float[]{1.0f});
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot set both queryTexts and queryEmbeddings"));
+        }
+    }
+
+    @Test
+    public void testQueryRejectsMixedQueryEmbeddingsAndTexts() {
+        try {
+            collection.query()
+                    .queryEmbeddings(new float[]{1.0f})
+                    .queryTexts("text");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot set both queryTexts and queryEmbeddings"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsSuccessBuildsQueryEmbeddings() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-id\",\"name\":\"query_texts_col\"}")));
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/query-texts-id/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.5")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("1.5")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(fixedEmbeddingFunction(new float[]{0.5f, 1.5f}))
+                        .build()
+        );
+
+        QueryResult result = textQueryCollection.query()
+                .queryTexts("hello")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals("id1", result.getIds().get(0).get(0));
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/query-texts-id/query")));
+    }
+
+    @Test
+    public void testQueryTextsMultipleTextsBuildsMultipleQueryEmbeddings() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_multi_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-multi-id\",\"name\":\"query_texts_multi_col\"}")));
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/query-texts-multi-id/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.1")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[1][0]", equalTo("0.1")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"],[\"id2\"]]}")));
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_multi_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(fixedEmbeddingFunction(new float[]{0.1f, 0.2f}))
+                        .build()
+        );
+
+        QueryResult result = textQueryCollection.query()
+                .queryTexts("hello", "world")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals(2, result.getIds().size());
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/query-texts-multi-id/query")));
+    }
+
+    @Test
+    public void testQueryTextsUsesEmbedQueriesWhenAvailable() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_embed_queries_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-embed-queries-id\",\"name\":\"query_texts_embed_queries_col\"}")));
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/query-texts-embed-queries-id/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.9")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("0.1")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        EmbeddingFunction embeddingFunction = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) {
+                throw new IllegalStateException("embedQuery must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) {
+                return Collections.singletonList(new Embedding(new float[]{0.9f, 0.1f}));
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) {
+                return embedQueries(Arrays.asList(queries));
+            }
+        };
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_embed_queries_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(embeddingFunction)
+                        .build()
+        );
+
+        QueryResult result = textQueryCollection.query()
+                .queryTexts("hello")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals("id1", result.getIds().get(0).get(0));
+    }
+
+    @Test
+    public void testQueryTextsUsesExplicitEmbedQueriesInsteadOfEmbedDocuments() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_no_embed_documents_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-no-embed-docs-id\",\"name\":\"query_texts_no_embed_documents_col\"}")));
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/query-texts-no-embed-docs-id/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.33")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[1][0]", equalTo("0.66")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"],[\"id2\"]]}")));
+
+        EmbeddingFunction embeddingFunction = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) {
+                throw new IllegalStateException("embedQuery must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) {
+                List<Embedding> out = new ArrayList<Embedding>(queries.size());
+                out.add(new Embedding(new float[]{0.33f}));
+                out.add(new Embedding(new float[]{0.66f}));
+                return out;
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) {
+                return embedQueries(Arrays.asList(queries));
+            }
+        };
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_no_embed_documents_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(embeddingFunction)
+                        .build()
+        );
+
+        QueryResult result = textQueryCollection.query()
+                .queryTexts("first", "second")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals(2, result.getIds().size());
+    }
+
+    @Test
+    public void testQueryTextsRejectsEmbeddingCountMismatch() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_mismatch_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-mismatch-id\",\"name\":\"query_texts_mismatch_col\"}")));
+
+        EmbeddingFunction embeddingFunction = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) {
+                return new Embedding(new float[]{0.1f});
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) {
+                throw new IllegalStateException("embedDocuments must not be used");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) {
+                return Collections.singletonList(new Embedding(new float[]{0.5f}));
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) {
+                return embedQueries(Arrays.asList(queries));
+            }
+        };
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_mismatch_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(embeddingFunction)
+                        .build()
+        );
+
+        try {
+            textQueryCollection.query().queryTexts("one", "two").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("returned 1 embeddings for 2 query texts"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsRejectsEmptyInput() {
+        try {
+            collection.query().queryTexts(Collections.<String>emptyList());
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("queryTexts must not be empty"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsRejectsNullList() {
+        try {
+            collection.query().queryTexts((List<String>) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertTrue(e.getMessage().contains("texts"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsRejectsNullVarargsArray() {
+        try {
+            collection.query().queryTexts((String[]) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertTrue(e.getMessage().contains("texts"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsRejectsNullElement() {
+        try {
+            collection.query().queryTexts(Arrays.asList("ok", null));
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("queryTexts[1] must not be null"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsUnknownProviderFailsFast() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/unknown_provider_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-unknown\",\"name\":\"unknown_provider_col\","
+                                + "\"configuration_json\":{\"embedding_function\":{\"type\":\"known\",\"name\":\"consistent_hash\",\"config\":{}}}}")));
+
+        Collection col = client.getCollection("unknown_provider_col");
+        try {
+            col.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("consistent_hash"));
+            assertTrue(e.getMessage().contains("queryEmbeddings"));
+        }
+    }
+
+    @Test
+    public void testEmbeddingFunctionSpecPrecedencePrefersConfigurationEmbeddingFunction() {
+        String topLevelSchema = schemaWithEmbeddingProviderJson("unknown_top");
+        String configSchema = schemaWithEmbeddingProviderJson("unknown_cfg");
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/ef_precedence_cfg_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-ef-precedence-cfg\",\"name\":\"ef_precedence_cfg_col\","
+                                + "\"schema\":" + topLevelSchema + ","
+                                + "\"configuration_json\":{"
+                                + "\"embedding_function\":{\"type\":\"known\",\"name\":\"consistent_hash\",\"config\":{}},"
+                                + "\"schema\":" + configSchema
+                                + "}}")));
+
+        Collection col = client.getCollection("ef_precedence_cfg_col");
+        try {
+            col.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("consistent_hash"));
+        }
+    }
+
+    @Test
+    public void testEmbeddingFunctionSpecPrecedencePrefersTopLevelSchemaOverConfigurationSchema() {
+        String topLevelSchema = schemaWithEmbeddingProviderJson("unknown_top");
+        String configSchema = schemaWithEmbeddingProviderJson("unknown_cfg");
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/ef_precedence_top_schema_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-ef-precedence-top\",\"name\":\"ef_precedence_top_schema_col\","
+                                + "\"schema\":" + topLevelSchema + ","
+                                + "\"configuration_json\":{\"schema\":" + configSchema + "}}")));
+
+        Collection col = client.getCollection("ef_precedence_top_schema_col");
+        try {
+            col.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("unknown_top"));
+        }
+    }
+
+    @Test
+    public void testEmbeddingFunctionSpecPrecedenceFallsBackToConfigurationSchema() {
+        String configSchema = schemaWithEmbeddingProviderJson("consistent_hash");
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/ef_precedence_cfg_schema_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-ef-precedence-cfg-schema\",\"name\":\"ef_precedence_cfg_schema_col\","
+                                + "\"configuration_json\":{\"schema\":" + configSchema + "}}")));
+
+        Collection col = client.getCollection("ef_precedence_cfg_schema_col");
+        try {
+            col.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("consistent_hash"));
+        }
+    }
+
+    @Test
+    public void testQueryTextsProviderConfigFailureIsWrapped() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/openai_provider_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-openai\",\"name\":\"openai_provider_col\","
+                                + "\"configuration_json\":{\"embedding_function\":{"
+                                + "\"type\":\"known\","
+                                + "\"name\":\"openai\","
+                                + "\"config\":{\"api_key_env_var\":\"CHROMA_NON_EXISTENT_OPENAI_ENV_123\"}"
+                                + "}}}")));
+
+        Collection col = client.getCollection("openai_provider_col");
+        try {
+            col.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to initialize embedding function provider 'openai'"));
+            assertNotNull(e.getCause());
+        }
+    }
+
+    @Test
+    public void testQueryTextsEmbeddingFailureIsWrapped() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_fail_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-fail-id\",\"name\":\"query_texts_fail_col\"}")));
+
+        EmbeddingFunction failingEmbeddingFunction = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) throws EFException {
+                throw new EFException("query embedding failed");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+                throw new EFException("document embedding failed");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) throws EFException {
+                throw new EFException("document embedding failed");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) throws EFException {
+                throw new EFException("query embeddings failed");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) throws EFException {
+                throw new EFException("query embeddings failed");
+            }
+        };
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_fail_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(failingEmbeddingFunction)
+                        .build()
+        );
+
+        try {
+            textQueryCollection.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to embed queryTexts"));
+            assertNotNull(e.getCause());
+        }
+    }
+
+    @Test
+    public void testQueryTextsRuntimeEmbeddingFailureIsWrapped() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("query_texts_runtime_fail_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"query-texts-runtime-fail-id\",\"name\":\"query_texts_runtime_fail_col\"}")));
+
+        EmbeddingFunction failingEmbeddingFunction = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) {
+                throw new IllegalStateException("query runtime failure");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) {
+                throw new IllegalStateException("document runtime failure");
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) {
+                throw new IllegalStateException("document runtime failure");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) {
+                throw new IllegalStateException("query runtime failure");
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) {
+                throw new IllegalStateException("query runtime failure");
+            }
+        };
+
+        Collection textQueryCollection = client.getOrCreateCollection(
+                "query_texts_runtime_fail_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(failingEmbeddingFunction)
+                        .build()
+        );
+
+        try {
+            textQueryCollection.query().queryTexts("hello").execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to embed queryTexts"));
+            assertNotNull(e.getCause());
+        }
     }
 
     // --- get ---
@@ -1040,7 +1648,7 @@ public class ChromaHttpCollectionTest {
 
     @Test(expected = NullPointerException.class)
     public void testFromRejectsNullApiClient() {
-        ChromaHttpCollection.from(validCollectionDto(), null, Tenant.defaultTenant(), Database.defaultDatabase());
+        ChromaHttpCollection.from(validCollectionDto(), null, Tenant.defaultTenant(), Database.defaultDatabase(), null);
     }
 
     @Test
@@ -1048,7 +1656,7 @@ public class ChromaHttpCollectionTest {
         ChromaApiClient api = new ChromaApiClient(
                 "http://localhost:" + wireMock.port(), null, null, null, null, null);
         try {
-            ChromaHttpCollection.from(validCollectionDto(), api, null, Database.defaultDatabase());
+            ChromaHttpCollection.from(validCollectionDto(), api, null, Database.defaultDatabase(), null);
             fail("Expected NullPointerException");
         } catch (NullPointerException e) {
             assertEquals("tenant", e.getMessage());
@@ -1062,7 +1670,7 @@ public class ChromaHttpCollectionTest {
         ChromaApiClient api = new ChromaApiClient(
                 "http://localhost:" + wireMock.port(), null, null, null, null, null);
         try {
-            ChromaHttpCollection.from(validCollectionDto(), api, Tenant.defaultTenant(), null);
+            ChromaHttpCollection.from(validCollectionDto(), api, Tenant.defaultTenant(), null, null);
             fail("Expected NullPointerException");
         } catch (NullPointerException e) {
             assertEquals("database", e.getMessage());

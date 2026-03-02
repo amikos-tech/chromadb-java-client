@@ -21,8 +21,6 @@ public class CollectionConfigurationTest {
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
                 .hnswResizeFactor(1.5)
-                .spannSearchNprobe(32)
-                .spannEfSearch(64)
                 .build();
 
         assertEquals(DistanceFunction.COSINE, config.getSpace());
@@ -33,8 +31,28 @@ public class CollectionConfigurationTest {
         assertEquals(Integer.valueOf(1000), config.getHnswBatchSize());
         assertEquals(Integer.valueOf(500), config.getHnswSyncThreshold());
         assertEquals(Double.valueOf(1.5), config.getHnswResizeFactor());
+        assertNull(config.getSpannSearchNprobe());
+        assertNull(config.getSpannEfSearch());
+    }
+
+    @Test
+    public void testBuilderSetsSpannFields() {
+        CollectionConfiguration config = CollectionConfiguration.builder()
+                .space(DistanceFunction.COSINE)
+                .spannSearchNprobe(32)
+                .spannEfSearch(64)
+                .build();
+
+        assertEquals(DistanceFunction.COSINE, config.getSpace());
         assertEquals(Integer.valueOf(32), config.getSpannSearchNprobe());
         assertEquals(Integer.valueOf(64), config.getSpannEfSearch());
+        assertNull(config.getHnswM());
+        assertNull(config.getHnswConstructionEf());
+        assertNull(config.getHnswSearchEf());
+        assertNull(config.getHnswNumThreads());
+        assertNull(config.getHnswBatchSize());
+        assertNull(config.getHnswSyncThreshold());
+        assertNull(config.getHnswResizeFactor());
     }
 
     @Test
@@ -179,8 +197,18 @@ public class CollectionConfigurationTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testHnswBatchSizeRejectsOne() {
+        CollectionConfiguration.builder().hnswBatchSize(1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testHnswSyncThresholdRejectsNonPositive() {
         CollectionConfiguration.builder().hnswSyncThreshold(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswSyncThresholdRejectsOne() {
+        CollectionConfiguration.builder().hnswSyncThreshold(1);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -219,8 +247,6 @@ public class CollectionConfigurationTest {
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
                 .hnswResizeFactor(1.5)
-                .spannSearchNprobe(32)
-                .spannEfSearch(64)
                 .build();
 
         CollectionConfiguration b = CollectionConfiguration.builder()
@@ -232,8 +258,6 @@ public class CollectionConfigurationTest {
                 .hnswBatchSize(1000)
                 .hnswSyncThreshold(500)
                 .hnswResizeFactor(1.5)
-                .spannSearchNprobe(32)
-                .spannEfSearch(64)
                 .build();
 
         CollectionConfiguration c = CollectionConfiguration.builder()
@@ -257,6 +281,18 @@ public class CollectionConfigurationTest {
                 .hnswBatchSize(500)
                 .hnswSyncThreshold(250)
                 .hnswResizeFactor(1.2)
+                .build();
+
+        Map<String, Object> configMap = ChromaDtos.toConfigurationMap(original);
+        CollectionConfiguration parsed = ChromaDtos.parseConfiguration(configMap);
+
+        assertEquals(original, parsed);
+    }
+
+    @Test
+    public void testConfigurationMapRoundTripSpannOnly() {
+        CollectionConfiguration original = CollectionConfiguration.builder()
+                .space(DistanceFunction.IP)
                 .spannSearchNprobe(12)
                 .spannEfSearch(24)
                 .build();
@@ -265,5 +301,13 @@ public class CollectionConfigurationTest {
         CollectionConfiguration parsed = ChromaDtos.parseConfiguration(configMap);
 
         assertEquals(original, parsed);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testBuilderRejectsMixedHnswAndSpannFields() {
+        CollectionConfiguration.builder()
+                .hnswM(16)
+                .spannSearchNprobe(32)
+                .build();
     }
 }

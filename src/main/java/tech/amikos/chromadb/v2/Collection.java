@@ -39,6 +39,17 @@ public interface Collection {
 
     CollectionConfiguration getConfiguration();
 
+    /**
+     * Returns the typed collection schema when available.
+     *
+     * <p>When both schema sources are present in server payloads, top-level {@code schema}
+     * takes precedence over {@code configuration.schema}. After initial resolution, local
+     * configuration updates only backfill schema when no schema has been resolved yet.</p>
+     */
+    default Schema getSchema() {
+        return null;
+    }
+
     // --- Record operations ---
 
     AddBuilder add();
@@ -101,18 +112,31 @@ public interface Collection {
 
     interface QueryBuilder {
         /**
-         * Not yet supported in the v2 HTTP collection implementation.
+         * Queries by raw text. The client resolves an embedding function from:
+         * explicit runtime options, {@code configuration.embedding_function},
+         * top-level schema {@code #embedding} vector index embedding function, then
+         * {@code configuration.schema} {@code #embedding} vector index embedding function.
          *
-         * @throws UnsupportedOperationException in the current HTTP implementation, until
-         *                                       embedding-function support is added
+         * <p>For text queries, the resolved embedding function uses
+         * {@code EmbeddingFunction.embedQueries(...)}. Providers may implement
+         * query-specific API primitives that differ from document embedding behavior.</p>
+         *
+         * @throws NullPointerException if {@code texts} is null
+         * @throws IllegalArgumentException if empty text input is provided or any element is null
          */
         QueryBuilder queryTexts(String... texts);
 
         /**
-         * Not yet supported in the v2 HTTP collection implementation.
+         * Queries by raw text. Uses the same embedding-function resolution order as
+         * {@link #queryTexts(String...)}. Rejects null/empty input and cannot be mixed
+         * with {@link #queryEmbeddings(float[]...)} or {@link #queryEmbeddings(List)}.
          *
-         * @throws UnsupportedOperationException in the current HTTP implementation, until
-         *                                       embedding-function support is added
+         * <p>For text queries, the resolved embedding function uses
+         * {@code EmbeddingFunction.embedQueries(...)}. Providers may implement
+         * query-specific API primitives that differ from document embedding behavior.</p>
+         *
+         * @throws NullPointerException if {@code texts} is null
+         * @throws IllegalArgumentException if empty text input is provided or any element is null
          */
         QueryBuilder queryTexts(List<String> texts);
         QueryBuilder queryEmbeddings(float[]... embeddings);
@@ -124,6 +148,7 @@ public interface Collection {
         /**
          * @throws IllegalArgumentException if {@code where}/{@code whereDocument} return null from {@code toMap()}
          * @throws ChromaBadRequestException if the query is invalid
+         * @throws ChromaException if text-query embedding resolution or embedding generation fails
          */
         QueryResult execute();
     }

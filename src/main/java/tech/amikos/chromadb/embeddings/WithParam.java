@@ -124,6 +124,6 @@ class WithEnvAPIKey extends WithParam {
         if (System.getenv(apiKeyEnvVarName) == null) {
             throw new EFException("API Key not found in environment variable: " + apiKeyEnvVarName);
         }
-        params.put(Constants.EF_PARAMS_API_KEY_FROM_ENV, System.getenv(apiKeyEnvVarName));
+        params.put(Constants.EF_PARAMS_API_KEY, System.getenv(apiKeyEnvVarName));
     }
 }

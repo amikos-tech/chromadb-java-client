@@ -1,12 +1,19 @@
 package tech.amikos.chromadb.v2;
 
+import com.google.gson.Gson;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -40,6 +47,54 @@ public class ChromaClientImplTest {
                 .database(database)
                 .build();
         return client;
+    }
+
+    private static Schema schemaWithSpace(DistanceFunction space) {
+        return Schema.builder()
+                .key(Schema.EMBEDDING_KEY, ValueTypes.builder()
+                        .floatList(FloatListValueType.builder()
+                                .vectorIndex(VectorIndexType.builder()
+                                        .config(VectorIndexConfig.builder()
+                                                .space(space)
+                                                .build())
+                                        .build())
+                                .build())
+                        .build())
+                .cmek(Cmek.gcpKms("projects/p/locations/l/keyRings/r/cryptoKeys/k"))
+                .build();
+    }
+
+    private static EmbeddingFunction fixedEmbeddingFunction(final float[] embedding) {
+        return new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) throws EFException {
+                return new Embedding(embedding);
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+                List<Embedding> result = new ArrayList<Embedding>(documents.size());
+                for (int i = 0; i < documents.size(); i++) {
+                    result.add(new Embedding(embedding));
+                }
+                return result;
+            }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) throws EFException {
+                return embedDocuments(Arrays.asList(documents));
+            }
+
+            @Override
+            public List<Embedding> embedQueries(List<String> queries) throws EFException {
+                return embedDocuments(queries);
+            }
+
+            @Override
+            public List<Embedding> embedQueries(String[] queries) throws EFException {
+                return embedQueries(Arrays.asList(queries));
+            }
+        };
     }
 
     // --- heartbeat ---
@@ -611,6 +666,59 @@ public class ChromaClientImplTest {
         assertEquals(Integer.valueOf(200), col.getConfiguration().getHnswConstructionEf());
     }
 
+    @Test
+    public void testCreateCollectionIncludesTopLevelSchema() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections"))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("schema_col")))
+                .withRequestBody(matchingJsonPath("$.schema.keys['#embedding'].float_list.vector_index.config.space", equalTo("cosine")))
+                .withRequestBody(matchingJsonPath("$.schema.cmek.gcp", equalTo("projects/p/locations/l/keyRings/r/cryptoKeys/k")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-schema-1\",\"name\":\"schema_col\"}")));
+
+        Client c = newClient();
+        Collection col = c.createCollection(
+                "schema_col",
+                CreateCollectionOptions.builder()
+                        .schema(schemaWithSpace(DistanceFunction.COSINE))
+                        .build()
+        );
+
+        assertNotNull(col);
+        assertEquals("col-schema-1", col.getId());
+    }
+
+    @Test
+    public void testCreateCollectionExplicitEmbeddingFunctionTakesPriorityOverDescriptor() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections"))
+                .withRequestBody(matchingJsonPath("$.name", equalTo("create_explicit_ef_col")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-create-ef-1\",\"name\":\"create_explicit_ef_col\","
+                                + "\"configuration_json\":{"
+                                + "\"embedding_function\":{\"type\":\"known\",\"name\":\"consistent_hash\",\"config\":{}}"
+                                + "}}")));
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/col-create-ef-1/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.7")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("1.7")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id-create-explicit\"]]}")));
+
+        Client c = newClient();
+        Collection col = c.createCollection(
+                "create_explicit_ef_col",
+                CreateCollectionOptions.builder()
+                        .embeddingFunction(fixedEmbeddingFunction(new float[]{0.7f, 1.7f}))
+                        .build()
+        );
+        QueryResult result = col.query().queryTexts("hello").execute();
+        assertEquals("id-create-explicit", result.getIds().get(0).get(0));
+    }
+
     // --- getCollection ---
 
     @Test
@@ -625,6 +733,50 @@ public class ChromaClientImplTest {
         Collection col = c.getCollection("test_col");
         assertEquals("col-id-1", col.getId());
         assertEquals("test_col", col.getName());
+    }
+
+    @Test
+    public void testGetCollectionWithRuntimeEmbeddingFunctionSupportsQueryTexts() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\"}")));
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/col-id-1/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.5")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("1.5")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        Client c = newClient();
+        Collection col = c.getCollection("test_col", fixedEmbeddingFunction(new float[]{0.5f, 1.5f}));
+        QueryResult result = col.query().queryTexts("hello").execute();
+        assertEquals("id1", result.getIds().get(0).get(0));
+    }
+
+    @Test
+    public void testGetCollectionExplicitEmbeddingFunctionTakesPriorityOverDescriptor() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\","
+                                + "\"configuration_json\":{"
+                                + "\"embedding_function\":{\"type\":\"known\",\"name\":\"consistent_hash\",\"config\":{}}"
+                                + "}}")));
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/col-id-1/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.5")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("1.5")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id-explicit\"]]}")));
+
+        Collection col = newClient().getCollection("test_col", fixedEmbeddingFunction(new float[]{0.5f, 1.5f}));
+        QueryResult result = col.query().queryTexts("hello").execute();
+        assertEquals("id-explicit", result.getIds().get(0).get(0));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -657,6 +809,89 @@ public class ChromaClientImplTest {
         } catch (ChromaDeserializationException e) {
             assertTrue(e.getMessage().contains("collection.id"));
         }
+    }
+
+    @Test
+    public void testGetCollectionParsesTopLevelSchema() {
+        Schema schema = schemaWithSpace(DistanceFunction.COSINE);
+        Map<String, Object> schemaMap = ChromaDtos.toSchemaMap(schema);
+        String schemaJson = new Gson().toJson(schemaMap);
+
+        stubFor(get(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"schema\":" + schemaJson + "}")));
+
+        Collection col = newClient().getCollection("test_col");
+        assertNotNull(col.getSchema());
+        assertEquals(
+                DistanceFunction.COSINE,
+                col.getSchema()
+                        .getKey(Schema.EMBEDDING_KEY)
+                        .getFloatList()
+                        .getVectorIndex()
+                        .getConfig()
+                        .getSpace()
+        );
+    }
+
+    @Test
+    public void testGetCollectionFallsBackToConfigurationSchema() {
+        Schema schema = schemaWithSpace(DistanceFunction.L2);
+        Map<String, Object> configJson = new LinkedHashMap<String, Object>();
+        configJson.put("schema", ChromaDtos.toSchemaMap(schema));
+        String configurationJson = new Gson().toJson(configJson);
+
+        stubFor(get(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\",\"configuration_json\":" + configurationJson + "}")));
+
+        Collection col = newClient().getCollection("test_col");
+        assertNotNull(col.getSchema());
+        assertEquals(
+                DistanceFunction.L2,
+                col.getSchema()
+                        .getKey(Schema.EMBEDDING_KEY)
+                        .getFloatList()
+                        .getVectorIndex()
+                        .getConfig()
+                        .getSpace()
+        );
+    }
+
+    @Test
+    public void testGetCollectionPrefersTopLevelSchemaOverConfigurationSchema() {
+        Schema topLevel = schemaWithSpace(DistanceFunction.COSINE);
+        Schema fallback = schemaWithSpace(DistanceFunction.L2);
+        Map<String, Object> configJson = new LinkedHashMap<String, Object>();
+        configJson.put("schema", ChromaDtos.toSchemaMap(fallback));
+
+        String topLevelSchemaJson = new Gson().toJson(ChromaDtos.toSchemaMap(topLevel));
+        String configurationJson = new Gson().toJson(configJson);
+
+        stubFor(get(urlEqualTo("/api/v2/tenants/default_tenant/databases/default_database/collections/test_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-1\",\"name\":\"test_col\","
+                                + "\"schema\":" + topLevelSchemaJson + ","
+                                + "\"configuration_json\":" + configurationJson
+                                + "}")));
+
+        Collection col = newClient().getCollection("test_col");
+        assertNotNull(col.getSchema());
+        assertEquals(
+                DistanceFunction.COSINE,
+                col.getSchema()
+                        .getKey(Schema.EMBEDDING_KEY)
+                        .getFloatList()
+                        .getVectorIndex()
+                        .getConfig()
+                        .getSpace()
+        );
     }
 
     // --- getOrCreateCollection ---
