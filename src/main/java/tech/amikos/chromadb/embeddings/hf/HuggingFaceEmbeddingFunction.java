@@ -97,6 +97,16 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
         return response.getEmbeddings().stream().map(Embedding::fromList).collect(Collectors.toList());
     }
 
+    @Override
+    public List<Embedding> embedQueries(@NotNull List<String> queries) throws EFException {
+        return embedDocuments(queries);
+    }
+
+    @Override
+    public List<Embedding> embedQueries(String[] queries) throws EFException {
+        return embedQueries(Arrays.asList(queries));
+    }
+
     public static class WithAPIType extends WithParam {
         private final APIType apiType;
 

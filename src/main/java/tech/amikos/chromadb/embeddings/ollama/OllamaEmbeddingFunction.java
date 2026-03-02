@@ -85,4 +85,14 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
         return embedDocuments(Arrays.asList(documents));
     }
+
+    @Override
+    public List<Embedding> embedQueries(List<String> queries) throws EFException {
+        return embedDocuments(queries);
+    }
+
+    @Override
+    public List<Embedding> embedQueries(String[] queries) throws EFException {
+        return embedQueries(Arrays.asList(queries));
+    }
 }

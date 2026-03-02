@@ -1,5 +1,8 @@
 package tech.amikos.chromadb.v2;
 
+import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.Embedding;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,11 +30,17 @@ final class ChromaHttpCollection implements Collection {
     private volatile Map<String, Object> metadata;
     private volatile Integer dimension;
     private volatile CollectionConfiguration configuration;
+    private volatile Schema schema;
+    private volatile tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction;
+    private volatile EmbeddingFunctionSpec embeddingFunctionSpec;
 
     private ChromaHttpCollection(ChromaApiClient apiClient, String id, String name,
                                  Tenant tenant, Database database,
                                  Map<String, Object> metadata, Integer dimension,
-                                 CollectionConfiguration configuration) {
+                                 CollectionConfiguration configuration,
+                                 Schema schema,
+                                 tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction,
+                                 EmbeddingFunctionSpec embeddingFunctionSpec) {
         this.apiClient = apiClient;
         this.id = id;
         this.name = name;
@@ -40,11 +49,15 @@ final class ChromaHttpCollection implements Collection {
         this.metadata = copyMetadata(metadata);
         this.dimension = dimension;
         this.configuration = configuration;
+        this.schema = schema;
+        this.embeddingFunction = embeddingFunction;
+        this.embeddingFunctionSpec = embeddingFunctionSpec;
     }
 
     static ChromaHttpCollection from(ChromaDtos.CollectionResponse dto,
                                      ChromaApiClient apiClient,
-                                     Tenant tenant, Database database) {
+                                     Tenant tenant, Database database,
+                                     tech.amikos.chromadb.embeddings.EmbeddingFunction explicitEmbeddingFunction) {
         if (dto == null) {
             throw new ChromaDeserializationException(
                     "Server returned an empty collection payload",
@@ -54,6 +67,24 @@ final class ChromaHttpCollection implements Collection {
         Objects.requireNonNull(apiClient, "apiClient");
         Objects.requireNonNull(tenant, "tenant");
         Objects.requireNonNull(database, "database");
+        CollectionConfiguration parsedConfiguration = ChromaDtos.parseConfiguration(dto.configurationJson);
+        Schema parsedTopLevelSchema = ChromaDtos.parseSchema(dto.schema);
+        Schema parsedConfigurationSchema = parsedConfiguration != null ? parsedConfiguration.getSchema() : null;
+        Schema effectiveSchema = parsedTopLevelSchema != null ? parsedTopLevelSchema : parsedConfigurationSchema;
+
+        EmbeddingFunctionSpec configSpec = parsedConfiguration != null
+                ? parsedConfiguration.getEmbeddingFunction()
+                : null;
+        EmbeddingFunctionSpec topLevelSchemaSpec = parsedTopLevelSchema != null
+                ? parsedTopLevelSchema.getDefaultEmbeddingFunctionSpec()
+                : null;
+        EmbeddingFunctionSpec configSchemaSpec = parsedConfigurationSchema != null
+                ? parsedConfigurationSchema.getDefaultEmbeddingFunctionSpec()
+                : null;
+        EmbeddingFunctionSpec effectiveSpec = configSpec != null
+                ? configSpec
+                : (topLevelSchemaSpec != null ? topLevelSchemaSpec : configSchemaSpec);
+
         return new ChromaHttpCollection(
                 apiClient,
                 requireNonBlankField("collection.id", dto.id),
@@ -62,7 +93,10 @@ final class ChromaHttpCollection implements Collection {
                 database,
                 dto.metadata,
                 dto.dimension,
-                ChromaDtos.parseConfiguration(dto.configurationJson)
+                parsedConfiguration,
+                effectiveSchema,
+                explicitEmbeddingFunction,
+                effectiveSpec
         );
     }
 
@@ -102,6 +136,11 @@ final class ChromaHttpCollection implements Collection {
     }
 
     @Override
+    public Schema getSchema() {
+        return schema;
+    }
+
+    @Override
     public int count() {
         String path = ChromaApiPaths.collectionCount(tenant.getName(), database.getName(), id);
         return apiClient.get(path, Integer.class);
@@ -127,6 +166,7 @@ final class ChromaHttpCollection implements Collection {
     public void modifyConfiguration(UpdateCollectionConfiguration config) {
         Objects.requireNonNull(config, "config");
         config.validate();
+        validateConfigurationGroupCompatibility(config);
         Map<String, Object> updatePayload = ChromaDtos.toUpdateConfigurationMap(config);
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
         apiClient.put(path, new ChromaDtos.UpdateCollectionRequest(
@@ -181,6 +221,12 @@ final class ChromaHttpCollection implements Collection {
             if (this.configuration.getSpannEfSearch() != null) {
                 builder.spannEfSearch(this.configuration.getSpannEfSearch().intValue());
             }
+            if (this.configuration.getSchema() != null) {
+                builder.schema(this.configuration.getSchema());
+            }
+            if (this.configuration.getEmbeddingFunction() != null) {
+                builder.embeddingFunction(this.configuration.getEmbeddingFunction());
+            }
         }
         if (update.getHnswSearchEf() != null) {
             builder.hnswSearchEf(update.getHnswSearchEf().intValue());
@@ -203,7 +249,67 @@ final class ChromaHttpCollection implements Collection {
         if (update.getSpannEfSearch() != null) {
             builder.spannEfSearch(update.getSpannEfSearch().intValue());
         }
-        this.configuration = builder.build();
+        CollectionConfiguration mergedConfiguration;
+        try {
+            mergedConfiguration = builder.build();
+        } catch (IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    "cannot mix HNSW and SPANN parameters in local collection configuration",
+                    e
+            );
+        }
+        this.configuration = mergedConfiguration;
+        if (this.schema == null && mergedConfiguration.getSchema() != null) {
+            this.schema = mergedConfiguration.getSchema();
+        }
+        EmbeddingFunctionSpec previousSpec = this.embeddingFunctionSpec;
+        EmbeddingFunctionSpec configSpec = mergedConfiguration.getEmbeddingFunction();
+        EmbeddingFunctionSpec topLevelSchemaSpec = this.schema != null
+                ? this.schema.getDefaultEmbeddingFunctionSpec()
+                : null;
+        EmbeddingFunctionSpec configSchemaSpec = mergedConfiguration.getSchema() != null
+                ? mergedConfiguration.getSchema().getDefaultEmbeddingFunctionSpec()
+                : null;
+        EmbeddingFunctionSpec effectiveSpec = configSpec != null
+                ? configSpec
+                : (topLevelSchemaSpec != null ? topLevelSchemaSpec : configSchemaSpec);
+        if (!Objects.equals(previousSpec, effectiveSpec)) {
+            this.embeddingFunctionSpec = effectiveSpec;
+            this.embeddingFunction = null;
+        }
+    }
+
+    private void validateConfigurationGroupCompatibility(UpdateCollectionConfiguration update) {
+        CollectionConfiguration current = this.configuration;
+        if (current == null) {
+            return;
+        }
+        boolean currentHasHnsw = hasAnyHnswParameters(current);
+        boolean currentHasSpann = hasAnySpannParameters(current);
+        if (!currentHasHnsw && !currentHasSpann) {
+            return;
+        }
+
+        if ((update.hasHnswUpdates() && currentHasSpann) || (update.hasSpannUpdates() && currentHasHnsw)) {
+            throw new IllegalArgumentException(
+                    "cannot switch collection index parameters between HNSW and SPANN in modifyConfiguration"
+            );
+        }
+    }
+
+    private static boolean hasAnyHnswParameters(CollectionConfiguration configuration) {
+        return configuration.getHnswM() != null
+                || configuration.getHnswConstructionEf() != null
+                || configuration.getHnswSearchEf() != null
+                || configuration.getHnswNumThreads() != null
+                || configuration.getHnswBatchSize() != null
+                || configuration.getHnswSyncThreshold() != null
+                || configuration.getHnswResizeFactor() != null;
+    }
+
+    private static boolean hasAnySpannParameters(CollectionConfiguration configuration) {
+        return configuration.getSpannSearchNprobe() != null
+                || configuration.getSpannEfSearch() != null;
     }
 
     @Override
@@ -404,6 +510,7 @@ final class ChromaHttpCollection implements Collection {
 
     private final class QueryBuilderImpl implements QueryBuilder {
         private List<float[]> queryEmbeddings;
+        private List<String> queryTexts;
         private int nResults = 10;
         private Where where;
         private WhereDocument whereDocument;
@@ -411,24 +518,41 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public QueryBuilder queryTexts(String... texts) {
-            throw new UnsupportedOperationException(
-                    "queryTexts requires an embedding function, which is not yet supported");
+            if (texts == null) {
+                throw new NullPointerException("texts");
+            }
+            return queryTexts(Arrays.asList(texts));
         }
 
         @Override
         public QueryBuilder queryTexts(List<String> texts) {
-            throw new UnsupportedOperationException(
-                    "queryTexts requires an embedding function, which is not yet supported");
+            if (queryEmbeddings != null) {
+                throw new IllegalArgumentException(
+                        "cannot set both queryTexts and queryEmbeddings in the same query"
+                );
+            }
+            this.queryTexts = validateQueryTexts(texts);
+            return this;
         }
 
         @Override
         public QueryBuilder queryEmbeddings(float[]... embeddings) {
+            if (queryTexts != null) {
+                throw new IllegalArgumentException(
+                        "cannot set both queryTexts and queryEmbeddings in the same query"
+                );
+            }
             this.queryEmbeddings = Arrays.asList(embeddings);
             return this;
         }
 
         @Override
         public QueryBuilder queryEmbeddings(List<float[]> embeddings) {
+            if (queryTexts != null) {
+                throw new IllegalArgumentException(
+                        "cannot set both queryTexts and queryEmbeddings in the same query"
+                );
+            }
             this.queryEmbeddings = embeddings;
             return this;
         }
@@ -462,7 +586,12 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public QueryResult execute() {
-            if (queryEmbeddings == null || queryEmbeddings.isEmpty()) {
+            List<float[]> resolvedEmbeddings = queryEmbeddings;
+            if ((resolvedEmbeddings == null || resolvedEmbeddings.isEmpty())
+                    && queryTexts != null && !queryTexts.isEmpty()) {
+                resolvedEmbeddings = embedQueryTexts(queryTexts);
+            }
+            if (resolvedEmbeddings == null || resolvedEmbeddings.isEmpty()) {
                 throw new IllegalArgumentException("queryEmbeddings must be provided");
             }
             Map<String, Object> whereMap = requireNonNullMap(where, "where");
@@ -476,7 +605,7 @@ final class ChromaHttpCollection implements Collection {
             }
             String path = ChromaApiPaths.collectionQuery(tenant.getName(), database.getName(), id);
             ChromaDtos.QueryResponse dto = apiClient.post(path, new ChromaDtos.QueryRequest(
-                    ChromaDtos.toFloatLists(queryEmbeddings),
+                    ChromaDtos.toFloatLists(resolvedEmbeddings),
                     nResults,
                     whereMap,
                     whereDocumentMap,
@@ -734,5 +863,82 @@ final class ChromaHttpCollection implements Collection {
             throw new IllegalArgumentException(fieldName + ".toMap() must not return null");
         }
         return map;
+    }
+
+    private synchronized tech.amikos.chromadb.embeddings.EmbeddingFunction requireEmbeddingFunction() {
+        if (embeddingFunction != null) {
+            return embeddingFunction;
+        }
+        if (embeddingFunctionSpec == null) {
+            throw new ChromaException(
+                    "queryTexts requires an embedding function, but none is available in runtime options or collection configuration. "
+                            + "Provide a runtime embedding function when creating/retrieving the collection "
+                            + "(CreateCollectionOptions.embeddingFunction(...) or client.getCollection(name, embeddingFunction)), "
+                            + "set configuration.embedding_function, or use queryEmbeddings(...)."
+            );
+        }
+        embeddingFunction = EmbeddingFunctionResolver.resolve(embeddingFunctionSpec);
+        return embeddingFunction;
+    }
+
+    private List<float[]> embedQueryTexts(List<String> texts) {
+        tech.amikos.chromadb.embeddings.EmbeddingFunction runtimeEmbeddingFunction = requireEmbeddingFunction();
+        List<Embedding> embeddings;
+        try {
+            embeddings = runtimeEmbeddingFunction.embedQueries(texts);
+        } catch (ChromaException e) {
+            throw e;
+        } catch (EFException e) {
+            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+        }
+        if (embeddings == null) {
+            throw new ChromaException("Failed to embed queryTexts: embedding function returned null");
+        }
+        if (embeddings.size() != texts.size()) {
+            throw new ChromaException(
+                    "Failed to embed queryTexts: embedding function returned "
+                            + embeddings.size()
+                            + " embeddings for "
+                            + texts.size()
+                            + " query texts"
+            );
+        }
+        List<float[]> vectors = new ArrayList<float[]>(embeddings.size());
+        for (int i = 0; i < embeddings.size(); i++) {
+            Embedding embedding = embeddings.get(i);
+            if (embedding == null) {
+                throw new ChromaException(
+                        "Failed to embed queryTexts: embedding function returned null at index " + i
+                );
+            }
+            float[] vector = embedding.asArray();
+            if (vector == null) {
+                throw new ChromaException(
+                        "Failed to embed queryTexts: embedding function returned null vector at index " + i
+                );
+            }
+            vectors.add(vector);
+        }
+        return vectors;
+    }
+
+    private static List<String> validateQueryTexts(List<String> texts) {
+        if (texts == null) {
+            throw new NullPointerException("texts");
+        }
+        if (texts.isEmpty()) {
+            throw new IllegalArgumentException("queryTexts must not be empty");
+        }
+        List<String> copy = new ArrayList<String>(texts.size());
+        for (int i = 0; i < texts.size(); i++) {
+            String text = texts.get(i);
+            if (text == null) {
+                throw new IllegalArgumentException("queryTexts[" + i + "] must not be null");
+            }
+            copy.add(text);
+        }
+        return copy;
     }
 }

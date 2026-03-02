@@ -270,6 +270,7 @@ class ChromaApiClient implements AutoCloseable {
         if (isBlank(body)) {
             return new ErrorBody("HTTP " + statusCode, null);
         }
+        String parseFailure = null;
         try {
             JsonObject json = JsonParser.parseString(body).getAsJsonObject();
             String message = getStringField(json, "error");
@@ -282,11 +283,25 @@ class ChromaApiClient implements AutoCloseable {
             String errorCode = getStringField(json, "error_code");
             return new ErrorBody(message, errorCode);
         } catch (JsonParseException e) {
-            // Body was not valid JSON.
+            parseFailure = "invalid JSON";
         } catch (IllegalStateException e) {
-            // JSON root was not an object.
+            parseFailure = "JSON root is not an object";
+        }
+        if (parseFailure != null && looksLikeJson(body)) {
+            return new ErrorBody(
+                    "HTTP " + statusCode + ": " + truncateBody(body) + " (" + parseFailure + ")",
+                    null
+            );
         }
         return new ErrorBody("HTTP " + statusCode + ": " + truncateBody(body), null);
+    }
+
+    private static boolean looksLikeJson(String body) {
+        if (body == null) {
+            return false;
+        }
+        String trimmed = body.trim();
+        return !trimmed.isEmpty() && (trimmed.charAt(0) == '{' || trimmed.charAt(0) == '[');
     }
 
     private static String getStringField(JsonObject json, String field) {

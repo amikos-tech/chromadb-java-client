@@ -322,7 +322,7 @@ public class ChromaApiClientTest {
             fail("Expected ChromaServerException");
         } catch (ChromaServerException e) {
             assertEquals(500, e.getStatusCode());
-            assertEquals("HTTP 500: [1,2,3]", e.getMessage());
+            assertEquals("HTTP 500: [1,2,3] (JSON root is not an object)", e.getMessage());
             assertNull(e.getErrorCode());
         }
     }
