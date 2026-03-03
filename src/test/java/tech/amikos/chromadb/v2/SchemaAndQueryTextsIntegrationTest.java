@@ -1,6 +1,7 @@
 package tech.amikos.chromadb.v2;
 
 import org.junit.Test;
+import org.junit.Assume;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.embeddings.EmbeddingFunction;
@@ -213,5 +214,61 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
             assertTrue(e.getMessage().contains("Failed to initialize embedding function provider 'openai'"));
             assertNotNull(e.getCause());
         }
+    }
+
+    @Test
+    public void testModifyConfigurationRejectsSpannUpdateWhenSchemaUsesHnsw() {
+        Collection template = client.createCollection(uniqueCollectionName("schema_conflict_template_"));
+        assertNotNull(template.getSchema());
+        Schema schema = template.getSchema();
+
+        boolean schemaHasHnsw = schemaHasHnsw(schema);
+        boolean schemaHasSpann = schemaHasSpann(schema);
+        Assume.assumeTrue(
+                "Skipping because server schema does not expose explicit hnsw/spann index config",
+                schemaHasHnsw ^ schemaHasSpann
+        );
+
+        String name = uniqueCollectionName("schema_conflict_");
+        Collection col = client.createCollection(name, CreateCollectionOptions.builder().schema(schema).build());
+
+        try {
+            if (schemaHasHnsw) {
+                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                        .spannSearchNprobe(32)
+                        .build());
+            } else {
+                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                        .hnswSearchEf(128)
+                        .build());
+            }
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot switch collection index parameters between HNSW and SPANN"));
+        }
+    }
+
+    private static boolean schemaHasHnsw(Schema schema) {
+        ValueTypes embedding = schema.getKey(Schema.EMBEDDING_KEY);
+        if (embedding == null || embedding.getFloatList() == null) {
+            return false;
+        }
+        VectorIndexType vectorIndex = embedding.getFloatList().getVectorIndex();
+        if (vectorIndex == null || vectorIndex.getConfig() == null) {
+            return false;
+        }
+        return vectorIndex.getConfig().getHnsw() != null;
+    }
+
+    private static boolean schemaHasSpann(Schema schema) {
+        ValueTypes embedding = schema.getKey(Schema.EMBEDDING_KEY);
+        if (embedding == null || embedding.getFloatList() == null) {
+            return false;
+        }
+        VectorIndexType vectorIndex = embedding.getFloatList().getVectorIndex();
+        if (vectorIndex == null || vectorIndex.getConfig() == null) {
+            return false;
+        }
+        return vectorIndex.getConfig().getSpann() != null;
     }
 }

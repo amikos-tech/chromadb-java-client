@@ -106,6 +106,40 @@ public class ChromaHttpCollectionTest {
                 + "}";
     }
 
+    private static String schemaWithHnswVectorIndexJson() {
+        return "{"
+                + "\"keys\":{"
+                + "\"" + Schema.EMBEDDING_KEY + "\":{"
+                + "\"float_list\":{"
+                + "\"vector_index\":{"
+                + "\"enabled\":true,"
+                + "\"config\":{"
+                + "\"hnsw\":{\"max_neighbors\":16}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
+    }
+
+    private static String schemaWithSpannVectorIndexJson() {
+        return "{"
+                + "\"keys\":{"
+                + "\"" + Schema.EMBEDDING_KEY + "\":{"
+                + "\"float_list\":{"
+                + "\"vector_index\":{"
+                + "\"enabled\":true,"
+                + "\"config\":{"
+                + "\"spann\":{\"search_nprobe\":32}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
+    }
+
     @Before
     public void setUp() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH))
@@ -398,6 +432,52 @@ public class ChromaHttpCollectionTest {
         }
 
         verify(0, putRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1")));
+    }
+
+    @Test
+    public void testModifyConfigurationRejectsSchemaOnlyHnswToSpannClientSide() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/schema_hnsw_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"schema-hnsw-id\",\"name\":\"schema_hnsw_col\","
+                                + "\"schema\":" + schemaWithHnswVectorIndexJson() + "}")));
+
+        Collection col = client.getCollection("schema_hnsw_col");
+
+        try {
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .spannSearchNprobe(32)
+                    .build());
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot switch collection index parameters between HNSW and SPANN"));
+        }
+
+        verify(0, putRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/schema-hnsw-id")));
+    }
+
+    @Test
+    public void testModifyConfigurationRejectsSchemaOnlySpannToHnswClientSide() {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/schema_spann_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"schema-spann-id\",\"name\":\"schema_spann_col\","
+                                + "\"schema\":" + schemaWithSpannVectorIndexJson() + "}")));
+
+        Collection col = client.getCollection("schema_spann_col");
+
+        try {
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .hnswSearchEf(120)
+                    .build());
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("cannot switch collection index parameters between HNSW and SPANN"));
+        }
+
+        verify(0, putRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/schema-spann-id")));
     }
 
     @Test(expected = UnsupportedOperationException.class)

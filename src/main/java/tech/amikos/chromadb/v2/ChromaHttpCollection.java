@@ -284,21 +284,62 @@ final class ChromaHttpCollection implements Collection {
     }
 
     private void validateConfigurationGroupCompatibility(UpdateCollectionConfiguration update) {
-        CollectionConfiguration current = this.configuration;
-        if (current == null) {
-            return;
-        }
-        boolean currentHasHnsw = hasAnyHnswParameters(current);
-        boolean currentHasSpann = hasAnySpannParameters(current);
-        if (!currentHasHnsw && !currentHasSpann) {
+        IndexGroup currentGroup = resolveCurrentIndexGroup(this.configuration, this.schema);
+        if (currentGroup == IndexGroup.UNKNOWN) {
             return;
         }
 
-        if ((update.hasHnswUpdates() && currentHasSpann) || (update.hasSpannUpdates() && currentHasHnsw)) {
+        if ((update.hasHnswUpdates() && currentGroup == IndexGroup.SPANN)
+                || (update.hasSpannUpdates() && currentGroup == IndexGroup.HNSW)) {
             throw new IllegalArgumentException(
                     "cannot switch collection index parameters between HNSW and SPANN in modifyConfiguration"
             );
         }
+    }
+
+    private static IndexGroup resolveCurrentIndexGroup(CollectionConfiguration configuration, Schema schema) {
+        if (configuration != null) {
+            boolean hasFlatHnsw = hasAnyHnswParameters(configuration);
+            boolean hasFlatSpann = hasAnySpannParameters(configuration);
+            if (hasFlatHnsw && !hasFlatSpann) {
+                return IndexGroup.HNSW;
+            }
+            if (hasFlatSpann && !hasFlatHnsw) {
+                return IndexGroup.SPANN;
+            }
+        }
+
+        IndexGroup schemaGroup = resolveSchemaIndexGroup(schema);
+        if (schemaGroup != IndexGroup.UNKNOWN) {
+            return schemaGroup;
+        }
+        return configuration != null
+                ? resolveSchemaIndexGroup(configuration.getSchema())
+                : IndexGroup.UNKNOWN;
+    }
+
+    private static IndexGroup resolveSchemaIndexGroup(Schema schema) {
+        if (schema == null) {
+            return IndexGroup.UNKNOWN;
+        }
+        ValueTypes embeddingValueTypes = schema.getKey(Schema.EMBEDDING_KEY);
+        if (embeddingValueTypes == null || embeddingValueTypes.getFloatList() == null) {
+            return IndexGroup.UNKNOWN;
+        }
+        VectorIndexType vectorIndexType = embeddingValueTypes.getFloatList().getVectorIndex();
+        if (vectorIndexType == null || vectorIndexType.getConfig() == null) {
+            return IndexGroup.UNKNOWN;
+        }
+        VectorIndexConfig vectorIndexConfig = vectorIndexType.getConfig();
+        boolean hasHnsw = vectorIndexConfig.getHnsw() != null;
+        boolean hasSpann = vectorIndexConfig.getSpann() != null;
+        if (hasHnsw && !hasSpann) {
+            return IndexGroup.HNSW;
+        }
+        if (hasSpann && !hasHnsw) {
+            return IndexGroup.SPANN;
+        }
+        return IndexGroup.UNKNOWN;
     }
 
     private static boolean hasAnyHnswParameters(CollectionConfiguration configuration) {
@@ -314,6 +355,12 @@ final class ChromaHttpCollection implements Collection {
     private static boolean hasAnySpannParameters(CollectionConfiguration configuration) {
         return configuration.getSpannSearchNprobe() != null
                 || configuration.getSpannEfSearch() != null;
+    }
+
+    private enum IndexGroup {
+        HNSW,
+        SPANN,
+        UNKNOWN
     }
 
     @Override
