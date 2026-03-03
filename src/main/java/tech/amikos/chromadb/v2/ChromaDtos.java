@@ -1349,7 +1349,7 @@ final class ChromaDtos {
             map.put("type", spec.getType());
         }
         map.put("name", spec.getName());
-        if (spec.getConfig() != null && !spec.getConfig().isEmpty()) {
+        if (spec.getConfig() != null) {
             map.put("config", new LinkedHashMap<String, Object>(spec.getConfig()));
         }
         return map;

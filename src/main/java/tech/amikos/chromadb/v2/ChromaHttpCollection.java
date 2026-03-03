@@ -31,6 +31,7 @@ final class ChromaHttpCollection implements Collection {
     private volatile Integer dimension;
     private volatile CollectionConfiguration configuration;
     private volatile Schema schema;
+    private final tech.amikos.chromadb.embeddings.EmbeddingFunction explicitEmbeddingFunction;
     private volatile tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction;
     private volatile EmbeddingFunctionSpec embeddingFunctionSpec;
 
@@ -50,6 +51,7 @@ final class ChromaHttpCollection implements Collection {
         this.dimension = dimension;
         this.configuration = configuration;
         this.schema = schema;
+        this.explicitEmbeddingFunction = embeddingFunction;
         this.embeddingFunction = embeddingFunction;
         this.embeddingFunctionSpec = embeddingFunctionSpec;
     }
@@ -275,7 +277,9 @@ final class ChromaHttpCollection implements Collection {
                 : (topLevelSchemaSpec != null ? topLevelSchemaSpec : configSchemaSpec);
         if (!Objects.equals(previousSpec, effectiveSpec)) {
             this.embeddingFunctionSpec = effectiveSpec;
-            this.embeddingFunction = null;
+            if (explicitEmbeddingFunction == null) {
+                this.embeddingFunction = null;
+            }
         }
     }
 
@@ -866,6 +870,12 @@ final class ChromaHttpCollection implements Collection {
     }
 
     private synchronized tech.amikos.chromadb.embeddings.EmbeddingFunction requireEmbeddingFunction() {
+        if (explicitEmbeddingFunction != null) {
+            if (embeddingFunction != explicitEmbeddingFunction) {
+                embeddingFunction = explicitEmbeddingFunction;
+            }
+            return explicitEmbeddingFunction;
+        }
         if (embeddingFunction != null) {
             return embeddingFunction;
         }

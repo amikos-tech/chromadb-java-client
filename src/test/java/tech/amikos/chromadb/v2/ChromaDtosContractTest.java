@@ -422,4 +422,30 @@ public class ChromaDtosContractTest {
             assertTrue(e.getMessage().contains("embedding_function.name must be a string"));
         }
     }
+
+    @Test
+    public void testEmbeddingFunctionSpecRoundTripPreservesEmptyConfigObject() {
+        EmbeddingFunctionSpec spec = EmbeddingFunctionSpec.builder()
+                .type("known")
+                .name("openai")
+                .config(Collections.<String, Object>emptyMap())
+                .build();
+
+        CollectionConfiguration original = CollectionConfiguration.builder()
+                .embeddingFunction(spec)
+                .build();
+
+        Map<String, Object> configMap = ChromaDtos.toConfigurationMap(original);
+        assertTrue(configMap.containsKey("embedding_function"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> embeddingFunctionMap = (Map<String, Object>) configMap.get("embedding_function");
+        assertTrue(embeddingFunctionMap.containsKey("config"));
+        assertTrue(((Map<?, ?>) embeddingFunctionMap.get("config")).isEmpty());
+
+        CollectionConfiguration parsed = ChromaDtos.parseConfiguration(configMap);
+        assertEquals(spec, parsed.getEmbeddingFunction());
+        assertNotNull(parsed.getEmbeddingFunction().getConfig());
+        assertTrue(parsed.getEmbeddingFunction().getConfig().isEmpty());
+    }
 }

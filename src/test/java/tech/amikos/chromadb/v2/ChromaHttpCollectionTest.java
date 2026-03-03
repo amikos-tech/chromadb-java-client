@@ -9,6 +9,7 @@ import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1298,6 +1299,52 @@ public class ChromaHttpCollectionTest {
             assertTrue(e.getMessage().contains("Failed to initialize embedding function provider 'openai'"));
             assertNotNull(e.getCause());
         }
+    }
+
+    @Test
+    public void testModifyConfigurationKeepsExplicitEmbeddingFunctionWhenSpecChanges() throws Exception {
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/explicit_ef_update_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-explicit-update\",\"name\":\"explicit_ef_update_col\","
+                                + "\"configuration_json\":{\"embedding_function\":{"
+                                + "\"type\":\"known\","
+                                + "\"name\":\"openai\","
+                                + "\"config\":{\"api_key_env_var\":\"CHROMA_NON_EXISTENT_OPENAI_ENV_123\"}"
+                                + "}}}")));
+        stubFor(put(urlEqualTo(COLLECTIONS_PATH + "/col-id-explicit-update"))
+                .withRequestBody(matchingJsonPath("$.new_configuration.hnsw.ef_search", equalTo("123")))
+                .willReturn(aResponse().withStatus(200)));
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-explicit-update/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.3")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("0.7")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        Collection col = client.getCollection(
+                "explicit_ef_update_col",
+                fixedEmbeddingFunction(new float[]{0.3f, 0.7f})
+        );
+
+        // Simulate descriptor drift before local merge to exercise cache invalidation path.
+        Field specField = col.getClass().getDeclaredField("embeddingFunctionSpec");
+        specField.setAccessible(true);
+        specField.set(col, null);
+
+        col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                .hnswSearchEf(123)
+                .build());
+
+        QueryResult result = col.query()
+                .queryTexts("hello")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals("id1", result.getIds().get(0).get(0));
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-explicit-update/query")));
     }
 
     @Test
