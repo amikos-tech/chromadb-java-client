@@ -103,4 +103,20 @@ public class CohereEmbeddingFunction implements EmbeddingFunction {
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
         return embedDocuments(Arrays.asList(documents));
     }
+
+    @Override
+    public List<Embedding> embedQueries(@NotNull List<String> queries) throws EFException {
+        CreateEmbeddingResponse response = createEmbedding(
+                new CreateEmbeddingRequest()
+                        .model(this.configParams.get(Constants.EF_PARAMS_MODEL).toString())
+                        .inputType("search_query")
+                        .texts(queries.toArray(new String[0]))
+        );
+        return response.getEmbeddings().stream().map(Embedding::new).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Embedding> embedQueries(String[] queries) throws EFException {
+        return embedQueries(Arrays.asList(queries));
+    }
 }

@@ -143,15 +143,15 @@ public final class UpdateCollectionConfiguration {
             return this;
         }
 
-        /** @throws IllegalArgumentException if {@code size <= 0} */
+        /** @throws IllegalArgumentException if {@code size < 2} */
         public Builder hnswBatchSize(int size) {
-            this.hnswBatchSize = requirePositive("hnswBatchSize", size);
+            this.hnswBatchSize = requireAtLeast("hnswBatchSize", size, 2);
             return this;
         }
 
-        /** @throws IllegalArgumentException if {@code threshold <= 0} */
+        /** @throws IllegalArgumentException if {@code threshold < 2} */
         public Builder hnswSyncThreshold(int threshold) {
-            this.hnswSyncThreshold = requirePositive("hnswSyncThreshold", threshold);
+            this.hnswSyncThreshold = requireAtLeast("hnswSyncThreshold", threshold, 2);
             return this;
         }
 
@@ -184,6 +184,13 @@ public final class UpdateCollectionConfiguration {
         private static int requirePositive(String name, int value) {
             if (value <= 0) {
                 throw new IllegalArgumentException(name + " must be > 0, got " + value);
+            }
+            return value;
+        }
+
+        private static int requireAtLeast(String name, int value, int min) {
+            if (value < min) {
+                throw new IllegalArgumentException(name + " must be >= " + min + ", got " + value);
             }
             return value;
         }

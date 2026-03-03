@@ -6,6 +6,7 @@ import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.Utils;
 import tech.amikos.chromadb.embeddings.WithParam;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -42,6 +43,38 @@ public class TestCohereEmbeddings {
         Embedding results = ef.embedQuery("How are you?");
         assertNotNull(results);
         assertEquals(384, results.getDimensions());
+    }
+
+    @Test
+    public void testEmbedQueriesUsesSearchQueryInputType() throws EFException {
+        class CapturingCohereEmbeddingFunction extends CohereEmbeddingFunction {
+            String capturedRequestJson;
+
+            CapturingCohereEmbeddingFunction() throws EFException {
+                super(WithParam.apiKey("test-key"));
+            }
+
+            @Override
+            public CreateEmbeddingResponse createEmbedding(CreateEmbeddingRequest req) {
+                this.capturedRequestJson = req.json();
+                CreateEmbeddingResponse response = new CreateEmbeddingResponse();
+                response.embeddings = Arrays.asList(
+                        Arrays.asList(0.1f, 0.2f),
+                        Arrays.asList(0.3f, 0.4f)
+                );
+                return response;
+            }
+        }
+
+        CapturingCohereEmbeddingFunction ef = new CapturingCohereEmbeddingFunction();
+        List<Embedding> result = ef.embedQueries(Arrays.asList("q1", "q2"));
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(2, result.get(0).getDimensions());
+        assertNotNull(ef.capturedRequestJson);
+        assertTrue(ef.capturedRequestJson.contains("\"input_type\":\"search_query\""));
+        assertTrue(ef.capturedRequestJson.contains("\"texts\":[\"q1\",\"q2\"]"));
     }
 
 

@@ -80,6 +80,16 @@ public class UpdateCollectionConfigurationTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testHnswBatchSizeRejectsOne() {
+        UpdateCollectionConfiguration.builder().hnswBatchSize(1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHnswSyncThresholdRejectsOne() {
+        UpdateCollectionConfiguration.builder().hnswSyncThreshold(1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testSpannSearchNprobeRejectsNonPositive() {
         UpdateCollectionConfiguration.builder().spannSearchNprobe(0);
     }

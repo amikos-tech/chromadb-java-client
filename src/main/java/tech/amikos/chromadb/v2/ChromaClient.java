@@ -358,6 +358,12 @@ public final class ChromaClient {
 
         @Override
         public Collection getCollection(String name) {
+            return getCollection(name, null);
+        }
+
+        @Override
+        public Collection getCollection(String name,
+                                        tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction) {
             String collectionName = requireNonBlank("name", name);
             SessionContext context = sessionContext.get();
             ChromaDtos.CollectionResponse dto = apiClient.get(
@@ -366,7 +372,13 @@ public final class ChromaClient {
                             context.database.getName(),
                             collectionName),
                     ChromaDtos.CollectionResponse.class);
-            return ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database);
+            return ChromaHttpCollection.from(
+                    dto,
+                    apiClient,
+                    context.tenant,
+                    context.database,
+                    embeddingFunction
+            );
         }
 
         @Override
@@ -433,15 +445,25 @@ public final class ChromaClient {
         private Collection postCollection(String name, CreateCollectionOptions options, boolean getOrCreate) {
             Map<String, Object> metadata = options != null ? options.getMetadata() : null;
             CollectionConfiguration config = options != null ? options.getConfiguration() : null;
+            Schema schema = options != null ? options.getSchema() : null;
+            tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction =
+                    options != null ? options.getEmbeddingFunction() : null;
             SessionContext context = sessionContext.get();
             ChromaDtos.CollectionResponse dto = apiClient.post(
                     ChromaApiPaths.collections(context.tenant.getName(), context.database.getName()),
                     new ChromaDtos.CreateCollectionRequest(
                             name, metadata,
                             ChromaDtos.toConfigurationMap(config),
+                            ChromaDtos.toSchemaMap(schema),
                             getOrCreate),
                     ChromaDtos.CollectionResponse.class);
-            return ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database);
+            return ChromaHttpCollection.from(
+                    dto,
+                    apiClient,
+                    context.tenant,
+                    context.database,
+                    embeddingFunction
+            );
         }
 
         private List<Collection> toCollections(List<ChromaDtos.CollectionResponse> dtos, SessionContext context) {
@@ -460,7 +482,7 @@ public final class ChromaClient {
                             200
                     );
                 }
-                result.add(ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database));
+                result.add(ChromaHttpCollection.from(dto, apiClient, context.tenant, context.database, null));
             }
             return result;
         }

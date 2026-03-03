@@ -77,7 +77,7 @@ make package
 | `make test` | Run all tests |
 | `make test-unit` | Run unit tests only |
 | `make test-integration` | Run integration tests only |
-| `make test-version CHROMA_VERSION=1.0.0` | Test with specific ChromaDB version |
+| `make test-version CHROMA_VERSION=1.5.2` | Test with specific ChromaDB version |
 | `make test-class TEST=YourTestClass` | Run specific test class |
 | `make test-method TEST=YourTestClass#yourTestMethod` | Run specific test method |
 | `make package` | Create JAR package |
@@ -93,7 +93,7 @@ For testing with external services, set these environment variables:
 - `OPENAI_API_KEY` - Required for OpenAI embedding tests
 - `COHERE_API_KEY` - Required for Cohere embedding tests
 - `HF_API_KEY` - Required for HuggingFace embedding tests
-- `CHROMA_VERSION` - Specify ChromaDB version for tests (default: latest)
+- `CHROMA_VERSION` - Specify ChromaDB version for integration tests (default: `1.5.2`)
 
 ### Shortcuts
 
@@ -121,6 +121,55 @@ Ensure you have a running instance of Chroma running. We recommend one of the tw
 - Official documentation - https://docs.trychroma.com/usage-guide#running-chroma-in-clientserver-mode
 - If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
   will need `Docker`, `minikube` and `kubectl` installed)
+
+### v2 Schema/CMEK/queryTexts (new API)
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+import java.util.Collections;
+
+Client client = ChromaClient.builder()
+        .baseUrl(System.getenv("CHROMA_URL"))
+        .build();
+
+Schema schema = Schema.builder()
+        .key(Schema.EMBEDDING_KEY, ValueTypes.builder()
+                .floatList(FloatListValueType.builder()
+                        .vectorIndex(VectorIndexType.builder()
+                                .config(VectorIndexConfig.builder()
+                                        .space(DistanceFunction.COSINE)
+                                        .embeddingFunction(EmbeddingFunctionSpec.builder()
+                                                .type("known")
+                                                .name("openai")
+                                                .config(Collections.<String, Object>singletonMap("api_key_env_var", "OPENAI_API_KEY"))
+                                                .build())
+                                        .build())
+                                .build())
+                        .build())
+                .build())
+        .cmek(Cmek.gcpKms("projects/my-project/locations/us-central1/keyRings/my-keyring/cryptoKeys/my-key"))
+        .build();
+
+Collection collection = client.getOrCreateCollection(
+        "v2-schema-demo",
+        CreateCollectionOptions.builder()
+                .schema(schema) // top-level schema payload
+                .build()
+);
+
+QueryResult result = collection.query()
+        .queryTexts("find documents about transformers")
+        .nResults(3)
+        .include(Include.DOCUMENTS, Include.DISTANCES)
+        .execute();
+```
+
+Notes:
+- Runtime embedding function precedence: explicit runtime function passed during collection construction (`CreateCollectionOptions.embeddingFunction(...)` or `client.getCollection(name, embeddingFunction)`) wins.
+- Descriptor fallback order when no runtime function is provided: `configuration.embedding_function`, then top-level `schema` `#embedding` vector index embedding function, then `configuration.schema` `#embedding` vector index embedding function.
+- Unsupported providers in descriptors (for example `consistent_hash`) fail fast with `ChromaException` and guidance to use `queryEmbeddings(...)`.
+- For read paths, collection schema precedence is top-level `schema` first, then compatibility fallback `configuration.schema`.
 
 ### Default Embedding Function
 
