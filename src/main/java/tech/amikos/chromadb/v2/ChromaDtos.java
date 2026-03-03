@@ -340,8 +340,11 @@ final class ChromaDtos {
             return null;
         }
         Map<String, Object> map = new LinkedHashMap<String, Object>();
-        Map<String, Object> defaults = toValueTypesMap(schema.getDefaults());
-        if (defaults != null && !defaults.isEmpty()) {
+        if (schema.getDefaults() != null) {
+            Map<String, Object> defaults = toValueTypesMap(schema.getDefaults());
+            if (defaults == null) {
+                defaults = new LinkedHashMap<String, Object>();
+            }
             map.put("defaults", defaults);
         }
         if (schema.getKeys() != null && !schema.getKeys().isEmpty()) {

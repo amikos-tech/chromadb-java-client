@@ -99,6 +99,35 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
     }
 
     @Test
+    public void testConfigurationSchemaRoundTripPreservesEmptyDefaultsObject() {
+        String templateName = uniqueCollectionName("schema_cfg_defaults_template_");
+        Collection template = client.createCollection(templateName);
+        assertNotNull(template.getSchema());
+
+        Schema templateSchema = template.getSchema();
+        Schema schema = Schema.builder()
+                .defaults(ValueTypes.builder().build())
+                .keys(templateSchema.getKeys())
+                .cmek(templateSchema.getCmek())
+                .build();
+
+        CollectionConfiguration configuration = CollectionConfiguration.builder()
+                .schema(schema)
+                .build();
+
+        String name = uniqueCollectionName("schema_cfg_defaults_");
+        client.createCollection(name, CreateCollectionOptions.builder()
+                .configuration(configuration)
+                .build());
+
+        Collection fetched = client.getCollection(name);
+        assertNotNull(fetched.getSchema());
+        assertNotNull(fetched.getSchema().getDefaults());
+        // Chroma may normalize an empty defaults object into explicit default entries.
+        assertNotNull(fetched.getSchema().getDefaults().getString());
+    }
+
+    @Test
     public void testQueryTextsWithExplicitCreateOptionsEmbeddingFunction() {
         String name = uniqueCollectionName("query_texts_create_");
         Collection col = client.createCollection(name, CreateCollectionOptions.builder()
