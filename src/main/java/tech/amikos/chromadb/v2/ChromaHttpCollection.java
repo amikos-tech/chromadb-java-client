@@ -914,12 +914,17 @@ final class ChromaHttpCollection implements Collection {
         return ids != null && !ids.isEmpty();
     }
 
+    private static boolean hasIdsArgument(List<String> ids) {
+        return ids != null;
+    }
+
     private static List<String> resolveIds(List<String> ids, IdGenerator idGenerator,
                                             List<String> documents, List<float[]> embeddings,
                                             List<Map<String, Object>> metadatas, List<String> uris) {
+        boolean hasIdsArg = hasIdsArgument(ids);
         boolean hasIds = hasExplicitIds(ids);
         boolean hasGenerator = idGenerator != null;
-        if (hasIds && hasGenerator) {
+        if (hasIdsArg && hasGenerator) {
             throw new IllegalArgumentException("cannot set both ids and idGenerator");
         }
         if (!hasIds && !hasGenerator) {
@@ -983,9 +988,17 @@ final class ChromaHttpCollection implements Collection {
         Map<String, Integer> firstIndexById = new LinkedHashMap<String, Integer>();
         Map<String, List<Integer>> duplicateIndexesById = new LinkedHashMap<String, List<Integer>>();
         for (int i = 0; i < count; i++) {
-            String doc = documents != null && i < documents.size() ? documents.get(i) : null;
-            Map<String, Object> meta = metadatas != null && i < metadatas.size() ? metadatas.get(i) : null;
-            String generated = generator.generate(doc, meta);
+            String doc = documents != null ? documents.get(i) : null;
+            Map<String, Object> meta = metadatas != null ? metadatas.get(i) : null;
+            String generated;
+            try {
+                generated = generator.generate(doc, meta);
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(
+                        "IdGenerator threw an exception at record index " + i + ": " + e.getMessage(),
+                        e
+                );
+            }
             if (generated == null || generated.isEmpty()) {
                 throw new IllegalArgumentException(
                         "IdGenerator returned null or empty ID at index " + i

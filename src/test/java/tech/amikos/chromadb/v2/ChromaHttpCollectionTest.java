@@ -1900,6 +1900,15 @@ public class ChromaHttpCollectionTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testAddRejectsEmptyIdsListAndIdGenerator() {
+        collection.add()
+                .ids(Collections.<String>emptyList())
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testAddIdGeneratorRequiresData() {
         collection.add()
                 .idGenerator(UuidIdGenerator.INSTANCE)
@@ -1926,6 +1935,35 @@ public class ChromaHttpCollectionTest {
             assertTrue(e.getMessage().contains("duplicate IDs"));
             assertTrue(e.getMessage().contains("'dup'"));
             assertTrue(e.getMessage().contains("[0, 1]"));
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorWrapsGeneratorExceptionWithRecordIndex() {
+        IdGenerator failingGenerator = new IdGenerator() {
+            private int callIndex = 0;
+
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                int current = callIndex++;
+                if (current == 1) {
+                    throw new IllegalStateException("boom");
+                }
+                return "id-" + current;
+            }
+        };
+
+        try {
+            collection.add()
+                    .idGenerator(failingGenerator)
+                    .documents("doc1", "doc2")
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("record index 1"));
+            assertTrue(e.getMessage().contains("boom"));
+            assertNotNull(e.getCause());
+            assertEquals(IllegalStateException.class, e.getCause().getClass());
         }
     }
 
@@ -2019,13 +2057,26 @@ public class ChromaHttpCollectionTest {
                 .documents("doc1")
                 .execute();
 
-        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert")));
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert"))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[0]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                )));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testUpsertRejectsBothIdsAndIdGenerator() {
         collection.upsert()
                 .ids("id1")
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertRejectsEmptyIdsListAndIdGenerator() {
+        collection.upsert()
+                .ids(Collections.<String>emptyList())
                 .idGenerator(UuidIdGenerator.INSTANCE)
                 .documents("doc1")
                 .execute();
