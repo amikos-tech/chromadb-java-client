@@ -397,6 +397,7 @@ final class ChromaHttpCollection implements Collection {
 
     private final class AddBuilderImpl implements AddBuilder {
         private List<String> ids;
+        private IdGenerator idGenerator;
         private List<float[]> embeddings;
         private List<String> documents;
         private List<Map<String, Object>> metadatas;
@@ -411,6 +412,12 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public AddBuilder ids(List<String> ids) {
             this.ids = ids;
+            return this;
+        }
+
+        @Override
+        public AddBuilder idGenerator(IdGenerator idGenerator) {
+            this.idGenerator = idGenerator;
             return this;
         }
 
@@ -458,17 +465,15 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
-            if (ids == null || ids.isEmpty()) {
-                throw new IllegalArgumentException("ids must not be empty");
-            }
-            int idsSize = ids.size();
+            List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            int idsSize = resolvedIds.size();
             validateSizeMatchesIds("embeddings", embeddings, idsSize);
             validateSizeMatchesIds("documents", documents, idsSize);
             validateSizeMatchesIds("metadatas", metadatas, idsSize);
             validateSizeMatchesIds("uris", uris, idsSize);
             String path = ChromaApiPaths.collectionAdd(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.AddRequest(
-                    ids,
+                    resolvedIds,
                     ChromaDtos.toFloatLists(embeddings),
                     documents,
                     metadatas,
@@ -479,6 +484,7 @@ final class ChromaHttpCollection implements Collection {
 
     private final class UpsertBuilderImpl implements UpsertBuilder {
         private List<String> ids;
+        private IdGenerator idGenerator;
         private List<float[]> embeddings;
         private List<String> documents;
         private List<Map<String, Object>> metadatas;
@@ -493,6 +499,12 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public UpsertBuilder ids(List<String> ids) {
             this.ids = ids;
+            return this;
+        }
+
+        @Override
+        public UpsertBuilder idGenerator(IdGenerator idGenerator) {
+            this.idGenerator = idGenerator;
             return this;
         }
 
@@ -540,17 +552,15 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
-            if (ids == null || ids.isEmpty()) {
-                throw new IllegalArgumentException("ids must not be empty");
-            }
-            int idsSize = ids.size();
+            List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            int idsSize = resolvedIds.size();
             validateSizeMatchesIds("embeddings", embeddings, idsSize);
             validateSizeMatchesIds("documents", documents, idsSize);
             validateSizeMatchesIds("metadatas", metadatas, idsSize);
             validateSizeMatchesIds("uris", uris, idsSize);
             String path = ChromaApiPaths.collectionUpsert(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.UpsertRequest(
-                    ids,
+                    resolvedIds,
                     ChromaDtos.toFloatLists(embeddings),
                     documents,
                     metadatas,
@@ -892,6 +902,61 @@ final class ChromaHttpCollection implements Collection {
                     fieldName + " size must match ids size (" + idsSize + ")"
             );
         }
+    }
+
+    private static List<String> resolveIds(List<String> ids, IdGenerator idGenerator,
+                                            List<String> documents, List<float[]> embeddings,
+                                            List<Map<String, Object>> metadatas, List<String> uris) {
+        boolean hasIds = ids != null && !ids.isEmpty();
+        boolean hasGenerator = idGenerator != null;
+        if (hasIds && hasGenerator) {
+            throw new IllegalArgumentException("cannot set both ids and idGenerator");
+        }
+        if (!hasIds && !hasGenerator) {
+            throw new IllegalArgumentException("ids must not be empty");
+        }
+        if (hasIds) {
+            return ids;
+        }
+        int count = inferRecordCount(documents, embeddings, metadatas, uris);
+        return generateIds(idGenerator, count, documents, metadatas);
+    }
+
+    private static int inferRecordCount(List<String> documents, List<float[]> embeddings,
+                                         List<Map<String, Object>> metadatas, List<String> uris) {
+        if (documents != null && !documents.isEmpty()) {
+            return documents.size();
+        }
+        if (embeddings != null && !embeddings.isEmpty()) {
+            return embeddings.size();
+        }
+        if (metadatas != null && !metadatas.isEmpty()) {
+            return metadatas.size();
+        }
+        if (uris != null && !uris.isEmpty()) {
+            return uris.size();
+        }
+        throw new IllegalArgumentException(
+                "idGenerator requires at least one data field (documents, embeddings, metadatas, or uris) to infer record count"
+        );
+    }
+
+    private static List<String> generateIds(IdGenerator generator, int count,
+                                             List<String> documents,
+                                             List<Map<String, Object>> metadatas) {
+        List<String> ids = new ArrayList<String>(count);
+        for (int i = 0; i < count; i++) {
+            String doc = documents != null && i < documents.size() ? documents.get(i) : null;
+            Map<String, Object> meta = metadatas != null && i < metadatas.size() ? metadatas.get(i) : null;
+            String generated = generator.generate(doc, meta);
+            if (generated == null || generated.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "IdGenerator returned null or empty ID at index " + i
+                );
+            }
+            ids.add(generated);
+        }
+        return ids;
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {

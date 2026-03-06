@@ -1850,6 +1850,78 @@ public class ChromaHttpCollectionTest {
         }
     }
 
+    // --- add/upsert with IdGenerator ---
+
+    @Test
+    public void testAddWithUuidIdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .documents("doc1", "doc2")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath("$.ids", containing(""))));
+    }
+
+    @Test
+    public void testAddWithSha256IdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(Sha256IdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f})
+                .documents("hello")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath("$.ids[0]",
+                        equalTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"))));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddRejectsBothIdsAndIdGenerator() {
+        collection.add()
+                .ids("id1")
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddIdGeneratorRequiresData() {
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .execute();
+    }
+
+    @Test
+    public void testUpsertWithUuidIdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.upsert()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f})
+                .documents("doc1")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertRejectsBothIdsAndIdGenerator() {
+        collection.upsert()
+                .ids("id1")
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
     private static ChromaDtos.CollectionResponse validCollectionDto() {
         ChromaDtos.CollectionResponse dto = new ChromaDtos.CollectionResponse();
         dto.id = "col-id";

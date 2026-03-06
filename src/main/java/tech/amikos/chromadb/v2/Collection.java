@@ -100,6 +100,7 @@ public interface Collection {
     interface AddBuilder {
         AddBuilder ids(String... ids);
         AddBuilder ids(List<String> ids);
+        AddBuilder idGenerator(IdGenerator idGenerator);
         AddBuilder embeddings(float[]... embeddings);
         AddBuilder embeddings(List<float[]> embeddings);
         AddBuilder documents(String... documents);
@@ -184,6 +185,7 @@ public interface Collection {
     interface UpsertBuilder {
         UpsertBuilder ids(String... ids);
         UpsertBuilder ids(List<String> ids);
+        UpsertBuilder idGenerator(IdGenerator idGenerator);
         UpsertBuilder embeddings(float[]... embeddings);
         UpsertBuilder embeddings(List<float[]> embeddings);
         UpsertBuilder documents(String... documents);
