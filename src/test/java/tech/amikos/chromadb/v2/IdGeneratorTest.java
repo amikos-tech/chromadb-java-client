@@ -2,7 +2,6 @@ package tech.amikos.chromadb.v2;
 
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -84,6 +83,16 @@ public class IdGeneratorTest {
         };
         String maxRandom = UlidIdGenerator.encode(0L, allOnes);
         assertEquals("0000000000ZZZZZZZZZZZZZZZZ", maxRandom);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUlidEncodeRejectsNullRandomBytes() {
+        UlidIdGenerator.encode(0L, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUlidEncodeRejectsInvalidRandomBytesLength() {
+        UlidIdGenerator.encode(0L, new byte[9]);
     }
 
     @Test

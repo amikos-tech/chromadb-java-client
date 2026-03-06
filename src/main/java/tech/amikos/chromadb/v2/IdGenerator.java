@@ -22,7 +22,7 @@ import java.util.Map;
 public interface IdGenerator {
 
     /**
-     * Generates a unique ID for a single record.
+     * Generates an ID for a single record.
      *
      * @param document the document text, may be null for embeddings-only records
      * @param metadata the record metadata, may be null

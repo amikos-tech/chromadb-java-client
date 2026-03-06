@@ -36,7 +36,7 @@ public final class Sha256IdGenerator implements IdGenerator {
             byte[] hash = digest.digest(document.getBytes(UTF_8));
             return hexEncode(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
+            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 

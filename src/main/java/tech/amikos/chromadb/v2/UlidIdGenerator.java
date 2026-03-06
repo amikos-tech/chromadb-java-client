@@ -35,6 +35,12 @@ public final class UlidIdGenerator implements IdGenerator {
      * Package-private for deterministic testing.
      */
     static String encode(long timestamp, byte[] randomBytes) {
+        if (randomBytes == null) {
+            throw new NullPointerException("randomBytes");
+        }
+        if (randomBytes.length != 10) {
+            throw new IllegalArgumentException("randomBytes must be exactly 10 bytes");
+        }
         char[] chars = new char[26];
 
         // Encode 48-bit timestamp into 10 Crockford base32 characters (most significant first)
