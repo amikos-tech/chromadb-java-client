@@ -940,17 +940,73 @@ final class ChromaHttpCollection implements Collection {
     private static int inferRecordCount(List<String> documents, List<float[]> embeddings,
                                          List<Map<String, Object>> metadatas, List<String> uris) {
         Integer count = null;
-        if (documents != null && !documents.isEmpty()) {
-            count = Integer.valueOf(documents.size());
+        boolean mismatch = false;
+        boolean hasPendingZeroSizedField = false;
+        List<String> sizeDetails = new ArrayList<String>(4);
+
+        if (documents != null) {
+            int size = documents.size();
+            sizeDetails.add("documents=" + size);
+            if (count == null) {
+                if (size > 0) {
+                    count = Integer.valueOf(size);
+                    if (hasPendingZeroSizedField) {
+                        mismatch = true;
+                    }
+                } else {
+                    hasPendingZeroSizedField = true;
+                }
+            } else if (size != count.intValue()) {
+                mismatch = true;
+            }
         }
-        if (count == null && embeddings != null && !embeddings.isEmpty()) {
-            count = Integer.valueOf(embeddings.size());
+        if (embeddings != null) {
+            int size = embeddings.size();
+            sizeDetails.add("embeddings=" + size);
+            if (count == null) {
+                if (size > 0) {
+                    count = Integer.valueOf(size);
+                    if (hasPendingZeroSizedField) {
+                        mismatch = true;
+                    }
+                } else {
+                    hasPendingZeroSizedField = true;
+                }
+            } else if (size != count.intValue()) {
+                mismatch = true;
+            }
         }
-        if (count == null && metadatas != null && !metadatas.isEmpty()) {
-            count = Integer.valueOf(metadatas.size());
+        if (metadatas != null) {
+            int size = metadatas.size();
+            sizeDetails.add("metadatas=" + size);
+            if (count == null) {
+                if (size > 0) {
+                    count = Integer.valueOf(size);
+                    if (hasPendingZeroSizedField) {
+                        mismatch = true;
+                    }
+                } else {
+                    hasPendingZeroSizedField = true;
+                }
+            } else if (size != count.intValue()) {
+                mismatch = true;
+            }
         }
-        if (count == null && uris != null && !uris.isEmpty()) {
-            count = Integer.valueOf(uris.size());
+        if (uris != null) {
+            int size = uris.size();
+            sizeDetails.add("uris=" + size);
+            if (count == null) {
+                if (size > 0) {
+                    count = Integer.valueOf(size);
+                    if (hasPendingZeroSizedField) {
+                        mismatch = true;
+                    }
+                } else {
+                    hasPendingZeroSizedField = true;
+                }
+            } else if (size != count.intValue()) {
+                mismatch = true;
+            }
         }
 
         if (count == null) {
@@ -958,21 +1014,7 @@ final class ChromaHttpCollection implements Collection {
                     "idGenerator requires at least one data field (documents, embeddings, metadatas, or uris) to infer record count"
             );
         }
-
-        List<String> sizeDetails = new ArrayList<String>(4);
-        if (documents != null) {
-            sizeDetails.add("documents=" + documents.size());
-        }
-        if (embeddings != null) {
-            sizeDetails.add("embeddings=" + embeddings.size());
-        }
-        if (metadatas != null) {
-            sizeDetails.add("metadatas=" + metadatas.size());
-        }
-        if (uris != null) {
-            sizeDetails.add("uris=" + uris.size());
-        }
-        if (hasMismatchedSizes(count.intValue(), documents, embeddings, metadatas, uris)) {
+        if (mismatch) {
             throw new IllegalArgumentException(
                     "all data fields must have the same size when idGenerator is used: "
                             + joinWithComma(sizeDetails)
@@ -985,8 +1027,7 @@ final class ChromaHttpCollection implements Collection {
                                              List<String> documents,
                                              List<Map<String, Object>> metadatas) {
         List<String> ids = new ArrayList<String>(count);
-        Map<String, Integer> firstIndexById = new LinkedHashMap<String, Integer>();
-        Map<String, List<Integer>> duplicateIndexesById = new LinkedHashMap<String, List<Integer>>();
+        Map<String, List<Integer>> indexesById = new LinkedHashMap<String, List<Integer>>();
         for (int i = 0; i < count; i++) {
             String doc = documents != null ? documents.get(i) : null;
             Map<String, Object> meta = metadatas != null ? metadatas.get(i) : null;
@@ -1004,30 +1045,30 @@ final class ChromaHttpCollection implements Collection {
                         "IdGenerator returned null or empty ID at index " + i
                 );
             }
-            Integer firstIndex = firstIndexById.get(generated);
-            if (firstIndex == null) {
-                firstIndexById.put(generated, Integer.valueOf(i));
-            } else {
-                List<Integer> indexes = duplicateIndexesById.get(generated);
-                if (indexes == null) {
-                    indexes = new ArrayList<Integer>();
-                    indexes.add(firstIndex);
-                    duplicateIndexesById.put(generated, indexes);
-                }
-                indexes.add(Integer.valueOf(i));
+            List<Integer> indexes = indexesById.get(generated);
+            if (indexes == null) {
+                indexes = new ArrayList<Integer>();
+                indexesById.put(generated, indexes);
             }
+            indexes.add(Integer.valueOf(i));
             ids.add(generated);
         }
-        if (!duplicateIndexesById.isEmpty()) {
-            throw new IllegalArgumentException(buildDuplicateIdsMessage(duplicateIndexesById));
+        String duplicateMessage = buildDuplicateIdsMessage(indexesById);
+        if (duplicateMessage != null) {
+            throw new IllegalArgumentException(duplicateMessage);
         }
         return ids;
     }
 
-    private static String buildDuplicateIdsMessage(Map<String, List<Integer>> duplicateIndexesById) {
-        List<String> details = new ArrayList<String>(duplicateIndexesById.size());
-        for (Map.Entry<String, List<Integer>> entry : duplicateIndexesById.entrySet()) {
-            details.add("'" + entry.getKey() + "' at indexes " + entry.getValue());
+    private static String buildDuplicateIdsMessage(Map<String, List<Integer>> indexesById) {
+        List<String> details = new ArrayList<String>(indexesById.size());
+        for (Map.Entry<String, List<Integer>> entry : indexesById.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                details.add("'" + entry.getKey() + "' at indexes " + entry.getValue());
+            }
+        }
+        if (details.isEmpty()) {
+            return null;
         }
         return "IdGenerator produced duplicate IDs in the same batch: " + joinWithComma(details);
     }
@@ -1041,23 +1082,6 @@ final class ChromaHttpCollection implements Collection {
             sb.append(parts.get(i));
         }
         return sb.toString();
-    }
-
-    private static boolean hasMismatchedSizes(int expectedSize,
-                                              List<String> documents,
-                                              List<float[]> embeddings,
-                                              List<Map<String, Object>> metadatas,
-                                              List<String> uris) {
-        if (documents != null && documents.size() != expectedSize) {
-            return true;
-        }
-        if (embeddings != null && embeddings.size() != expectedSize) {
-            return true;
-        }
-        if (metadatas != null && metadatas.size() != expectedSize) {
-            return true;
-        }
-        return uris != null && uris.size() != expectedSize;
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
