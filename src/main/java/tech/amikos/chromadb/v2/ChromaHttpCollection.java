@@ -939,62 +939,20 @@ final class ChromaHttpCollection implements Collection {
 
     private static int inferRecordCount(List<String> documents, List<float[]> embeddings,
                                          List<Map<String, Object>> metadatas, List<String> uris) {
+        String[] names = {"documents", "embeddings", "metadatas", "uris"};
+        List<?>[] fields = {documents, embeddings, metadatas, uris};
+
         Integer count = null;
         boolean mismatch = false;
         boolean hasPendingZeroSizedField = false;
         List<String> sizeDetails = new ArrayList<String>(4);
 
-        if (documents != null) {
-            int size = documents.size();
-            sizeDetails.add("documents=" + size);
-            if (count == null) {
-                if (size > 0) {
-                    count = Integer.valueOf(size);
-                    if (hasPendingZeroSizedField) {
-                        mismatch = true;
-                    }
-                } else {
-                    hasPendingZeroSizedField = true;
-                }
-            } else if (size != count.intValue()) {
-                mismatch = true;
+        for (int f = 0; f < fields.length; f++) {
+            if (fields[f] == null) {
+                continue;
             }
-        }
-        if (embeddings != null) {
-            int size = embeddings.size();
-            sizeDetails.add("embeddings=" + size);
-            if (count == null) {
-                if (size > 0) {
-                    count = Integer.valueOf(size);
-                    if (hasPendingZeroSizedField) {
-                        mismatch = true;
-                    }
-                } else {
-                    hasPendingZeroSizedField = true;
-                }
-            } else if (size != count.intValue()) {
-                mismatch = true;
-            }
-        }
-        if (metadatas != null) {
-            int size = metadatas.size();
-            sizeDetails.add("metadatas=" + size);
-            if (count == null) {
-                if (size > 0) {
-                    count = Integer.valueOf(size);
-                    if (hasPendingZeroSizedField) {
-                        mismatch = true;
-                    }
-                } else {
-                    hasPendingZeroSizedField = true;
-                }
-            } else if (size != count.intValue()) {
-                mismatch = true;
-            }
-        }
-        if (uris != null) {
-            int size = uris.size();
-            sizeDetails.add("uris=" + size);
+            int size = fields[f].size();
+            sizeDetails.add(names[f] + "=" + size);
             if (count == null) {
                 if (size > 0) {
                     count = Integer.valueOf(size);
@@ -1013,7 +971,7 @@ final class ChromaHttpCollection implements Collection {
             if (hasPendingZeroSizedField) {
                 throw new IllegalArgumentException(
                         "all provided data fields are empty; idGenerator cannot infer record count: "
-                                + joinWithComma(sizeDetails)
+                                + String.join(", ", sizeDetails)
                 );
             }
             throw new IllegalArgumentException(
@@ -1023,7 +981,7 @@ final class ChromaHttpCollection implements Collection {
         if (mismatch) {
             throw new IllegalArgumentException(
                     "all data fields must have the same size when idGenerator is used: "
-                            + joinWithComma(sizeDetails)
+                            + String.join(", ", sizeDetails)
             );
         }
         return count.intValue();
@@ -1034,6 +992,7 @@ final class ChromaHttpCollection implements Collection {
                                              List<Map<String, Object>> metadatas) {
         List<String> ids = new ArrayList<String>(count);
         Map<String, List<Integer>> indexesById = new LinkedHashMap<String, List<Integer>>();
+        boolean hasDuplicate = false;
         for (int i = 0; i < count; i++) {
             String doc = documents != null ? documents.get(i) : null;
             Map<String, Object> meta = metadatas != null ? metadatas.get(i) : null;
@@ -1042,7 +1001,7 @@ final class ChromaHttpCollection implements Collection {
                 generated = generator.generate(doc, meta);
             } catch (RuntimeException e) {
                 throw new IllegalArgumentException(
-                        "IdGenerator threw an exception at record index " + i + ": " + e.getMessage(),
+                        "IdGenerator threw an exception at record index " + i + ": " + e.toString(),
                         e
                 );
             }
@@ -1055,13 +1014,14 @@ final class ChromaHttpCollection implements Collection {
             if (indexes == null) {
                 indexes = new ArrayList<Integer>();
                 indexesById.put(generated, indexes);
+            } else {
+                hasDuplicate = true;
             }
             indexes.add(Integer.valueOf(i));
             ids.add(generated);
         }
-        String duplicateMessage = buildDuplicateIdsMessage(indexesById);
-        if (duplicateMessage != null) {
-            throw new IllegalArgumentException(duplicateMessage);
+        if (hasDuplicate) {
+            throw new IllegalArgumentException(buildDuplicateIdsMessage(indexesById));
         }
         return ids;
     }
@@ -1076,18 +1036,7 @@ final class ChromaHttpCollection implements Collection {
         if (details.isEmpty()) {
             return null;
         }
-        return "IdGenerator produced duplicate IDs in the same batch: " + joinWithComma(details);
-    }
-
-    private static String joinWithComma(List<String> parts) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.size(); i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
-            sb.append(parts.get(i));
-        }
-        return sb.toString();
+        return "IdGenerator produced duplicate IDs in the same batch: " + String.join(", ", details);
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
@@ -1142,9 +1091,9 @@ final class ChromaHttpCollection implements Collection {
         } catch (ChromaException e) {
             throw e;
         } catch (EFException e) {
-            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+            throw new ChromaException("Failed to embed queryTexts: " + e.toString(), e);
         } catch (RuntimeException e) {
-            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+            throw new ChromaException("Failed to embed queryTexts: " + e.toString(), e);
         }
         if (embeddings == null) {
             throw new ChromaException("Failed to embed queryTexts: embedding function returned null");

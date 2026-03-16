@@ -105,10 +105,10 @@ public class IdGeneratorTest {
     }
 
     @Test
-    public void testUlidLexicographicSortOrder() throws InterruptedException {
-        String id1 = UlidIdGenerator.INSTANCE.generate(null, null);
-        Thread.sleep(2); // ensure different millisecond
-        String id2 = UlidIdGenerator.INSTANCE.generate(null, null);
+    public void testUlidLexicographicSortOrder() {
+        byte[] random = new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A};
+        String id1 = UlidIdGenerator.encode(1000L, random);
+        String id2 = UlidIdGenerator.encode(1001L, random);
         assertTrue("Expected id1 < id2, got id1=" + id1 + " id2=" + id2,
                 id1.compareTo(id2) < 0);
     }

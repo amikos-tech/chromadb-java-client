@@ -1,6 +1,6 @@
 package tech.amikos.chromadb.v2;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -22,7 +22,6 @@ public final class Sha256IdGenerator implements IdGenerator {
 
     public static final Sha256IdGenerator INSTANCE = new Sha256IdGenerator();
 
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final char[] HEX = "0123456789abcdef".toCharArray();
 
     private Sha256IdGenerator() {
@@ -35,7 +34,7 @@ public final class Sha256IdGenerator implements IdGenerator {
         }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(document.getBytes(UTF_8));
+            byte[] hash = digest.digest(document.getBytes(StandardCharsets.UTF_8));
             return hexEncode(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 not available", e);
