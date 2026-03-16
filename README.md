@@ -201,7 +201,7 @@ Rules:
 - `ids(...)` and `idGenerator(...)` are mutually exclusive (validated at `execute()` time).
 - `idGenerator(...)` requires at least one non-empty data field (`documents`, `embeddings`, `metadatas`, or `uris`) to infer record count.
 - `Sha256IdGenerator` requires non-null documents.
-- Duplicate generated IDs within the same batch are rejected client-side before sending the request.
+- Duplicate generated IDs within the same batch are rejected client-side before sending the request. For cross-batch deduplication, use `upsert()` with a deterministic generator like `Sha256IdGenerator`.
 
 ### Default Embedding Function
 

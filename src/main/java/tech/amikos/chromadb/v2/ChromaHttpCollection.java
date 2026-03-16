@@ -405,7 +405,10 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public AddBuilder ids(String... ids) {
-            this.ids = Arrays.asList(ids);
+            Objects.requireNonNull(ids, "ids");
+            if (ids.length > 0) {
+                this.ids = Arrays.asList(ids);
+            }
             return this;
         }
 
@@ -493,7 +496,10 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public UpsertBuilder ids(String... ids) {
-            this.ids = Arrays.asList(ids);
+            Objects.requireNonNull(ids, "ids");
+            if (ids.length > 0) {
+                this.ids = Arrays.asList(ids);
+            }
             return this;
         }
 
