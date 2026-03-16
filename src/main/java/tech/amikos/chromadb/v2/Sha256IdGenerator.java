@@ -9,7 +9,9 @@ import java.util.Map;
  * Generates deterministic IDs by SHA-256 hashing the document content.
  *
  * <p>Produces a 64-character lowercase hex string. The same document always
- * produces the same ID, enabling content-addressable deduplication.</p>
+ * produces the same ID, enabling content-addressable deduplication. Within a
+ * single add/upsert batch, duplicate generated IDs are rejected by the client.
+ * For cross-batch deduplication behavior, use {@code upsert(...)}.</p>
  *
  * <p>Requires a non-null document; throws {@link IllegalArgumentException} if
  * the document is null. Metadata is ignored.</p>

@@ -411,7 +411,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public AddBuilder ids(List<String> ids) {
-            this.ids = ids;
+            this.ids = Objects.requireNonNull(ids, "ids");
             return this;
         }
 
@@ -499,7 +499,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public UpsertBuilder ids(List<String> ids) {
-            this.ids = ids;
+            this.ids = Objects.requireNonNull(ids, "ids");
             return this;
         }
 
@@ -1010,6 +1010,12 @@ final class ChromaHttpCollection implements Collection {
         }
 
         if (count == null) {
+            if (hasPendingZeroSizedField) {
+                throw new IllegalArgumentException(
+                        "all provided data fields are empty; idGenerator cannot infer record count: "
+                                + joinWithComma(sizeDetails)
+                );
+            }
             throw new IllegalArgumentException(
                     "idGenerator requires at least one data field (documents, embeddings, metadatas, or uris) to infer record count"
             );

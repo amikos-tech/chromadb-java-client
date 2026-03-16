@@ -1890,6 +1890,44 @@ public class ChromaHttpCollectionTest {
                         equalTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"))));
     }
 
+    @Test
+    public void testAddWithUuidIdGeneratorEmbeddingsOnly() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[0]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                ))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[1]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                ))
+                .withRequestBody(notMatching("(?s).*\"documents\"\\s*:\\s*\\[.*")));
+    }
+
+    @Test
+    public void testAddWithUlidIdGeneratorEmbeddingsOnly() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UlidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath("$.ids[0]", matching("[0-9A-HJKMNP-TV-Z]{26}")))
+                .withRequestBody(matchingJsonPath("$.ids[1]", matching("[0-9A-HJKMNP-TV-Z]{26}")))
+                .withRequestBody(notMatching("(?s).*\"documents\"\\s*:\\s*\\[.*")));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testAddRejectsBothIdsAndIdGenerator() {
         collection.add()
@@ -1897,6 +1935,16 @@ public class ChromaHttpCollectionTest {
                 .idGenerator(UuidIdGenerator.INSTANCE)
                 .documents("doc1")
                 .execute();
+    }
+
+    @Test
+    public void testAddRejectsNullIdsList() {
+        try {
+            collection.add().ids((List<String>) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("ids", e.getMessage());
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -1913,6 +1961,22 @@ public class ChromaHttpCollectionTest {
         collection.add()
                 .idGenerator(UuidIdGenerator.INSTANCE)
                 .execute();
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsAllProvidedDataFieldsEmpty() {
+        try {
+            collection.add()
+                    .idGenerator(UuidIdGenerator.INSTANCE)
+                    .documents(Collections.<String>emptyList())
+                    .embeddings(Collections.<float[]>emptyList())
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("all provided data fields are empty"));
+            assertTrue(e.getMessage().contains("documents=0"));
+            assertTrue(e.getMessage().contains("embeddings=0"));
+        }
     }
 
     @Test
@@ -2071,6 +2135,16 @@ public class ChromaHttpCollectionTest {
                 .idGenerator(UuidIdGenerator.INSTANCE)
                 .documents("doc1")
                 .execute();
+    }
+
+    @Test
+    public void testUpsertRejectsNullIdsList() {
+        try {
+            collection.upsert().ids((List<String>) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("ids", e.getMessage());
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)

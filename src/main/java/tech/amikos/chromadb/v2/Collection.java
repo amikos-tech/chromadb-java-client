@@ -104,6 +104,7 @@ public interface Collection {
          * Enables auto-generated IDs for each record.
          *
          * <p>Mutually exclusive with {@link #ids(String...)} and {@link #ids(List)}.</p>
+         * <p>Exclusivity is enforced at {@link #execute()} time.</p>
          *
          * @throws NullPointerException if {@code idGenerator} is null
          */
@@ -196,6 +197,7 @@ public interface Collection {
          * Enables auto-generated IDs for each record.
          *
          * <p>Mutually exclusive with {@link #ids(String...)} and {@link #ids(List)}.</p>
+         * <p>Exclusivity is enforced at {@link #execute()} time.</p>
          *
          * @throws NullPointerException if {@code idGenerator} is null
          */
