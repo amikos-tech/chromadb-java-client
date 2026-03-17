@@ -1040,7 +1040,7 @@ final class ChromaHttpCollection implements Collection {
             }
         }
         if (details.isEmpty()) {
-            return null;
+            return "IdGenerator produced duplicate IDs in the same batch";
         }
         return "IdGenerator produced duplicate IDs in the same batch: " + String.join(", ", details);
     }
