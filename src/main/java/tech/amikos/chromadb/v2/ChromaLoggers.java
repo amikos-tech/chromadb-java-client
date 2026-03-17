@@ -6,6 +6,11 @@ final class ChromaLoggers {
 
     private static final ChromaLogger NOOP = new ChromaLogger() {
         @Override
+        public boolean isNoop() {
+            return true;
+        }
+
+        @Override
         public void debug(String event, Map<String, Object> fields) {}
 
         @Override

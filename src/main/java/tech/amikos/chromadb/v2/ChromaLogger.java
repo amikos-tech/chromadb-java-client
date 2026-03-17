@@ -24,12 +24,15 @@ public interface ChromaLogger {
     void error(String event, Map<String, Object> fields, Throwable throwable);
 
     /**
-     * Backward-compatible alias for the noop logger instance.
+     * Returns {@code true} if this logger discards all events.
      *
-     * <p>Prefer {@link #noop()}.</p>
+     * <p>The default implementation returns {@code false}. The built-in
+     * {@link #noop()} logger overrides this to return {@code true}, allowing
+     * transport code to skip log-field construction when logging is disabled.</p>
      */
-    @Deprecated
-    ChromaLogger NOOP = ChromaLoggers.noopInstance();
+    default boolean isNoop() {
+        return false;
+    }
 
     static ChromaLogger noop() {
         return ChromaLoggers.noopInstance();

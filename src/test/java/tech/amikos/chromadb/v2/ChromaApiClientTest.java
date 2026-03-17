@@ -1153,6 +1153,32 @@ public class ChromaApiClientTest {
     }
 
     @Test
+    public void testLoggedUrlRedactsTenantDatabaseAndCollection() {
+        stubFor(get(urlEqualTo("/api/v2/tenants/my-tenant/databases/my-db/collections/abc-123"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("\"ok\"")));
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                new okhttp3.OkHttpClient(),
+                true,
+                logger
+        );
+
+        client.get("/api/v2/tenants/my-tenant/databases/my-db/collections/abc-123", String.class);
+        String loggedUrl = (String) logger.lastEvent("chroma.http.request").fields.get("url");
+        assertFalse("tenant should be redacted", loggedUrl.contains("my-tenant"));
+        assertFalse("database should be redacted", loggedUrl.contains("my-db"));
+        assertFalse("collection should be redacted", loggedUrl.contains("abc-123"));
+        assertTrue("redacted placeholder should be present",
+                loggedUrl.contains("/tenants/***/databases/***/collections/***"));
+    }
+
+    @Test
     public void testLoggerResponseErrorEventIsEmitted() {
         stubFor(get(urlEqualTo("/api/v2/test"))
                 .willReturn(aResponse().withStatus(500).withBody("{\"error\":\"boom\"}")));

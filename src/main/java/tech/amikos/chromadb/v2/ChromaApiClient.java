@@ -18,6 +18,7 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +77,7 @@ class ChromaApiClient implements AutoCloseable {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         this.ownsHttpClient = ownsHttpClient;
         this.logger = logger == null ? ChromaLogger.noop() : logger;
-        this.loggingEnabled = this.logger != ChromaLoggers.noopInstance();
+        this.loggingEnabled = !this.logger.isNoop();
         this.gson = new GsonBuilder().create();
     }
 
@@ -432,8 +433,21 @@ class ChromaApiClient implements AutoCloseable {
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 
+    /**
+     * Strips query/fragment and redacts resource identifiers (tenant, database,
+     * collection) from the URL path so that sensitive cloud identifiers are not
+     * leaked into log output.
+     */
     private static String sanitizeUrlForLogs(HttpUrl url) {
-        return url.newBuilder().query(null).fragment(null).build().toString();
+        HttpUrl.Builder builder = url.newBuilder().query(null).fragment(null);
+        List<String> segments = url.pathSegments();
+        for (int i = 1; i < segments.size(); i++) {
+            String prev = segments.get(i - 1);
+            if ("tenants".equals(prev) || "databases".equals(prev) || "collections".equals(prev)) {
+                builder.setPathSegment(i, "***");
+            }
+        }
+        return builder.build().toString();
     }
 
     private static void safeLog(Runnable logAction) {
