@@ -240,6 +240,43 @@ public class ChromaDtosContractTest {
     }
 
     @Test
+    public void testParseConfigurationRejectsFractionalIntegerField() {
+        Map<String, Object> config = new LinkedHashMap<String, Object>();
+        config.put("hnsw:search_ef", Double.valueOf(10.5));
+        try {
+            ChromaDtos.parseConfiguration(config);
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("hnsw:search_ef must be an integer"));
+        }
+    }
+
+    @Test
+    public void testParseSchemaRejectsFractionalIntegerField() {
+        Map<String, Object> schema = new LinkedHashMap<String, Object>();
+        Map<String, Object> keys = new LinkedHashMap<String, Object>();
+        Map<String, Object> embedding = new LinkedHashMap<String, Object>();
+        Map<String, Object> floatList = new LinkedHashMap<String, Object>();
+        Map<String, Object> vectorIndex = new LinkedHashMap<String, Object>();
+        Map<String, Object> config = new LinkedHashMap<String, Object>();
+        Map<String, Object> hnsw = new LinkedHashMap<String, Object>();
+        hnsw.put("max_neighbors", Double.valueOf(16.7));
+        config.put("hnsw", hnsw);
+        vectorIndex.put("config", config);
+        floatList.put("vector_index", vectorIndex);
+        embedding.put("float_list", floatList);
+        keys.put(Schema.EMBEDDING_KEY, embedding);
+        schema.put("keys", keys);
+
+        try {
+            ChromaDtos.parseSchema(schema);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("max_neighbors must be an integer"));
+        }
+    }
+
+    @Test
     public void testCreateCollectionRequestIncludesTopLevelSchema() {
         Schema schema = Schema.builder()
                 .key(Schema.EMBEDDING_KEY, ValueTypes.builder()

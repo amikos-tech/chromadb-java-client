@@ -1366,10 +1366,12 @@ final class ChromaDtos {
         if (value == null) {
             return;
         }
-        if (!(value instanceof Number)) {
-            throw invalidConfiguration(key + " must be numeric");
+        int intValue;
+        try {
+            intValue = requireIntegerNumber(value, key);
+        } catch (IllegalArgumentException e) {
+            throw invalidConfiguration(e.getMessage(), e);
         }
-        int intValue = ((Number) value).intValue();
         try {
             consumer.accept(intValue);
         } catch (IllegalArgumentException e) {
@@ -1386,10 +1388,12 @@ final class ChromaDtos {
         if (value == null) {
             return;
         }
-        if (!(value instanceof Number)) {
-            throw invalidConfiguration(key + " must be numeric");
+        int intValue;
+        try {
+            intValue = requireIntegerNumber(value, key);
+        } catch (IllegalArgumentException e) {
+            throw invalidConfiguration(e.getMessage(), e);
         }
-        int intValue = ((Number) value).intValue();
         try {
             consumer.accept(intValue);
         } catch (IllegalArgumentException e) {
@@ -1424,10 +1428,24 @@ final class ChromaDtos {
         if (value == null) {
             return;
         }
+        consumer.accept(requireIntegerNumber(value, fieldName + "." + key));
+    }
+
+    private static int requireIntegerNumber(Object value, String fieldName) {
         if (!(value instanceof Number)) {
-            throw new IllegalArgumentException(fieldName + "." + key + " must be numeric");
+            throw new IllegalArgumentException(fieldName + " must be numeric");
         }
-        consumer.accept(((Number) value).intValue());
+        double doubleValue = ((Number) value).doubleValue();
+        if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+            throw new IllegalArgumentException(fieldName + " must be a finite integer");
+        }
+        if (doubleValue != Math.rint(doubleValue)) {
+            throw new IllegalArgumentException(fieldName + " must be an integer");
+        }
+        if (doubleValue > Integer.MAX_VALUE || doubleValue < Integer.MIN_VALUE) {
+            throw new IllegalArgumentException(fieldName + " must fit in 32-bit integer range");
+        }
+        return (int) doubleValue;
     }
 
     private static void parseDouble(Map<String, Object> map,

@@ -70,7 +70,7 @@ final class ChromaHttpCollection implements Collection {
         Objects.requireNonNull(tenant, "tenant");
         Objects.requireNonNull(database, "database");
         CollectionConfiguration parsedConfiguration = ChromaDtos.parseConfiguration(dto.configurationJson);
-        Schema parsedTopLevelSchema = ChromaDtos.parseSchema(dto.schema);
+        Schema parsedTopLevelSchema = parseTopLevelSchema(dto.schema);
         Schema parsedConfigurationSchema = parsedConfiguration != null ? parsedConfiguration.getSchema() : null;
         Schema effectiveSchema = parsedTopLevelSchema != null ? parsedTopLevelSchema : parsedConfigurationSchema;
 
@@ -100,6 +100,23 @@ final class ChromaHttpCollection implements Collection {
                 explicitEmbeddingFunction,
                 effectiveSpec
         );
+    }
+
+    private static Schema parseTopLevelSchema(Map<String, Object> schemaJson) {
+        if (schemaJson == null || schemaJson.isEmpty()) {
+            return null;
+        }
+        try {
+            return ChromaDtos.parseSchema(schemaJson);
+        } catch (ChromaDeserializationException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new ChromaDeserializationException(
+                    "Server returned invalid collection schema: " + e.getMessage(),
+                    200,
+                    e
+            );
+        }
     }
 
     @Override

@@ -1850,6 +1850,39 @@ public class ChromaHttpCollectionTest {
         }
     }
 
+    @Test
+    public void testFromWrapsMalformedTopLevelSchemaAsDeserializationException() {
+        ChromaDtos.CollectionResponse dto = validCollectionDto();
+        Map<String, Object> schema = new LinkedHashMap<String, Object>();
+        Map<String, Object> keys = new LinkedHashMap<String, Object>();
+        Map<String, Object> embedding = new LinkedHashMap<String, Object>();
+        Map<String, Object> floatList = new LinkedHashMap<String, Object>();
+        Map<String, Object> vectorIndex = new LinkedHashMap<String, Object>();
+        Map<String, Object> config = new LinkedHashMap<String, Object>();
+        config.put("hnsw", "invalid");
+        vectorIndex.put("config", config);
+        floatList.put("vector_index", vectorIndex);
+        embedding.put("float_list", floatList);
+        keys.put(Schema.EMBEDDING_KEY, embedding);
+        schema.put("keys", keys);
+        dto.schema = schema;
+
+        ChromaApiClient api = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(), null, null, null, null, null);
+        try {
+            ChromaHttpCollection.from(dto, api, Tenant.defaultTenant(), Database.defaultDatabase(), null);
+            fail("Expected ChromaDeserializationException");
+        } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("invalid collection schema"));
+            assertTrue(e.getMessage().contains("must be an object"));
+            assertEquals(200, e.getStatusCode());
+            assertNotNull(e.getCause());
+            assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+        } finally {
+            api.close();
+        }
+    }
+
     // --- add/upsert with IdGenerator ---
 
     @Test
