@@ -381,7 +381,7 @@ public final class ChromaClient {
 
         private static SSLContext newTlsContext(TrustManager[] trustManagers) {
             try {
-                SSLContext sslContext = SSLContext.getInstance("TLS");
+                SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
                 sslContext.init(null, trustManagers, new SecureRandom());
                 return sslContext;
             } catch (GeneralSecurityException e) {
@@ -443,6 +443,7 @@ public final class ChromaClient {
         private String tenant;
         private String database;
         private Duration timeout;
+        private ChromaLogger logger;
 
         CloudBuilder() {}
 
@@ -469,6 +470,14 @@ public final class ChromaClient {
 
         public CloudBuilder timeout(Duration timeout) { this.timeout = timeout; return this; }
 
+        /**
+         * Sets a structured logger for transport-level request/response events.
+         */
+        public CloudBuilder logger(ChromaLogger logger) {
+            this.logger = Objects.requireNonNull(logger, "logger");
+            return this;
+        }
+
         public Client build() {
             if (apiKey == null) {
                 throw new IllegalStateException("apiKey is required for Chroma Cloud");
@@ -479,9 +488,21 @@ public final class ChromaClient {
             if (database == null) {
                 throw new IllegalStateException("database is required for Chroma Cloud");
             }
+            OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder();
+            if (timeout != null) {
+                httpClientBuilder.connectTimeout(timeout);
+                httpClientBuilder.readTimeout(timeout);
+                httpClientBuilder.writeTimeout(timeout);
+            }
+
             ChromaApiClient apiClient = new ChromaApiClient(
-                    CLOUD_BASE_URL, ChromaTokenAuth.of(apiKey), null,
-                    timeout, timeout, timeout);
+                    CLOUD_BASE_URL,
+                    ChromaTokenAuth.of(apiKey),
+                    null,
+                    httpClientBuilder.build(),
+                    true,
+                    logger == null ? ChromaLogger.noop() : logger
+            );
             return new ChromaClientImpl(apiClient, Tenant.of(tenant), Database.of(database));
         }
     }

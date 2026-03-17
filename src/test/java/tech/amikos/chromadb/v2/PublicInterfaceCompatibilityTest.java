@@ -73,4 +73,10 @@ public class PublicInterfaceCompatibilityTest {
         assertEquals(ChromaClient.Builder.class, databaseMethod.getReturnType());
         assertEquals(ChromaClient.Builder.class, bothMethod.getReturnType());
     }
+
+    @Test
+    public void testCloudBuilderHasLoggerMethod() throws Exception {
+        Method method = ChromaClient.CloudBuilder.class.getMethod("logger", ChromaLogger.class);
+        assertEquals(ChromaClient.CloudBuilder.class, method.getReturnType());
+    }
 }

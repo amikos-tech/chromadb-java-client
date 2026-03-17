@@ -58,7 +58,8 @@ public class ChromaClientBuilderTest {
                 .apiKey("key")
                 .tenant("t")
                 .database("d")
-                .timeout(Duration.ofSeconds(30));
+                .timeout(Duration.ofSeconds(30))
+                .logger(ChromaLogger.noop());
         assertNotNull(builder);
     }
 
@@ -114,6 +115,30 @@ public class ChromaClientBuilderTest {
             Object authProvider = authProviderField.get(apiClient);
 
             assertTrue(authProvider instanceof ChromaTokenAuth);
+        } finally {
+            client.close();
+        }
+    }
+
+    @Test
+    public void testCloudBuilderLoggerIsStoredInApiClient() throws Exception {
+        ChromaLogger logger = new RecordingLogger();
+        Client client = ChromaClient.cloud()
+                .apiKey("key")
+                .tenant("t")
+                .database("d")
+                .logger(logger)
+                .build();
+        try {
+            Field apiClientField = client.getClass().getDeclaredField("apiClient");
+            apiClientField.setAccessible(true);
+            Object apiClient = apiClientField.get(client);
+
+            Field loggerField = ChromaApiClient.class.getDeclaredField("logger");
+            loggerField.setAccessible(true);
+            Object storedLogger = loggerField.get(apiClient);
+
+            assertSame(logger, storedLogger);
         } finally {
             client.close();
         }
