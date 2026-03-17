@@ -69,27 +69,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| API-03 | TBD | Pending |
-| API-04 | TBD | Pending |
-| AUTH-01 | TBD | Pending |
-| AUTH-02 | TBD | Pending |
-| AUTH-03 | TBD | Pending |
-| EMB-01 | TBD | Pending |
-| EMB-02 | TBD | Pending |
-| EMB-03 | TBD | Pending |
-| EMB-04 | TBD | Pending |
-| QLTY-01 | TBD | Pending |
-| QLTY-02 | TBD | Pending |
-| QLTY-03 | TBD | Pending |
-| QLTY-04 | TBD | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| API-04 | Phase 1 | Pending |
+| API-01 | Phase 2 | Pending |
+| API-02 | Phase 2 | Pending |
+| API-03 | Phase 2 | Pending |
+| EMB-01 | Phase 3 | Pending |
+| EMB-02 | Phase 3 | Pending |
+| EMB-03 | Phase 3 | Pending |
+| EMB-04 | Phase 3 | Pending |
+| QLTY-01 | Phase 4 | Pending |
+| QLTY-02 | Phase 4 | Pending |
+| QLTY-03 | Phase 5 | Pending |
+| QLTY-04 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after initial definition*
+*Last updated: 2026-03-17 after roadmap creation*
