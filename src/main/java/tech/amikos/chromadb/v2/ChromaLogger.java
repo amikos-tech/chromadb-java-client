@@ -12,27 +12,26 @@ public interface ChromaLogger {
 
     void debug(String event, Map<String, Object> fields);
 
+    /**
+     * Reserved for future informational events.
+     *
+     * <p>Current transport logging emits debug/warn/error events.</p>
+     */
     void info(String event, Map<String, Object> fields);
 
     void warn(String event, Map<String, Object> fields);
 
     void error(String event, Map<String, Object> fields, Throwable throwable);
 
-    ChromaLogger NOOP = new ChromaLogger() {
-        @Override
-        public void debug(String event, Map<String, Object> fields) {}
-
-        @Override
-        public void info(String event, Map<String, Object> fields) {}
-
-        @Override
-        public void warn(String event, Map<String, Object> fields) {}
-
-        @Override
-        public void error(String event, Map<String, Object> fields, Throwable throwable) {}
-    };
+    /**
+     * Backward-compatible alias for the noop logger instance.
+     *
+     * <p>Prefer {@link #noop()}.</p>
+     */
+    @Deprecated
+    ChromaLogger NOOP = ChromaLoggers.noopInstance();
 
     static ChromaLogger noop() {
-        return NOOP;
+        return ChromaLoggers.noopInstance();
     }
 }

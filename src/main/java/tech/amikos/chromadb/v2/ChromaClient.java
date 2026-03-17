@@ -406,8 +406,8 @@ public final class ChromaClient {
                     try {
                         fallback.checkClientTrusted(chain, authType);
                     } catch (CertificateException fallbackFailure) {
-                        fallbackFailure.addSuppressed(primaryFailure);
-                        throw fallbackFailure;
+                        primaryFailure.addSuppressed(fallbackFailure);
+                        throw primaryFailure;
                     }
                 }
             }
@@ -420,8 +420,8 @@ public final class ChromaClient {
                     try {
                         fallback.checkServerTrusted(chain, authType);
                     } catch (CertificateException fallbackFailure) {
-                        fallbackFailure.addSuppressed(primaryFailure);
-                        throw fallbackFailure;
+                        primaryFailure.addSuppressed(fallbackFailure);
+                        throw primaryFailure;
                     }
                 }
             }
