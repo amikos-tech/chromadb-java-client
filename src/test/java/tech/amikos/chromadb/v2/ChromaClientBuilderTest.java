@@ -122,7 +122,7 @@ public class ChromaClientBuilderTest {
 
     @Test
     public void testCloudBuilderLoggerIsStoredInApiClient() throws Exception {
-        ChromaLogger logger = new RecordingLogger();
+        ChromaLogger logger = new StubLogger();
         Client client = ChromaClient.cloud()
                 .apiKey("key")
                 .tenant("t")
@@ -209,7 +209,7 @@ public class ChromaClientBuilderTest {
 
     @Test
     public void testBuilderLoggerIsStoredInApiClient() throws Exception {
-        ChromaLogger logger = new RecordingLogger();
+        ChromaLogger logger = new StubLogger();
         Client client = ChromaClient.builder()
                 .baseUrl("http://localhost:8000")
                 .logger(logger)
@@ -344,7 +344,7 @@ public class ChromaClientBuilderTest {
         throw new IllegalStateException("No non-blank environment variable available for test");
     }
 
-    private static final class RecordingLogger implements ChromaLogger {
+    private static final class StubLogger implements ChromaLogger {
         @Override
         public void debug(String event, Map<String, Object> fields) {}
 

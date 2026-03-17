@@ -42,6 +42,7 @@ class ChromaApiClient implements AutoCloseable {
     private final OkHttpClient httpClient;
     private final boolean ownsHttpClient;
     private final ChromaLogger logger;
+    private final boolean loggingEnabled;
     private final Gson gson;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -75,6 +76,7 @@ class ChromaApiClient implements AutoCloseable {
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         this.ownsHttpClient = ownsHttpClient;
         this.logger = logger == null ? ChromaLogger.noop() : logger;
+        this.loggingEnabled = this.logger != ChromaLoggers.noopInstance();
         this.gson = new GsonBuilder().create();
     }
 
@@ -260,20 +262,24 @@ class ChromaApiClient implements AutoCloseable {
 
     private SuccessfulResponse execute(Request request) {
         long startNanos = System.nanoTime();
-        safeDebug("chroma.http.request", logFields(request, null, null));
+        if (loggingEnabled) {
+            safeLog(() -> logger.debug("chroma.http.request", logFields(request, null, null)));
+        }
 
         Response response;
         try {
             response = httpClient.newCall(request).execute();
         } catch (IOException e) {
-            safeError("chroma.http.network_error",
-                    logFields(request, null, elapsedMillis(startNanos)),
-                    e);
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.network_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaConnectionException("Network error communicating with " + request.url(), e);
         } catch (RuntimeException e) {
-            safeError("chroma.http.network_error",
-                    logFields(request, null, elapsedMillis(startNanos)),
-                    e);
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.network_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaException(
                     "Unexpected client-side error while executing request to "
                             + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
@@ -290,33 +296,41 @@ class ChromaApiClient implements AutoCloseable {
             long elapsedMillis = elapsedMillis(startNanos);
 
             if (statusCode >= 400) {
-                safeWarn("chroma.http.response_error",
-                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
+                if (loggingEnabled) {
+                    safeLog(() -> logger.warn("chroma.http.response_error",
+                            logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+                }
                 ErrorBody error = parseErrorBody(bodyString, statusCode);
                 throw ChromaExceptions.fromHttpResponse(statusCode, error.message, error.errorCode);
             }
 
             if (statusCode < 200 || statusCode >= 300) {
-                safeWarn("chroma.http.response_unexpected",
-                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
+                if (loggingEnabled) {
+                    safeLog(() -> logger.warn("chroma.http.response_unexpected",
+                            logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+                }
                 throw new ChromaException("Unexpected non-2xx response: " + formatStatusWithBody(statusCode, bodyString),
                         statusCode, null);
             }
 
-            safeDebug("chroma.http.response",
-                    logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
+            if (loggingEnabled) {
+                safeLog(() -> logger.debug("chroma.http.response",
+                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+            }
             return new SuccessfulResponse(statusCode, bodyString);
         } catch (ChromaException e) {
             throw e;
         } catch (IOException e) {
-            safeError("chroma.http.read_error",
-                    logFields(request, null, elapsedMillis(startNanos)),
-                    e);
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.read_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaConnectionException("Network error reading response from " + request.url(), e);
         } catch (RuntimeException e) {
-            safeError("chroma.http.response_processing_error",
-                    logFields(request, null, elapsedMillis(startNanos)),
-                    e);
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.response_processing_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaException(
                     "Unexpected client-side error while processing response from "
                             + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
@@ -422,25 +436,9 @@ class ChromaApiClient implements AutoCloseable {
         return url.newBuilder().query(null).fragment(null).build().toString();
     }
 
-    private void safeDebug(String event, Map<String, Object> fields) {
+    private static void safeLog(Runnable logAction) {
         try {
-            logger.debug(event, fields);
-        } catch (RuntimeException ignored) {
-            // Logging must never alter transport behavior.
-        }
-    }
-
-    private void safeWarn(String event, Map<String, Object> fields) {
-        try {
-            logger.warn(event, fields);
-        } catch (RuntimeException ignored) {
-            // Logging must never alter transport behavior.
-        }
-    }
-
-    private void safeError(String event, Map<String, Object> fields, Throwable throwable) {
-        try {
-            logger.error(event, fields, throwable);
+            logAction.run();
         } catch (RuntimeException ignored) {
             // Logging must never alter transport behavior.
         }

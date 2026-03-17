@@ -1223,48 +1223,8 @@ public class ChromaApiClientTest {
 
     @Test
     public void testLoggerReadErrorEventIsEmitted() {
-        OkHttpClient readFailingClient = new OkHttpClient.Builder()
-                .addInterceptor(chain -> {
-                    Request request = chain.request();
-                    ResponseBody body = new ResponseBody() {
-                        @Override
-                        public MediaType contentType() {
-                            return MediaType.parse("application/json");
-                        }
-
-                        @Override
-                        public long contentLength() {
-                            return -1;
-                        }
-
-                        @Override
-                        public BufferedSource source() {
-                            Source source = new Source() {
-                                @Override
-                                public long read(Buffer sink, long byteCount) throws IOException {
-                                    throw new IOException("forced read failure");
-                                }
-
-                                @Override
-                                public Timeout timeout() {
-                                    return Timeout.NONE;
-                                }
-
-                                @Override
-                                public void close() {}
-                            };
-                            return Okio.buffer(source);
-                        }
-                    };
-                    return new Response.Builder()
-                            .request(request)
-                            .protocol(Protocol.HTTP_1_1)
-                            .code(200)
-                            .message("OK")
-                            .body(body)
-                            .build();
-                })
-                .build();
+        OkHttpClient readFailingClient = buildClientWithFailingBody(
+                new IOException("forced read failure"));
 
         RecordingLogger logger = new RecordingLogger();
         client = new ChromaApiClient(
@@ -1355,7 +1315,31 @@ public class ChromaApiClientTest {
 
     @Test
     public void testRuntimeDuringResponseProcessingIsWrappedWithContext() {
-        OkHttpClient runtimeReadClient = new OkHttpClient.Builder()
+        OkHttpClient runtimeReadClient = buildClientWithFailingBody(
+                new IllegalStateException("forced processing runtime"));
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                runtimeReadClient,
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertFalse(e.hasStatusCode());
+            assertTrue(e.getMessage().contains("while processing response"));
+            assertTrue(logger.containsEvent("chroma.http.response_processing_error"));
+        }
+    }
+
+    private static OkHttpClient buildClientWithFailingBody(Exception readException) {
+        return new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request request = chain.request();
                     ResponseBody body = new ResponseBody() {
@@ -1373,8 +1357,14 @@ public class ChromaApiClientTest {
                         public BufferedSource source() {
                             Source source = new Source() {
                                 @Override
-                                public long read(Buffer sink, long byteCount) {
-                                    throw new IllegalStateException("forced processing runtime");
+                                public long read(Buffer sink, long byteCount) throws IOException {
+                                    if (readException instanceof IOException) {
+                                        throw (IOException) readException;
+                                    }
+                                    if (readException instanceof RuntimeException) {
+                                        throw (RuntimeException) readException;
+                                    }
+                                    throw new RuntimeException(readException);
                                 }
 
                                 @Override
@@ -1397,25 +1387,6 @@ public class ChromaApiClientTest {
                             .build();
                 })
                 .build();
-
-        RecordingLogger logger = new RecordingLogger();
-        client = new ChromaApiClient(
-                "http://localhost:" + wireMock.port(),
-                null,
-                null,
-                runtimeReadClient,
-                true,
-                logger
-        );
-
-        try {
-            client.get("/api/v2/test", String.class);
-            fail("Expected ChromaException");
-        } catch (ChromaException e) {
-            assertFalse(e.hasStatusCode());
-            assertTrue(e.getMessage().contains("while processing response"));
-            assertTrue(logger.containsEvent("chroma.http.response_processing_error"));
-        }
     }
 
     private static final class RecordingLogger implements ChromaLogger {

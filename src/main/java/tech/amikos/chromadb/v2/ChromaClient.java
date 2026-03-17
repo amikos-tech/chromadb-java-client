@@ -221,7 +221,7 @@ public final class ChromaClient {
                     defaultHeaders,
                     resolvedHttpClient,
                     ownsHttpClient,
-                    logger == null ? ChromaLogger.noop() : logger);
+                    logger);
             return new ChromaClientImpl(apiClient, effectiveTenant, effectiveDatabase);
         }
 
@@ -400,11 +400,21 @@ public final class ChromaClient {
 
             @Override
             public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                delegateCheck(chain, authType, X509TrustManager::checkClientTrusted);
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                delegateCheck(chain, authType, X509TrustManager::checkServerTrusted);
+            }
+
+            private void delegateCheck(X509Certificate[] chain, String authType,
+                    TrustCheck check) throws CertificateException {
                 try {
-                    primary.checkClientTrusted(chain, authType);
+                    check.verify(primary, chain, authType);
                 } catch (CertificateException primaryFailure) {
                     try {
-                        fallback.checkClientTrusted(chain, authType);
+                        check.verify(fallback, chain, authType);
                     } catch (CertificateException fallbackFailure) {
                         primaryFailure.addSuppressed(fallbackFailure);
                         throw primaryFailure;
@@ -412,18 +422,10 @@ public final class ChromaClient {
                 }
             }
 
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                try {
-                    primary.checkServerTrusted(chain, authType);
-                } catch (CertificateException primaryFailure) {
-                    try {
-                        fallback.checkServerTrusted(chain, authType);
-                    } catch (CertificateException fallbackFailure) {
-                        primaryFailure.addSuppressed(fallbackFailure);
-                        throw primaryFailure;
-                    }
-                }
+            @FunctionalInterface
+            private interface TrustCheck {
+                void verify(X509TrustManager tm, X509Certificate[] chain, String authType)
+                        throws CertificateException;
             }
 
             @Override
@@ -488,22 +490,18 @@ public final class ChromaClient {
             if (database == null) {
                 throw new IllegalStateException("database is required for Chroma Cloud");
             }
-            OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder();
+            Builder delegate = ChromaClient.builder()
+                    .baseUrl(CLOUD_BASE_URL)
+                    .auth(ChromaTokenAuth.of(apiKey))
+                    .tenant(tenant)
+                    .database(database);
             if (timeout != null) {
-                httpClientBuilder.connectTimeout(timeout);
-                httpClientBuilder.readTimeout(timeout);
-                httpClientBuilder.writeTimeout(timeout);
+                delegate.timeout(timeout);
             }
-
-            ChromaApiClient apiClient = new ChromaApiClient(
-                    CLOUD_BASE_URL,
-                    ChromaTokenAuth.of(apiKey),
-                    null,
-                    httpClientBuilder.build(),
-                    true,
-                    logger == null ? ChromaLogger.noop() : logger
-            );
-            return new ChromaClientImpl(apiClient, Tenant.of(tenant), Database.of(database));
+            if (logger != null) {
+                delegate.logger(logger);
+            }
+            return delegate.build();
         }
     }
 
