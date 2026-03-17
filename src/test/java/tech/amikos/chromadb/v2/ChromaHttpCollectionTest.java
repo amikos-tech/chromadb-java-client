@@ -1850,6 +1850,329 @@ public class ChromaHttpCollectionTest {
         }
     }
 
+    // --- add/upsert with IdGenerator ---
+
+    @Test
+    public void testAddWithUuidIdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .documents("doc1", "doc2")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[0]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                ))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[1]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                )));
+    }
+
+    @Test
+    public void testAddWithSha256IdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(Sha256IdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f})
+                .documents("hello")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath("$.ids[0]",
+                        equalTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"))));
+    }
+
+    @Test
+    public void testAddWithUuidIdGeneratorEmbeddingsOnly() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[0]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                ))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[1]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                ))
+                .withRequestBody(notMatching("(?s).*\"documents\"\\s*:\\s*\\[.*")));
+    }
+
+    @Test
+    public void testAddWithUlidIdGeneratorEmbeddingsOnly() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.add()
+                .idGenerator(UlidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
+                .withRequestBody(matchingJsonPath("$.ids[0]", matching("[0-9A-HJKMNP-TV-Z]{26}")))
+                .withRequestBody(matchingJsonPath("$.ids[1]", matching("[0-9A-HJKMNP-TV-Z]{26}")))
+                .withRequestBody(notMatching("(?s).*\"documents\"\\s*:\\s*\\[.*")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddRejectsBothIdsAndIdGenerator() {
+        collection.add()
+                .ids("id1")
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test
+    public void testAddRejectsNullIdsList() {
+        try {
+            collection.add().ids((List<String>) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("ids", e.getMessage());
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddRejectsEmptyIdsListAndIdGenerator() {
+        collection.add()
+                .ids(Collections.<String>emptyList())
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddIdGeneratorRequiresData() {
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .execute();
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsAllProvidedDataFieldsEmpty() {
+        try {
+            collection.add()
+                    .idGenerator(UuidIdGenerator.INSTANCE)
+                    .documents(Collections.<String>emptyList())
+                    .embeddings(Collections.<float[]>emptyList())
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("all provided data fields are empty"));
+            assertTrue(e.getMessage().contains("documents=0"));
+            assertTrue(e.getMessage().contains("embeddings=0"));
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsDuplicateGeneratedIds() {
+        IdGenerator duplicateGenerator = new IdGenerator() {
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                return "dup";
+            }
+        };
+
+        try {
+            collection.add()
+                    .idGenerator(duplicateGenerator)
+                    .documents("same", "same")
+                    .embeddings(new float[]{1.0f}, new float[]{2.0f})
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("duplicate IDs"));
+            assertTrue(e.getMessage().contains("'dup'"));
+            assertTrue(e.getMessage().contains("[0, 1]"));
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorWrapsGeneratorExceptionWithRecordIndex() {
+        IdGenerator failingGenerator = new IdGenerator() {
+            private int callIndex = 0;
+
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                int current = callIndex++;
+                if (current == 1) {
+                    throw new IllegalStateException("boom");
+                }
+                return "id-" + current;
+            }
+        };
+
+        try {
+            collection.add()
+                    .idGenerator(failingGenerator)
+                    .documents("doc1", "doc2")
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("record index 1"));
+            assertTrue(e.getMessage().contains("boom"));
+            assertNotNull(e.getCause());
+            assertEquals(IllegalStateException.class, e.getCause().getClass());
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsNullGeneratedId() {
+        IdGenerator nullGenerator = new IdGenerator() {
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                return null;
+            }
+        };
+
+        try {
+            collection.add()
+                    .idGenerator(nullGenerator)
+                    .documents("doc1")
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("null or empty ID at index 0"));
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsEmptyGeneratedId() {
+        IdGenerator emptyGenerator = new IdGenerator() {
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                return "";
+            }
+        };
+
+        try {
+            collection.add()
+                    .idGenerator(emptyGenerator)
+                    .documents("doc1")
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("null or empty ID at index 0"));
+        }
+    }
+
+    @Test
+    public void testAddIdGeneratorRejectsMismatchedFieldSizesWithClearMessage() {
+        try {
+            collection.add()
+                    .idGenerator(UuidIdGenerator.INSTANCE)
+                    .documents("doc1", "doc2")
+                    .embeddings(new float[]{1.0f})
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("all data fields must have the same size"));
+            assertTrue(e.getMessage().contains("documents=2"));
+            assertTrue(e.getMessage().contains("embeddings=1"));
+        }
+    }
+
+    @Test
+    public void testAddWithSha256IdGeneratorEmbeddingsOnlyFailsWithDocumentRequirement() {
+        try {
+            collection.add()
+                    .idGenerator(Sha256IdGenerator.INSTANCE)
+                    .embeddings(new float[]{1.0f, 2.0f})
+                    .execute();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("requires a non-null document"));
+        }
+    }
+
+    @Test
+    public void testAddRejectsNullIdGenerator() {
+        try {
+            collection.add().idGenerator(null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("idGenerator", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testUpsertWithUuidIdGenerator() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert"))
+                .willReturn(aResponse().withStatus(200)));
+
+        collection.upsert()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1.0f, 2.0f})
+                .documents("doc1")
+                .execute();
+
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/upsert"))
+                .withRequestBody(matchingJsonPath(
+                        "$.ids[0]",
+                        matching("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+                )));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertRejectsBothIdsAndIdGenerator() {
+        collection.upsert()
+                .ids("id1")
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test
+    public void testUpsertRejectsNullIdsList() {
+        try {
+            collection.upsert().ids((List<String>) null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("ids", e.getMessage());
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertRejectsEmptyIdsListAndIdGenerator() {
+        collection.upsert()
+                .ids(Collections.<String>emptyList())
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .documents("doc1")
+                .execute();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpsertIdGeneratorRequiresData() {
+        collection.upsert()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .execute();
+    }
+
+    @Test
+    public void testUpsertRejectsNullIdGenerator() {
+        try {
+            collection.upsert().idGenerator(null);
+            fail("Expected NullPointerException");
+        } catch (NullPointerException e) {
+            assertEquals("idGenerator", e.getMessage());
+        }
+    }
+
     private static ChromaDtos.CollectionResponse validCollectionDto() {
         ChromaDtos.CollectionResponse dto = new ChromaDtos.CollectionResponse();
         dto.id = "col-id";

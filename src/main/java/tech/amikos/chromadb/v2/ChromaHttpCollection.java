@@ -397,6 +397,7 @@ final class ChromaHttpCollection implements Collection {
 
     private final class AddBuilderImpl implements AddBuilder {
         private List<String> ids;
+        private IdGenerator idGenerator;
         private List<float[]> embeddings;
         private List<String> documents;
         private List<Map<String, Object>> metadatas;
@@ -404,13 +405,22 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public AddBuilder ids(String... ids) {
-            this.ids = Arrays.asList(ids);
+            Objects.requireNonNull(ids, "ids");
+            if (ids.length > 0) {
+                this.ids = Arrays.asList(ids);
+            }
             return this;
         }
 
         @Override
         public AddBuilder ids(List<String> ids) {
-            this.ids = ids;
+            this.ids = Objects.requireNonNull(ids, "ids");
+            return this;
+        }
+
+        @Override
+        public AddBuilder idGenerator(IdGenerator idGenerator) {
+            this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
             return this;
         }
 
@@ -458,17 +468,16 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
-            if (ids == null || ids.isEmpty()) {
-                throw new IllegalArgumentException("ids must not be empty");
-            }
-            int idsSize = ids.size();
-            validateSizeMatchesIds("embeddings", embeddings, idsSize);
-            validateSizeMatchesIds("documents", documents, idsSize);
-            validateSizeMatchesIds("metadatas", metadatas, idsSize);
-            validateSizeMatchesIds("uris", uris, idsSize);
+            List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            int idsSize = resolvedIds.size();
+            String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
+            validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
+            validateSizeMatchesCount("documents", documents, idsSize, countLabel);
+            validateSizeMatchesCount("metadatas", metadatas, idsSize, countLabel);
+            validateSizeMatchesCount("uris", uris, idsSize, countLabel);
             String path = ChromaApiPaths.collectionAdd(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.AddRequest(
-                    ids,
+                    resolvedIds,
                     ChromaDtos.toFloatLists(embeddings),
                     documents,
                     metadatas,
@@ -479,6 +488,7 @@ final class ChromaHttpCollection implements Collection {
 
     private final class UpsertBuilderImpl implements UpsertBuilder {
         private List<String> ids;
+        private IdGenerator idGenerator;
         private List<float[]> embeddings;
         private List<String> documents;
         private List<Map<String, Object>> metadatas;
@@ -486,13 +496,22 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public UpsertBuilder ids(String... ids) {
-            this.ids = Arrays.asList(ids);
+            Objects.requireNonNull(ids, "ids");
+            if (ids.length > 0) {
+                this.ids = Arrays.asList(ids);
+            }
             return this;
         }
 
         @Override
         public UpsertBuilder ids(List<String> ids) {
-            this.ids = ids;
+            this.ids = Objects.requireNonNull(ids, "ids");
+            return this;
+        }
+
+        @Override
+        public UpsertBuilder idGenerator(IdGenerator idGenerator) {
+            this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
             return this;
         }
 
@@ -540,17 +559,16 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
-            if (ids == null || ids.isEmpty()) {
-                throw new IllegalArgumentException("ids must not be empty");
-            }
-            int idsSize = ids.size();
-            validateSizeMatchesIds("embeddings", embeddings, idsSize);
-            validateSizeMatchesIds("documents", documents, idsSize);
-            validateSizeMatchesIds("metadatas", metadatas, idsSize);
-            validateSizeMatchesIds("uris", uris, idsSize);
+            List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            int idsSize = resolvedIds.size();
+            String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
+            validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
+            validateSizeMatchesCount("documents", documents, idsSize, countLabel);
+            validateSizeMatchesCount("metadatas", metadatas, idsSize, countLabel);
+            validateSizeMatchesCount("uris", uris, idsSize, countLabel);
             String path = ChromaApiPaths.collectionUpsert(tenant.getName(), database.getName(), id);
             apiClient.post(path, new ChromaDtos.UpsertRequest(
-                    ids,
+                    resolvedIds,
                     ChromaDtos.toFloatLists(embeddings),
                     documents,
                     metadatas,
@@ -887,11 +905,144 @@ final class ChromaHttpCollection implements Collection {
     }
 
     private static void validateSizeMatchesIds(String fieldName, List<?> values, int idsSize) {
-        if (values != null && values.size() != idsSize) {
+        validateSizeMatchesCount(fieldName, values, idsSize, "ids size");
+    }
+
+    private static void validateSizeMatchesCount(String fieldName, List<?> values, int expectedSize, String countLabel) {
+        if (values != null && values.size() != expectedSize) {
             throw new IllegalArgumentException(
-                    fieldName + " size must match ids size (" + idsSize + ")"
+                    fieldName + " size must match " + countLabel + " (" + expectedSize + ")"
             );
         }
+    }
+
+    private static boolean hasExplicitIds(List<String> ids) {
+        return ids != null && !ids.isEmpty();
+    }
+
+    private static boolean hasIdsArgument(List<String> ids) {
+        return ids != null;
+    }
+
+    private static List<String> resolveIds(List<String> ids, IdGenerator idGenerator,
+                                            List<String> documents, List<float[]> embeddings,
+                                            List<Map<String, Object>> metadatas, List<String> uris) {
+        boolean hasIdsArg = hasIdsArgument(ids);
+        boolean hasIds = hasExplicitIds(ids);
+        boolean hasGenerator = idGenerator != null;
+        if (hasIdsArg && hasGenerator) {
+            throw new IllegalArgumentException("cannot set both ids and idGenerator");
+        }
+        if (!hasIds && !hasGenerator) {
+            throw new IllegalArgumentException("ids must not be empty");
+        }
+        if (hasIds) {
+            return ids;
+        }
+        int count = inferRecordCount(documents, embeddings, metadatas, uris);
+        return generateIds(idGenerator, count, documents, metadatas);
+    }
+
+    private static int inferRecordCount(List<String> documents, List<float[]> embeddings,
+                                         List<Map<String, Object>> metadatas, List<String> uris) {
+        String[] names = {"documents", "embeddings", "metadatas", "uris"};
+        List<?>[] fields = {documents, embeddings, metadatas, uris};
+
+        Integer count = null;
+        boolean mismatch = false;
+        boolean hasPendingZeroSizedField = false;
+        List<String> sizeDetails = new ArrayList<String>(4);
+
+        for (int f = 0; f < fields.length; f++) {
+            if (fields[f] == null) {
+                continue;
+            }
+            int size = fields[f].size();
+            sizeDetails.add(names[f] + "=" + size);
+            if (count == null) {
+                if (size > 0) {
+                    count = Integer.valueOf(size);
+                    if (hasPendingZeroSizedField) {
+                        mismatch = true;
+                    }
+                } else {
+                    hasPendingZeroSizedField = true;
+                }
+            } else if (size != count.intValue()) {
+                mismatch = true;
+            }
+        }
+
+        if (count == null) {
+            if (hasPendingZeroSizedField) {
+                throw new IllegalArgumentException(
+                        "all provided data fields are empty; idGenerator cannot infer record count: "
+                                + String.join(", ", sizeDetails)
+                );
+            }
+            throw new IllegalArgumentException(
+                    "idGenerator requires at least one data field (documents, embeddings, metadatas, or uris) to infer record count"
+            );
+        }
+        if (mismatch) {
+            throw new IllegalArgumentException(
+                    "all data fields must have the same size when idGenerator is used: "
+                            + String.join(", ", sizeDetails)
+            );
+        }
+        return count.intValue();
+    }
+
+    private static List<String> generateIds(IdGenerator generator, int count,
+                                             List<String> documents,
+                                             List<Map<String, Object>> metadatas) {
+        List<String> ids = new ArrayList<String>(count);
+        Map<String, List<Integer>> indexesById = new LinkedHashMap<String, List<Integer>>();
+        boolean hasDuplicate = false;
+        for (int i = 0; i < count; i++) {
+            String doc = documents != null ? documents.get(i) : null;
+            Map<String, Object> meta = metadatas != null ? metadatas.get(i) : null;
+            String generated;
+            try {
+                generated = generator.generate(doc, meta);
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(
+                        "IdGenerator threw an exception at record index " + i + ": " + e.toString(),
+                        e
+                );
+            }
+            if (generated == null || generated.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "IdGenerator returned null or empty ID at index " + i
+                );
+            }
+            List<Integer> indexes = indexesById.get(generated);
+            if (indexes == null) {
+                indexes = new ArrayList<Integer>();
+                indexesById.put(generated, indexes);
+            } else {
+                hasDuplicate = true;
+            }
+            indexes.add(Integer.valueOf(i));
+            ids.add(generated);
+        }
+        if (hasDuplicate) {
+            throw new IllegalArgumentException(buildDuplicateIdsMessage(indexesById));
+        }
+        return ids;
+    }
+
+    private static String buildDuplicateIdsMessage(Map<String, List<Integer>> indexesById) {
+        List<String> details = new ArrayList<String>(indexesById.size());
+        for (Map.Entry<String, List<Integer>> entry : indexesById.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                details.add("'" + entry.getKey() + "' at indexes " + entry.getValue());
+            }
+        }
+        if (details.isEmpty()) {
+            return "IdGenerator produced duplicate IDs in the same batch";
+        }
+        return "IdGenerator produced duplicate IDs in the same batch: " + String.join(", ", details);
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
@@ -946,9 +1097,9 @@ final class ChromaHttpCollection implements Collection {
         } catch (ChromaException e) {
             throw e;
         } catch (EFException e) {
-            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+            throw new ChromaException("Failed to embed queryTexts: " + e.toString(), e);
         } catch (RuntimeException e) {
-            throw new ChromaException("Failed to embed queryTexts: " + e.getMessage(), e);
+            throw new ChromaException("Failed to embed queryTexts: " + e.toString(), e);
         }
         if (embeddings == null) {
             throw new ChromaException("Failed to embed queryTexts: embedding function returned null");

@@ -171,6 +171,38 @@ Notes:
 - Unsupported providers in descriptors (for example `consistent_hash`) fail fast with `ChromaException` and guidance to use `queryEmbeddings(...)`.
 - For read paths, collection schema precedence is top-level `schema` first, then compatibility fallback `configuration.schema`.
 
+### v2 ID generators (new API)
+
+You can generate IDs client-side for `add()` and `upsert()` via `.idGenerator(...)`.
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+// Random UUID IDs (works with embeddings-only or documents)
+collection.add()
+        .idGenerator(UuidIdGenerator.INSTANCE)
+        .embeddings(new float[]{1.0f, 2.0f}, new float[]{3.0f, 4.0f})
+        .execute();
+
+// ULID IDs
+collection.upsert()
+        .idGenerator(UlidIdGenerator.INSTANCE)
+        .documents("doc-1", "doc-2")
+        .execute();
+
+// Deterministic IDs from document SHA-256
+collection.add()
+        .idGenerator(Sha256IdGenerator.INSTANCE)
+        .documents("hello")
+        .execute();
+```
+
+Rules:
+- `ids(...)` and `idGenerator(...)` are mutually exclusive (validated at `execute()` time).
+- `idGenerator(...)` requires at least one non-empty data field (`documents`, `embeddings`, `metadatas`, or `uris`) to infer record count.
+- `Sha256IdGenerator` requires non-null documents.
+- Duplicate generated IDs within the same batch are rejected client-side before sending the request. For cross-batch deduplication, use `upsert()` with a deterministic generator like `Sha256IdGenerator`.
+
 ### Default Embedding Function
 
 Since version `0.1.6` the library also offers a built-in default embedding function which does not rely on any external

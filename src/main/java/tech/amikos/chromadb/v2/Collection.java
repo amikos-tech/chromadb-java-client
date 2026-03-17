@@ -100,6 +100,15 @@ public interface Collection {
     interface AddBuilder {
         AddBuilder ids(String... ids);
         AddBuilder ids(List<String> ids);
+        /**
+         * Enables auto-generated IDs for each record.
+         *
+         * <p>Mutually exclusive with {@link #ids(String...)} and {@link #ids(List)}.</p>
+         * <p>Exclusivity is enforced at {@link #execute()} time.</p>
+         *
+         * @throws NullPointerException if {@code idGenerator} is null
+         */
+        AddBuilder idGenerator(IdGenerator idGenerator);
         AddBuilder embeddings(float[]... embeddings);
         AddBuilder embeddings(List<float[]> embeddings);
         AddBuilder documents(String... documents);
@@ -184,6 +193,15 @@ public interface Collection {
     interface UpsertBuilder {
         UpsertBuilder ids(String... ids);
         UpsertBuilder ids(List<String> ids);
+        /**
+         * Enables auto-generated IDs for each record.
+         *
+         * <p>Mutually exclusive with {@link #ids(String...)} and {@link #ids(List)}.</p>
+         * <p>Exclusivity is enforced at {@link #execute()} time.</p>
+         *
+         * @throws NullPointerException if {@code idGenerator} is null
+         */
+        UpsertBuilder idGenerator(IdGenerator idGenerator);
         UpsertBuilder embeddings(float[]... embeddings);
         UpsertBuilder embeddings(List<float[]> embeddings);
         UpsertBuilder documents(String... documents);

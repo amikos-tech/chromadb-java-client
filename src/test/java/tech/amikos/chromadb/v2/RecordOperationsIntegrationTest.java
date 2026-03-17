@@ -546,6 +546,78 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertNotNull(collection.get().execute().getIds());
     }
 
+    // --- add/upsert with IdGenerator ---
+
+    @Test
+    public void testAddWithUuidIdGenerator() {
+        collection.add()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1})
+                .documents("doc1", "doc2", "doc3")
+                .execute();
+
+        assertEquals(3, collection.count());
+
+        GetResult result = collection.get().execute();
+        assertEquals(3, result.getIds().size());
+        for (String id : result.getIds()) {
+            assertTrue("Expected UUID format, got: " + id,
+                    id.matches("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"));
+        }
+    }
+
+    @Test
+    public void testAddWithSha256IdGenerator() {
+        collection.add()
+                .idGenerator(Sha256IdGenerator.INSTANCE)
+                .embeddings(new float[]{1, 0, 0}, new float[]{0, 1, 0})
+                .documents("hello", "world")
+                .execute();
+
+        assertEquals(2, collection.count());
+
+        // Verify we can get by the computed SHA-256 hash of "hello"
+        String expectedId = Sha256IdGenerator.INSTANCE.generate("hello", null);
+        GetResult result = collection.get()
+                .ids(expectedId)
+                .include(Include.DOCUMENTS)
+                .execute();
+        assertEquals(1, result.getIds().size());
+        assertEquals("hello", result.getDocuments().get(0));
+    }
+
+    @Test
+    public void testAddWithUlidIdGenerator() {
+        collection.add()
+                .idGenerator(UlidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1, 0, 0}, new float[]{0, 1, 0})
+                .documents("doc1", "doc2")
+                .execute();
+
+        assertEquals(2, collection.count());
+
+        GetResult result = collection.get().execute();
+        for (String id : result.getIds()) {
+            assertEquals("Expected 26-char ULID, got: " + id, 26, id.length());
+        }
+    }
+
+    @Test
+    public void testUpsertWithUuidIdGenerator() {
+        collection.upsert()
+                .idGenerator(UuidIdGenerator.INSTANCE)
+                .embeddings(new float[]{1, 0, 0})
+                .documents("upserted doc")
+                .execute();
+
+        assertEquals(1, collection.count());
+
+        GetResult result = collection.get()
+                .include(Include.DOCUMENTS)
+                .execute();
+        assertEquals("upserted doc", result.getDocuments().get(0));
+    }
+
     private static void assertLocalWhereDocumentInlineAcceptedOrRejected(Runnable action) {
         try {
             action.run();
