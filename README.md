@@ -225,7 +225,7 @@ Client client = ChromaClient.builder()
         .readTimeout(Duration.ofSeconds(30))
         .build();
 
-// Example 2: Provide a fully configured OkHttpClient (overrides builder transport options)
+// Example 2: Provide a fully configured OkHttpClient (mutually exclusive with builder timeout/TLS options)
 OkHttpClient custom = new OkHttpClient.Builder()
         .readTimeout(Duration.ofSeconds(20))
         .build();
@@ -237,6 +237,7 @@ Client clientWithCustomHttp = ChromaClient.builder()
 
 Notes:
 - `.insecure(true)` enables trust-all TLS (development only).
+- `.sslCert(...)` augments default JVM trust with your custom CA certificate(s).
 - `.httpClient(...)` cannot be combined with `.connectTimeout(...)`, `.readTimeout(...)`, `.writeTimeout(...)`, `.sslCert(...)`, or `.insecure(...)`.
 - `.tenantAndDatabaseFromEnv()` reads `CHROMA_TENANT` and `CHROMA_DATABASE`.
 

@@ -25,8 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Package-private HTTP transport for the Chroma v2 REST API.
- * Owns the {@link OkHttpClient} and {@link Gson} instances and must be closed
- * to release HTTP thread and connection-pool resources.
+ * Owns the {@link Gson} instance and may own the {@link OkHttpClient} instance.
+ * If this client owns the HTTP client, {@link #close()} releases HTTP thread and
+ * connection-pool resources; otherwise it leaves externally provided resources intact.
  *
  * <p>Note: {@link #close()} performs both dispatcher shutdown and connection-pool eviction and
  * may throw unchecked exceptions from those underlying OkHttp operations.</p>
@@ -259,16 +260,27 @@ class ChromaApiClient implements AutoCloseable {
 
     private SuccessfulResponse execute(Request request) {
         long startNanos = System.nanoTime();
-        logger.debug("chroma.http.request", logFields(request, null, null));
+        safeDebug("chroma.http.request", logFields(request, null, null));
 
         Response response;
         try {
             response = httpClient.newCall(request).execute();
         } catch (IOException e) {
-            logger.error("chroma.http.network_error",
+            safeError("chroma.http.network_error",
                     logFields(request, null, elapsedMillis(startNanos)),
                     e);
             throw new ChromaConnectionException("Network error communicating with " + request.url(), e);
+        } catch (RuntimeException e) {
+            safeError("chroma.http.network_error",
+                    logFields(request, null, elapsedMillis(startNanos)),
+                    e);
+            throw new ChromaException(
+                    "Unexpected client-side error while executing request to "
+                            + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
+                    ChromaException.STATUS_CODE_UNAVAILABLE,
+                    null,
+                    e
+            );
         }
 
         try {
@@ -278,29 +290,40 @@ class ChromaApiClient implements AutoCloseable {
             long elapsedMillis = elapsedMillis(startNanos);
 
             if (statusCode >= 400) {
-                logger.warn("chroma.http.response_error",
+                safeWarn("chroma.http.response_error",
                         logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
                 ErrorBody error = parseErrorBody(bodyString, statusCode);
                 throw ChromaExceptions.fromHttpResponse(statusCode, error.message, error.errorCode);
             }
 
             if (statusCode < 200 || statusCode >= 300) {
-                logger.warn("chroma.http.response_unexpected",
+                safeWarn("chroma.http.response_unexpected",
                         logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
                 throw new ChromaException("Unexpected non-2xx response: " + formatStatusWithBody(statusCode, bodyString),
                         statusCode, null);
             }
 
-            logger.debug("chroma.http.response",
+            safeDebug("chroma.http.response",
                     logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
             return new SuccessfulResponse(statusCode, bodyString);
         } catch (ChromaException e) {
             throw e;
         } catch (IOException e) {
-            logger.error("chroma.http.read_error",
+            safeError("chroma.http.read_error",
                     logFields(request, null, elapsedMillis(startNanos)),
                     e);
             throw new ChromaConnectionException("Network error reading response from " + request.url(), e);
+        } catch (RuntimeException e) {
+            safeError("chroma.http.response_processing_error",
+                    logFields(request, null, elapsedMillis(startNanos)),
+                    e);
+            throw new ChromaException(
+                    "Unexpected client-side error while processing response from "
+                            + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
+                    ChromaException.STATUS_CODE_UNAVAILABLE,
+                    null,
+                    e
+            );
         } finally {
             response.close();
         }
@@ -381,7 +404,7 @@ class ChromaApiClient implements AutoCloseable {
     private Map<String, Object> logFields(Request request, Integer statusCode, Long durationMillis) {
         Map<String, Object> fields = new LinkedHashMap<String, Object>();
         fields.put("method", request.method());
-        fields.put("url", request.url().toString());
+        fields.put("url", sanitizeUrlForLogs(request.url()));
         if (statusCode != null) {
             fields.put("status", statusCode);
         }
@@ -393,6 +416,34 @@ class ChromaApiClient implements AutoCloseable {
 
     private static long elapsedMillis(long startNanos) {
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+    }
+
+    private static String sanitizeUrlForLogs(HttpUrl url) {
+        return url.newBuilder().query(null).fragment(null).build().toString();
+    }
+
+    private void safeDebug(String event, Map<String, Object> fields) {
+        try {
+            logger.debug(event, fields);
+        } catch (RuntimeException ignored) {
+            // Logging must never alter transport behavior.
+        }
+    }
+
+    private void safeWarn(String event, Map<String, Object> fields) {
+        try {
+            logger.warn(event, fields);
+        } catch (RuntimeException ignored) {
+            // Logging must never alter transport behavior.
+        }
+    }
+
+    private void safeError(String event, Map<String, Object> fields, Throwable throwable) {
+        try {
+            logger.error(event, fields, throwable);
+        } catch (RuntimeException ignored) {
+            // Logging must never alter transport behavior.
+        }
     }
 
     private static boolean isBlank(String s) {

@@ -3,10 +3,22 @@ package tech.amikos.chromadb.v2;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okio.Buffer;
+import okio.BufferedSource;
+import okio.Okio;
+import okio.Source;
+import okio.Timeout;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -1133,33 +1145,352 @@ public class ChromaApiClientTest {
         assertEquals("ok", result);
         assertTrue(logger.containsEvent("chroma.http.request"));
         assertTrue(logger.containsEvent("chroma.http.response"));
+        assertEquals("GET", logger.lastEvent("chroma.http.request").fields.get("method"));
+        assertEquals("http://localhost:" + wireMock.port() + "/api/v2/test",
+                logger.lastEvent("chroma.http.request").fields.get("url"));
+        assertEquals(Integer.valueOf(200), logger.lastEvent("chroma.http.response").fields.get("status"));
+        assertTrue(((Long) logger.lastEvent("chroma.http.response").fields.get("duration_ms")) >= 0L);
+    }
+
+    @Test
+    public void testLoggerResponseErrorEventIsEmitted() {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse().withStatus(500).withBody("{\"error\":\"boom\"}")));
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                new OkHttpClient(),
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaServerException");
+        } catch (ChromaServerException ignored) {
+            assertTrue(logger.containsEvent("chroma.http.response_error"));
+            assertEquals(Integer.valueOf(500), logger.lastEvent("chroma.http.response_error").fields.get("status"));
+        }
+    }
+
+    @Test
+    public void testLoggerUnexpectedResponseEventIsEmitted() {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse().withStatus(302).withBody("redirected")));
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                new OkHttpClient(),
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaException");
+        } catch (ChromaException ignored) {
+            assertTrue(logger.containsEvent("chroma.http.response_unexpected"));
+            assertEquals(Integer.valueOf(302), logger.lastEvent("chroma.http.response_unexpected").fields.get("status"));
+        }
+    }
+
+    @Test
+    public void testLoggerNetworkErrorEventIsEmitted() {
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:1",
+                null,
+                null,
+                new OkHttpClient(),
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaConnectionException");
+        } catch (ChromaConnectionException ignored) {
+            assertTrue(logger.containsEvent("chroma.http.network_error"));
+            assertNull(logger.lastEvent("chroma.http.network_error").fields.get("status"));
+        }
+    }
+
+    @Test
+    public void testLoggerReadErrorEventIsEmitted() {
+        OkHttpClient readFailingClient = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request request = chain.request();
+                    ResponseBody body = new ResponseBody() {
+                        @Override
+                        public MediaType contentType() {
+                            return MediaType.parse("application/json");
+                        }
+
+                        @Override
+                        public long contentLength() {
+                            return -1;
+                        }
+
+                        @Override
+                        public BufferedSource source() {
+                            Source source = new Source() {
+                                @Override
+                                public long read(Buffer sink, long byteCount) throws IOException {
+                                    throw new IOException("forced read failure");
+                                }
+
+                                @Override
+                                public Timeout timeout() {
+                                    return Timeout.NONE;
+                                }
+
+                                @Override
+                                public void close() {}
+                            };
+                            return Okio.buffer(source);
+                        }
+                    };
+                    return new Response.Builder()
+                            .request(request)
+                            .protocol(Protocol.HTTP_1_1)
+                            .code(200)
+                            .message("OK")
+                            .body(body)
+                            .build();
+                })
+                .build();
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                readFailingClient,
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaConnectionException");
+        } catch (ChromaConnectionException ignored) {
+            assertTrue(logger.containsEvent("chroma.http.read_error"));
+        }
+    }
+
+    @Test
+    public void testLoggerExceptionsDoNotMaskServerError() {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse().withStatus(500).withBody("{\"error\":\"boom\"}")));
+
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                new OkHttpClient(),
+                true,
+                new ThrowingLogger()
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaServerException");
+        } catch (ChromaServerException e) {
+            assertEquals(500, e.getStatusCode());
+        }
+    }
+
+    @Test
+    public void testLoggerExceptionsDoNotMaskConnectionError() {
+        client = new ChromaApiClient(
+                "http://localhost:1",
+                null,
+                null,
+                new OkHttpClient(),
+                true,
+                new ThrowingLogger()
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaConnectionException");
+        } catch (ChromaConnectionException e) {
+            assertTrue(e.getMessage().contains("Network error communicating"));
+        }
+    }
+
+    @Test
+    public void testRuntimeDuringExecuteIsWrappedWithContext() {
+        OkHttpClient runtimeFailClient = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    throw new IllegalStateException("forced execute runtime");
+                })
+                .build();
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                runtimeFailClient,
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertFalse(e.hasStatusCode());
+            assertTrue(e.getMessage().contains("while executing request"));
+            assertTrue(logger.containsEvent("chroma.http.network_error"));
+        }
+    }
+
+    @Test
+    public void testRuntimeDuringResponseProcessingIsWrappedWithContext() {
+        OkHttpClient runtimeReadClient = new OkHttpClient.Builder()
+                .addInterceptor(chain -> {
+                    Request request = chain.request();
+                    ResponseBody body = new ResponseBody() {
+                        @Override
+                        public MediaType contentType() {
+                            return MediaType.parse("application/json");
+                        }
+
+                        @Override
+                        public long contentLength() {
+                            return -1;
+                        }
+
+                        @Override
+                        public BufferedSource source() {
+                            Source source = new Source() {
+                                @Override
+                                public long read(Buffer sink, long byteCount) {
+                                    throw new IllegalStateException("forced processing runtime");
+                                }
+
+                                @Override
+                                public Timeout timeout() {
+                                    return Timeout.NONE;
+                                }
+
+                                @Override
+                                public void close() {}
+                            };
+                            return Okio.buffer(source);
+                        }
+                    };
+                    return new Response.Builder()
+                            .request(request)
+                            .protocol(Protocol.HTTP_1_1)
+                            .code(200)
+                            .message("OK")
+                            .body(body)
+                            .build();
+                })
+                .build();
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                runtimeReadClient,
+                true,
+                logger
+        );
+
+        try {
+            client.get("/api/v2/test", String.class);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertFalse(e.hasStatusCode());
+            assertTrue(e.getMessage().contains("while processing response"));
+            assertTrue(logger.containsEvent("chroma.http.response_processing_error"));
+        }
     }
 
     private static final class RecordingLogger implements ChromaLogger {
-        private final List<String> events = new ArrayList<String>();
+        private final List<LogEvent> events = new ArrayList<LogEvent>();
 
         @Override
         public void debug(String event, Map<String, Object> fields) {
-            events.add(event);
+            events.add(new LogEvent(event, fields));
         }
 
         @Override
         public void info(String event, Map<String, Object> fields) {
-            events.add(event);
+            events.add(new LogEvent(event, fields));
         }
 
         @Override
         public void warn(String event, Map<String, Object> fields) {
-            events.add(event);
+            events.add(new LogEvent(event, fields));
         }
 
         @Override
         public void error(String event, Map<String, Object> fields, Throwable throwable) {
-            events.add(event);
+            events.add(new LogEvent(event, fields));
         }
 
         private boolean containsEvent(String event) {
-            return events.contains(event);
+            for (int i = 0; i < events.size(); i++) {
+                if (event.equals(events.get(i).event)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private LogEvent lastEvent(String event) {
+            for (int i = events.size() - 1; i >= 0; i--) {
+                if (event.equals(events.get(i).event)) {
+                    return events.get(i);
+                }
+            }
+            throw new AssertionError("Missing log event: " + event);
+        }
+    }
+
+    private static final class ThrowingLogger implements ChromaLogger {
+        @Override
+        public void debug(String event, Map<String, Object> fields) {
+            throw new RuntimeException("logger debug failure");
+        }
+
+        @Override
+        public void info(String event, Map<String, Object> fields) {
+            throw new RuntimeException("logger info failure");
+        }
+
+        @Override
+        public void warn(String event, Map<String, Object> fields) {
+            throw new RuntimeException("logger warn failure");
+        }
+
+        @Override
+        public void error(String event, Map<String, Object> fields, Throwable throwable) {
+            throw new RuntimeException("logger error failure");
+        }
+    }
+
+    private static final class LogEvent {
+        private final String event;
+        private final Map<String, Object> fields;
+
+        private LogEvent(String event, Map<String, Object> fields) {
+            this.event = event;
+            this.fields = fields == null
+                    ? Collections.<String, Object>emptyMap()
+                    : new LinkedHashMap<String, Object>(fields);
         }
     }
 }

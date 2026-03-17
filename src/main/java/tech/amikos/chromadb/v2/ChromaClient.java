@@ -17,7 +17,9 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -146,7 +148,12 @@ public final class ChromaClient {
         }
 
         /**
-         * Configures a custom CA certificate for TLS verification.
+         * Configures a custom CA certificate file (PEM or DER) for TLS verification.
+         *
+         * <p>Certificate loading happens eagerly at {@link #build()} time. The provided certificate(s)
+         * are added in addition to the default JVM trust store (not a replacement).</p>
+         *
+         * <p>Mutually exclusive with {@link #insecure(boolean)}.</p>
          */
         public Builder sslCert(Path certPath) {
             this.sslCertPath = Objects.requireNonNull(certPath, "certPath");
@@ -172,7 +179,11 @@ public final class ChromaClient {
         }
 
         /**
-         * Resolves tenant value from an environment variable.
+         * Resolves tenant value from an environment variable name.
+         *
+         * <p>Resolution happens immediately when this method is called.</p>
+         *
+         * @throws IllegalStateException if the variable is missing or blank
          */
         public Builder tenantFromEnv(String envVarName) {
             this.tenant = Tenant.of(requireNonBlankEnvVar(envVarName, "tenant"));
@@ -180,7 +191,11 @@ public final class ChromaClient {
         }
 
         /**
-         * Resolves database value from an environment variable.
+         * Resolves database value from an environment variable name.
+         *
+         * <p>Resolution happens immediately when this method is called.</p>
+         *
+         * @throws IllegalStateException if the variable is missing or blank
          */
         public Builder databaseFromEnv(String envVarName) {
             this.database = Database.of(requireNonBlankEnvVar(envVarName, "database"));
@@ -280,27 +295,55 @@ public final class ChromaClient {
         }
 
         private static void applyCustomCaCertificate(OkHttpClient.Builder builder, Path certPath) {
-            X509TrustManager trustManager = loadTrustManagerFromCertificate(certPath);
+            X509TrustManager trustManager = loadAugmentedTrustManager(certPath);
             SSLContext sslContext = newTlsContext(new TrustManager[]{trustManager});
             builder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
-        private static X509TrustManager loadTrustManagerFromCertificate(Path certPath) {
-            java.util.Collection<? extends Certificate> certificates;
+        private static X509TrustManager loadAugmentedTrustManager(Path certPath) {
+            java.util.Collection<? extends Certificate> certificates = loadCertificates(certPath);
+            X509TrustManager defaultTrustManager = loadDefaultTrustManager();
+            X509TrustManager customTrustManager = loadTrustManagerFromCertificates(certPath, certificates);
+            return new CompositeX509TrustManager(customTrustManager, defaultTrustManager);
+        }
+
+        private static java.util.Collection<? extends Certificate> loadCertificates(Path certPath) {
             try (InputStream inputStream = Files.newInputStream(certPath)) {
                 CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-                certificates = certificateFactory.generateCertificates(inputStream);
-            } catch (IOException | GeneralSecurityException e) {
+                java.util.Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(inputStream);
+                if (certificates == null || certificates.isEmpty()) {
+                    throw new IllegalArgumentException("No certificates found in " + certPath);
+                }
+                return certificates;
+            } catch (IOException | CertificateException e) {
                 throw new IllegalArgumentException(
                         "Failed to load SSL certificate from " + certPath + ": " + e.getMessage(),
                         e
                 );
             }
+        }
 
-            if (certificates == null || certificates.isEmpty()) {
-                throw new IllegalArgumentException("No certificates found in " + certPath);
+        private static X509TrustManager loadDefaultTrustManager() {
+            try {
+                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
+                        TrustManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init((KeyStore) null);
+                return requireSingleX509TrustManager(
+                        trustManagerFactory.getTrustManagers(),
+                        "default JVM trust store"
+                );
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException(
+                        "Failed to initialize default JVM trust manager: " + e.getMessage(),
+                        e
+                );
             }
+        }
 
+        private static X509TrustManager loadTrustManagerFromCertificates(
+                Path certPath,
+                java.util.Collection<? extends Certificate> certificates
+        ) {
             try {
                 KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 keyStore.load(null, null);
@@ -314,17 +357,26 @@ public final class ChromaClient {
                 TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
                         TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(keyStore);
-                TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-                if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
-                    throw new IllegalStateException("Expected exactly one X509TrustManager");
-                }
-                return (X509TrustManager) trustManagers[0];
+                return requireSingleX509TrustManager(
+                        trustManagerFactory.getTrustManagers(),
+                        "custom certificate trust store " + certPath
+                );
             } catch (GeneralSecurityException | IOException e) {
-                throw new IllegalArgumentException(
+                throw new IllegalStateException(
                         "Failed to initialize SSL trust manager from " + certPath + ": " + e.getMessage(),
                         e
                 );
             }
+        }
+
+        private static X509TrustManager requireSingleX509TrustManager(
+                TrustManager[] trustManagers,
+                String source
+        ) {
+            if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
+                throw new IllegalStateException("Expected exactly one X509TrustManager from " + source);
+            }
+            return (X509TrustManager) trustManagers[0];
         }
 
         private static SSLContext newTlsContext(TrustManager[] trustManagers) {
@@ -334,6 +386,54 @@ public final class ChromaClient {
                 return sslContext;
             } catch (GeneralSecurityException e) {
                 throw new IllegalStateException("Failed to initialize TLS context", e);
+            }
+        }
+
+        private static final class CompositeX509TrustManager implements X509TrustManager {
+            private final X509TrustManager primary;
+            private final X509TrustManager fallback;
+
+            private CompositeX509TrustManager(X509TrustManager primary, X509TrustManager fallback) {
+                this.primary = primary;
+                this.fallback = fallback;
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                try {
+                    primary.checkClientTrusted(chain, authType);
+                } catch (CertificateException primaryFailure) {
+                    try {
+                        fallback.checkClientTrusted(chain, authType);
+                    } catch (CertificateException fallbackFailure) {
+                        fallbackFailure.addSuppressed(primaryFailure);
+                        throw fallbackFailure;
+                    }
+                }
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                try {
+                    primary.checkServerTrusted(chain, authType);
+                } catch (CertificateException primaryFailure) {
+                    try {
+                        fallback.checkServerTrusted(chain, authType);
+                    } catch (CertificateException fallbackFailure) {
+                        fallbackFailure.addSuppressed(primaryFailure);
+                        throw fallbackFailure;
+                    }
+                }
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                X509Certificate[] primaryIssuers = primary.getAcceptedIssuers();
+                X509Certificate[] fallbackIssuers = fallback.getAcceptedIssuers();
+                X509Certificate[] issuers = new X509Certificate[primaryIssuers.length + fallbackIssuers.length];
+                System.arraycopy(primaryIssuers, 0, issuers, 0, primaryIssuers.length);
+                System.arraycopy(fallbackIssuers, 0, issuers, primaryIssuers.length, fallbackIssuers.length);
+                return issuers;
             }
         }
     }

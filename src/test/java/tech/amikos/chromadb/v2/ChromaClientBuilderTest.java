@@ -228,6 +228,27 @@ public class ChromaClientBuilderTest {
         provided.connectionPool().evictAll();
     }
 
+    @Test
+    public void testBuilderOwnedHttpClientIsShutdownOnClose() throws Exception {
+        Client client = ChromaClient.builder().build();
+        Field apiClientField = client.getClass().getDeclaredField("apiClient");
+        apiClientField.setAccessible(true);
+        Object apiClient = apiClientField.get(client);
+
+        Field ownsField = ChromaApiClient.class.getDeclaredField("ownsHttpClient");
+        ownsField.setAccessible(true);
+        assertEquals(Boolean.TRUE, ownsField.get(apiClient));
+
+        Field httpClientField = ChromaApiClient.class.getDeclaredField("httpClient");
+        httpClientField.setAccessible(true);
+        OkHttpClient owned = (OkHttpClient) httpClientField.get(apiClient);
+        assertFalse(owned.dispatcher().executorService().isShutdown());
+
+        client.close();
+
+        assertTrue(owned.dispatcher().executorService().isShutdown());
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testBuilderRejectsHttpClientWithTimeoutOptions() {
         ChromaClient.builder()
