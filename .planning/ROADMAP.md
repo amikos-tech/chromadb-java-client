@@ -1,8 +1,8 @@
-# Roadmap: ChromaDB Java Client (v2 Stabilization)
+# Roadmap: ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
 
 ## Overview
 
-This roadmap takes the existing v2 Java client from strong baseline to stable release readiness by first hardening transport/auth behavior, then closing API parity, then finalizing embedding determinism, and finally locking compatibility and release quality gates.
+This roadmap defines milestone `0.2.0` for a v2-only Java client release. It takes the existing v2 Java client from strong baseline to stable release readiness by first hardening transport/auth behavior, then closing API parity, then finalizing embedding determinism, and finally locking compatibility and release quality gates. Chroma v1 API support is explicitly out of scope.
 
 ## Phases
 

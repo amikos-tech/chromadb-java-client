@@ -9,10 +9,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
+Milestone: 0.2.0 (v2-only scope)
 Phase: 1 of 5 (Transport & Auth Hardening)
 Plan: 0 of 3 in current phase
 Status: Ready to plan
-Last activity: 2026-03-17 — Roadmap and traceability initialized
+Last activity: 2026-03-17 — Scope clarified to milestone 0.2.0 (v2-only)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -43,6 +44,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - Initialization: Treat project as brownfield and prioritize v2 stabilization
+- Initialization: Scope milestone 0.2.0 to v2 only (no v1 compatibility)
 - Initialization: Preserve Java 8 and synchronous API constraints for this milestone
 
 ### Pending Todos

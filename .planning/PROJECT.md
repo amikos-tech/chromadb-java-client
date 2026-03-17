@@ -1,8 +1,8 @@
-# ChromaDB Java Client (v2 Stabilization)
+# ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
 
 ## What This Is
 
-This project is a production-focused Java client for the Chroma vector database API (`>=1.0.0`), centered on the `tech.amikos.chromadb.v2` interface-first API. It enables Java teams to manage tenants, databases, collections, and vector operations with a fluent, type-safe API while supporting common embedding providers. The current effort is to finish v2 parity, harden reliability, and prepare a stable release path for broader adoption.
+This project is a production-focused Java client for the Chroma vector database API (`>=1.0.0`), centered on the `tech.amikos.chromadb.v2` interface-first API. It enables Java teams to manage tenants, databases, collections, and vector operations with a fluent, type-safe API while supporting common embedding providers. Milestone `0.2.0` is explicitly v2-only: no Chroma v1 API compatibility layer is in scope.
 
 ## Core Value
 
@@ -40,6 +40,7 @@ The repository already contains substantial v2 implementation under `src/main/ja
 
 - **Compatibility**: Java 8 runtime support must be preserved — broad enterprise/JVM compatibility target
 - **API Contract**: Chroma server compatibility target is `>=1.0.0` — avoid regressions across supported versions
+- **Scope**: Only Chroma v2 API is supported in milestone `0.2.0` — do not add or retain v1 API compatibility
 - **Distribution**: Maven Central publishing requirements (signing/checksums/release metadata) must remain intact — release trust and adoption
 - **Architecture**: Keep v2 interface-first, fluent API style — consistency with current public surface
 - **Testability**: Integration tests depend on containerized Chroma and optional external API keys — CI stability must be managed explicitly
@@ -50,7 +51,8 @@ The repository already contains substantial v2 implementation under `src/main/ja
 |----------|-----------|---------|
 | Treat the project as brownfield with validated capabilities | Existing code and tests already prove core value | — Pending |
 | Prioritize API parity and reliability over net-new client paradigms | Stable v2 adoption is the immediate outcome needed | — Pending |
+| Support Chroma v2 only in milestone `0.2.0` | Reduces ambiguity and avoids split investment on deprecated API surface | — Pending |
 | Keep Java 8 + synchronous API as hard constraints for this milestone | Minimizes adoption friction and migration risk | — Pending |
 
 ---
-*Last updated: 2026-03-17 after initialization*
+*Last updated: 2026-03-17 after scope clarification (milestone 0.2.0, v2-only)*

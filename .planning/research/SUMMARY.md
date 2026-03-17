@@ -1,13 +1,13 @@
 # Project Research Summary
 
-**Project:** ChromaDB Java Client (v2 Stabilization)
+**Project:** ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
 **Domain:** Java client SDK for Chroma vector database
 **Researched:** 2026-03-17
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a brownfield SDK effort with strong existing foundations: a v2 interface-first API, multiple embedding providers, and both unit/integration coverage already in place. Research confirms the right strategy is not a broad rewrite but targeted stabilization around parity gaps, auth consistency, deterministic embedding behavior, and release quality guardrails.
+This project is a brownfield SDK effort with strong existing foundations: a v2 interface-first API, multiple embedding providers, and both unit/integration coverage already in place. Milestone `0.2.0` is explicitly scoped to v2 only, with no Chroma v1 API support. Research confirms the right strategy is not a broad rewrite but targeted stabilization around parity gaps, auth consistency, deterministic embedding behavior, and release quality guardrails.
 
 The recommended technical direction keeps Java 8 + Maven + OkHttp + Gson as the core stack, while strengthening contract and matrix testing against Chroma server versions. The key execution risk is hidden drift between server behavior and client assumptions; the roadmap should therefore front-load auth/transport hardening and API parity before spending effort on new paradigms.
 

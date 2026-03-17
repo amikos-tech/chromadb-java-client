@@ -1,9 +1,9 @@
-# Requirements: ChromaDB Java Client (v2 Stabilization)
+# Requirements: ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
 
 **Defined:** 2026-03-17
 **Core Value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
 
-## v1 Requirements
+## Milestone 0.2.0 Requirements
 
 Requirements for the current stabilization release. Each maps to roadmap phases.
 
@@ -34,9 +34,9 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 - [ ] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
 - [ ] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
 
-## v2 Requirements
+## Future Milestones (Post-0.2.0)
 
-Deferred to a future milestone. Tracked but not in current roadmap.
+Deferred to future milestones. Tracked but not in the current roadmap.
 
 ### Extended API Surface
 
@@ -59,6 +59,7 @@ Explicitly excluded for this milestone.
 | Feature | Reason |
 |---------|--------|
 | Chroma server feature development | This repository is client SDK only |
+| Chroma v1 API support or compatibility wrappers | Milestone `0.2.0` is explicitly scoped to v2 only |
 | Breaking Java 8 compatibility | Violates compatibility constraint for target users |
 | Full reactive API redesign | High scope and architectural shift; defer until v2 stabilization is complete |
 | Android/mobile-specific optimizations | Not required for current release goals |
@@ -86,10 +87,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QLTY-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 15 total
+- 0.2.0 requirements: 15 total
 - Mapped to phases: 15
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-17 after roadmap creation*
+*Last updated: 2026-03-17 after scope clarification (milestone 0.2.0, v2-only)*
