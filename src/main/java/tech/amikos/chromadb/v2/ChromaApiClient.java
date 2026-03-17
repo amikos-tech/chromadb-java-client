@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -38,6 +39,8 @@ class ChromaApiClient implements AutoCloseable {
     private final AuthProvider authProvider;
     private final Map<String, String> defaultHeaders;
     private final OkHttpClient httpClient;
+    private final boolean ownsHttpClient;
+    private final ChromaLogger logger;
     private final Gson gson;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -45,6 +48,17 @@ class ChromaApiClient implements AutoCloseable {
                     Map<String, String> defaultHeaders,
                     Duration connectTimeout, Duration readTimeout,
                     Duration writeTimeout) {
+        this(baseUrl, authProvider, defaultHeaders,
+                buildHttpClient(connectTimeout, readTimeout, writeTimeout),
+                true,
+                ChromaLogger.noop());
+    }
+
+    ChromaApiClient(String baseUrl, AuthProvider authProvider,
+                    Map<String, String> defaultHeaders,
+                    OkHttpClient httpClient,
+                    boolean ownsHttpClient,
+                    ChromaLogger logger) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("baseUrl must not be blank");
         }
@@ -57,7 +71,15 @@ class ChromaApiClient implements AutoCloseable {
         this.defaultHeaders = defaultHeaders == null
                 ? Collections.<String, String>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, String>(defaultHeaders));
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+        this.ownsHttpClient = ownsHttpClient;
+        this.logger = logger == null ? ChromaLogger.noop() : logger;
+        this.gson = new GsonBuilder().create();
+    }
 
+    private static OkHttpClient buildHttpClient(Duration connectTimeout,
+                                                Duration readTimeout,
+                                                Duration writeTimeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         if (connectTimeout != null) {
             builder.connectTimeout(connectTimeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -68,8 +90,7 @@ class ChromaApiClient implements AutoCloseable {
         if (writeTimeout != null) {
             builder.writeTimeout(writeTimeout.toMillis(), TimeUnit.MILLISECONDS);
         }
-        this.httpClient = builder.build();
-        this.gson = new GsonBuilder().create();
+        return builder.build();
     }
 
     <T> T get(String path, Type responseType) {
@@ -153,6 +174,9 @@ class ChromaApiClient implements AutoCloseable {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
+        if (!ownsHttpClient) {
+            return;
+        }
         RuntimeException closeFailure = null;
         try {
             httpClient.dispatcher().executorService().shutdown();
@@ -234,10 +258,16 @@ class ChromaApiClient implements AutoCloseable {
     }
 
     private SuccessfulResponse execute(Request request) {
+        long startNanos = System.nanoTime();
+        logger.debug("chroma.http.request", logFields(request, null, null));
+
         Response response;
         try {
             response = httpClient.newCall(request).execute();
         } catch (IOException e) {
+            logger.error("chroma.http.network_error",
+                    logFields(request, null, elapsedMillis(startNanos)),
+                    e);
             throw new ChromaConnectionException("Network error communicating with " + request.url(), e);
         }
 
@@ -245,21 +275,31 @@ class ChromaApiClient implements AutoCloseable {
             int statusCode = response.code();
             ResponseBody responseBody = response.body();
             String bodyString = responseBody != null ? responseBody.string() : null;
+            long elapsedMillis = elapsedMillis(startNanos);
 
             if (statusCode >= 400) {
+                logger.warn("chroma.http.response_error",
+                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
                 ErrorBody error = parseErrorBody(bodyString, statusCode);
                 throw ChromaExceptions.fromHttpResponse(statusCode, error.message, error.errorCode);
             }
 
             if (statusCode < 200 || statusCode >= 300) {
+                logger.warn("chroma.http.response_unexpected",
+                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
                 throw new ChromaException("Unexpected non-2xx response: " + formatStatusWithBody(statusCode, bodyString),
                         statusCode, null);
             }
 
+            logger.debug("chroma.http.response",
+                    logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis)));
             return new SuccessfulResponse(statusCode, bodyString);
         } catch (ChromaException e) {
             throw e;
         } catch (IOException e) {
+            logger.error("chroma.http.read_error",
+                    logFields(request, null, elapsedMillis(startNanos)),
+                    e);
             throw new ChromaConnectionException("Network error reading response from " + request.url(), e);
         } finally {
             response.close();
@@ -336,6 +376,23 @@ class ChromaApiClient implements AutoCloseable {
             return "HTTP " + statusCode;
         }
         return "HTTP " + statusCode + ": " + truncateBody(body);
+    }
+
+    private Map<String, Object> logFields(Request request, Integer statusCode, Long durationMillis) {
+        Map<String, Object> fields = new LinkedHashMap<String, Object>();
+        fields.put("method", request.method());
+        fields.put("url", request.url().toString());
+        if (statusCode != null) {
+            fields.put("status", statusCode);
+        }
+        if (durationMillis != null) {
+            fields.put("duration_ms", durationMillis);
+        }
+        return fields;
+    }
+
+    private static long elapsedMillis(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
     }
 
     private static boolean isBlank(String s) {

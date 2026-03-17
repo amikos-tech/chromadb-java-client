@@ -9,8 +9,10 @@ import org.junit.Test;
 
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -1107,6 +1109,57 @@ public class ChromaApiClientTest {
         } catch (ChromaException e) {
             assertEquals(302, e.getStatusCode());
             assertEquals("Unexpected non-2xx response: HTTP 302", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testLoggerReceivesRequestAndResponseEvents() {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withBody("\"ok\"")));
+
+        RecordingLogger logger = new RecordingLogger();
+        client = new ChromaApiClient(
+                "http://localhost:" + wireMock.port(),
+                null,
+                null,
+                new okhttp3.OkHttpClient(),
+                true,
+                logger
+        );
+
+        String result = client.get("/api/v2/test", String.class);
+        assertEquals("ok", result);
+        assertTrue(logger.containsEvent("chroma.http.request"));
+        assertTrue(logger.containsEvent("chroma.http.response"));
+    }
+
+    private static final class RecordingLogger implements ChromaLogger {
+        private final List<String> events = new ArrayList<String>();
+
+        @Override
+        public void debug(String event, Map<String, Object> fields) {
+            events.add(event);
+        }
+
+        @Override
+        public void info(String event, Map<String, Object> fields) {
+            events.add(event);
+        }
+
+        @Override
+        public void warn(String event, Map<String, Object> fields) {
+            events.add(event);
+        }
+
+        @Override
+        public void error(String event, Map<String, Object> fields, Throwable throwable) {
+            events.add(event);
+        }
+
+        private boolean containsEvent(String event) {
+            return events.contains(event);
         }
     }
 }

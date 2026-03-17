@@ -203,6 +203,43 @@ Rules:
 - `Sha256IdGenerator` requires non-null documents.
 - Duplicate generated IDs within the same batch are rejected client-side before sending the request. For cross-batch deduplication, use `upsert()` with a deterministic generator like `Sha256IdGenerator`.
 
+### v2 client builder transport options (new API)
+
+`ChromaClient.builder()` now supports transport customization for production and platform integration scenarios:
+
+```java
+import okhttp3.OkHttpClient;
+import tech.amikos.chromadb.v2.ChromaClient;
+import tech.amikos.chromadb.v2.Client;
+
+import java.nio.file.Paths;
+import java.time.Duration;
+
+// Example 1: Custom CA certificate + env-based tenant/database
+Client client = ChromaClient.builder()
+        .baseUrl("https://your-chroma-host")
+        .sslCert(Paths.get("/path/to/ca-cert.pem"))
+        .tenantFromEnv("CHROMA_TENANT")
+        .databaseFromEnv("CHROMA_DATABASE")
+        .connectTimeout(Duration.ofSeconds(5))
+        .readTimeout(Duration.ofSeconds(30))
+        .build();
+
+// Example 2: Provide a fully configured OkHttpClient (overrides builder transport options)
+OkHttpClient custom = new OkHttpClient.Builder()
+        .readTimeout(Duration.ofSeconds(20))
+        .build();
+
+Client clientWithCustomHttp = ChromaClient.builder()
+        .httpClient(custom)
+        .build();
+```
+
+Notes:
+- `.insecure(true)` enables trust-all TLS (development only).
+- `.httpClient(...)` cannot be combined with `.connectTimeout(...)`, `.readTimeout(...)`, `.writeTimeout(...)`, `.sslCert(...)`, or `.insecure(...)`.
+- `.tenantAndDatabaseFromEnv()` reads `CHROMA_TENANT` and `CHROMA_DATABASE`.
+
 ### Default Embedding Function
 
 Since version `0.1.6` the library also offers a built-in default embedding function which does not rely on any external

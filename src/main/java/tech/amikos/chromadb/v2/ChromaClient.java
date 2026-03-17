@@ -1,7 +1,23 @@
 package tech.amikos.chromadb.v2;
 
 import com.google.gson.reflect.TypeToken;
+import okhttp3.OkHttpClient;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +60,9 @@ public final class ChromaClient {
     }
 
     public static final class Builder {
+        private static final String DEFAULT_TENANT_ENV = "CHROMA_TENANT";
+        private static final String DEFAULT_DATABASE_ENV = "CHROMA_DATABASE";
+
         private String baseUrl;
         private AuthProvider authProvider;
         private Tenant tenant;
@@ -52,6 +71,10 @@ public final class ChromaClient {
         private Duration readTimeout;
         private Duration writeTimeout;
         private Map<String, String> defaultHeaders;
+        private OkHttpClient httpClient;
+        private Path sslCertPath;
+        private boolean insecure;
+        private ChromaLogger logger;
 
         Builder() {}
 
@@ -111,14 +134,207 @@ public final class ChromaClient {
             return this;
         }
 
+        /**
+         * Overrides HTTP transport with a fully configured OkHttp client.
+         *
+         * <p>When set, timeout and TLS builder options must be configured on the provided
+         * client directly.</p>
+         */
+        public Builder httpClient(OkHttpClient httpClient) {
+            this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+            return this;
+        }
+
+        /**
+         * Configures a custom CA certificate for TLS verification.
+         */
+        public Builder sslCert(Path certPath) {
+            this.sslCertPath = Objects.requireNonNull(certPath, "certPath");
+            return this;
+        }
+
+        /**
+         * Enables or disables insecure TLS mode (trust-all, hostname verification disabled).
+         *
+         * <p>For development use only.</p>
+         */
+        public Builder insecure(boolean insecure) {
+            this.insecure = insecure;
+            return this;
+        }
+
+        /**
+         * Sets a structured logger for transport-level request/response events.
+         */
+        public Builder logger(ChromaLogger logger) {
+            this.logger = Objects.requireNonNull(logger, "logger");
+            return this;
+        }
+
+        /**
+         * Resolves tenant value from an environment variable.
+         */
+        public Builder tenantFromEnv(String envVarName) {
+            this.tenant = Tenant.of(requireNonBlankEnvVar(envVarName, "tenant"));
+            return this;
+        }
+
+        /**
+         * Resolves database value from an environment variable.
+         */
+        public Builder databaseFromEnv(String envVarName) {
+            this.database = Database.of(requireNonBlankEnvVar(envVarName, "database"));
+            return this;
+        }
+
+        /**
+         * Convenience for reading {@code CHROMA_TENANT} and {@code CHROMA_DATABASE}.
+         */
+        public Builder tenantAndDatabaseFromEnv() {
+            return tenantFromEnv(DEFAULT_TENANT_ENV).databaseFromEnv(DEFAULT_DATABASE_ENV);
+        }
+
         public Client build() {
             String effectiveBaseUrl = baseUrl != null ? baseUrl : DEFAULT_BASE_URL;
             Tenant effectiveTenant = tenant != null ? tenant : Tenant.defaultTenant();
             Database effectiveDatabase = database != null ? database : Database.defaultDatabase();
+            OkHttpClient resolvedHttpClient = buildHttpClient();
+            boolean ownsHttpClient = httpClient == null;
             ChromaApiClient apiClient = new ChromaApiClient(
-                    effectiveBaseUrl, authProvider, defaultHeaders,
-                    connectTimeout, readTimeout, writeTimeout);
+                    effectiveBaseUrl,
+                    authProvider,
+                    defaultHeaders,
+                    resolvedHttpClient,
+                    ownsHttpClient,
+                    logger == null ? ChromaLogger.noop() : logger);
             return new ChromaClientImpl(apiClient, effectiveTenant, effectiveDatabase);
+        }
+
+        private OkHttpClient buildHttpClient() {
+            if (httpClient != null) {
+                if (connectTimeout != null || readTimeout != null || writeTimeout != null) {
+                    throw new IllegalStateException(
+                            "httpClient cannot be combined with connectTimeout/readTimeout/writeTimeout");
+                }
+                if (sslCertPath != null || insecure) {
+                    throw new IllegalStateException(
+                            "httpClient cannot be combined with sslCert/insecure TLS options");
+                }
+                return httpClient;
+            }
+
+            if (sslCertPath != null && insecure) {
+                throw new IllegalStateException("sslCert and insecure cannot both be enabled");
+            }
+
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            if (connectTimeout != null) {
+                builder.connectTimeout(connectTimeout);
+            }
+            if (readTimeout != null) {
+                builder.readTimeout(readTimeout);
+            }
+            if (writeTimeout != null) {
+                builder.writeTimeout(writeTimeout);
+            }
+
+            if (sslCertPath != null) {
+                applyCustomCaCertificate(builder, sslCertPath);
+            } else if (insecure) {
+                applyInsecureTls(builder);
+            }
+
+            return builder.build();
+        }
+
+        private static String requireNonBlankEnvVar(String envVarName, String target) {
+            String variableName = requireNonBlank("envVarName", envVarName);
+            String value = System.getenv(variableName);
+            if (value == null || value.trim().isEmpty()) {
+                throw new IllegalStateException(
+                        "Environment variable " + variableName + " is required for " + target);
+            }
+            return value.trim();
+        }
+
+        private static final X509TrustManager INSECURE_TRUST_MANAGER = new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+
+            @Override
+            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+
+            @Override
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return new java.security.cert.X509Certificate[0];
+            }
+        };
+
+        private static final HostnameVerifier INSECURE_HOSTNAME_VERIFIER = (hostname, session) -> true;
+
+        private static void applyInsecureTls(OkHttpClient.Builder builder) {
+            SSLContext sslContext = newTlsContext(new TrustManager[]{INSECURE_TRUST_MANAGER});
+            SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+            builder.sslSocketFactory(socketFactory, INSECURE_TRUST_MANAGER);
+            builder.hostnameVerifier(INSECURE_HOSTNAME_VERIFIER);
+        }
+
+        private static void applyCustomCaCertificate(OkHttpClient.Builder builder, Path certPath) {
+            X509TrustManager trustManager = loadTrustManagerFromCertificate(certPath);
+            SSLContext sslContext = newTlsContext(new TrustManager[]{trustManager});
+            builder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+        }
+
+        private static X509TrustManager loadTrustManagerFromCertificate(Path certPath) {
+            java.util.Collection<? extends Certificate> certificates;
+            try (InputStream inputStream = Files.newInputStream(certPath)) {
+                CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+                certificates = certificateFactory.generateCertificates(inputStream);
+            } catch (IOException | GeneralSecurityException e) {
+                throw new IllegalArgumentException(
+                        "Failed to load SSL certificate from " + certPath + ": " + e.getMessage(),
+                        e
+                );
+            }
+
+            if (certificates == null || certificates.isEmpty()) {
+                throw new IllegalArgumentException("No certificates found in " + certPath);
+            }
+
+            try {
+                KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                keyStore.load(null, null);
+
+                int index = 0;
+                for (Certificate certificate : certificates) {
+                    keyStore.setCertificateEntry("chroma-ca-" + index, certificate);
+                    index++;
+                }
+
+                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
+                        TrustManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init(keyStore);
+                TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+                if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
+                    throw new IllegalStateException("Expected exactly one X509TrustManager");
+                }
+                return (X509TrustManager) trustManagers[0];
+            } catch (GeneralSecurityException | IOException e) {
+                throw new IllegalArgumentException(
+                        "Failed to initialize SSL trust manager from " + certPath + ": " + e.getMessage(),
+                        e
+                );
+            }
+        }
+
+        private static SSLContext newTlsContext(TrustManager[] trustManagers) {
+            try {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustManagers, new SecureRandom());
+                return sslContext;
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException("Failed to initialize TLS context", e);
+            }
         }
     }
 
