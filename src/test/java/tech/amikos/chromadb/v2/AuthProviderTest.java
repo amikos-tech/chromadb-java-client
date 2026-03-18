@@ -31,6 +31,16 @@ public class AuthProviderTest {
         BasicAuth.of("user", null);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testBasicAuthRejectsBlankUsername() {
+        BasicAuth.of("   ", "pass");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBasicAuthRejectsBlankPassword() {
+        BasicAuth.of("user", "   ");
+    }
+
     @Test
     public void testTokenAuthAppliesBearerHeader() {
         TokenAuth auth = TokenAuth.of("my-token");
@@ -56,6 +66,17 @@ public class AuthProviderTest {
     }
 
     @Test
+    public void testTokenAuthBlankTokenMessageIsActionable() {
+        try {
+            TokenAuth.of("   ");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("token"));
+            assertTrue(e.getMessage().contains("must not be blank"));
+        }
+    }
+
+    @Test
     public void testChromaTokenAuthAppliesHeader() {
         ChromaTokenAuth auth = ChromaTokenAuth.of("chroma-tok");
         Map<String, String> headers = new LinkedHashMap<String, String>();
@@ -77,6 +98,17 @@ public class AuthProviderTest {
     @Test(expected = IllegalArgumentException.class)
     public void testChromaTokenAuthRejectsBlankToken() {
         ChromaTokenAuth.of("   ");
+    }
+
+    @Test
+    public void testChromaTokenAuthBlankTokenMessageIsActionable() {
+        try {
+            ChromaTokenAuth.of("   ");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("token"));
+            assertTrue(e.getMessage().contains("must not be blank"));
+        }
     }
 
     @Test
@@ -109,9 +141,33 @@ public class AuthProviderTest {
         TokenAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
     }
 
+    @Test
+    public void testTokenAuthFromEnvErrorMentionsVariableName() {
+        String varName = "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime();
+        try {
+            TokenAuth.fromEnv(varName);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Environment variable not set"));
+            assertTrue(e.getMessage().contains(varName));
+        }
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testChromaTokenAuthFromEnvThrowsWhenNotSet() {
         ChromaTokenAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
+    }
+
+    @Test
+    public void testChromaTokenAuthFromEnvErrorMentionsVariableName() {
+        String varName = "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime();
+        try {
+            ChromaTokenAuth.fromEnv(varName);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Environment variable not set"));
+            assertTrue(e.getMessage().contains(varName));
+        }
     }
 
     @Test(expected = IllegalStateException.class)
@@ -119,9 +175,33 @@ public class AuthProviderTest {
         BasicAuth.fromEnv("NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime(), "PATH");
     }
 
+    @Test
+    public void testBasicAuthFromEnvUsernameErrorMentionsVariableName() {
+        String usernameVar = "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime();
+        try {
+            BasicAuth.fromEnv(usernameVar, "PATH");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Environment variable not set"));
+            assertTrue(e.getMessage().contains(usernameVar));
+        }
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testBasicAuthFromEnvThrowsWhenPasswordNotSet() {
         BasicAuth.fromEnv("PATH", "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime());
+    }
+
+    @Test
+    public void testBasicAuthFromEnvPasswordErrorMentionsVariableName() {
+        String passwordVar = "NONEXISTENT_VAR_FOR_TEST_" + System.nanoTime();
+        try {
+            BasicAuth.fromEnv("PATH", passwordVar);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Environment variable not set"));
+            assertTrue(e.getMessage().contains(passwordVar));
+        }
     }
 
     @Test

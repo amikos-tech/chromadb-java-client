@@ -36,7 +36,6 @@ public class ChromaClientBuilderTest {
         Client client = ChromaClient.builder()
                 .baseUrl("http://localhost:8000")
                 .auth(TokenAuth.of("tok"))
-                .apiKey("key")
                 .tenant(Tenant.of("t"))
                 .tenant("t-string")
                 .database(Database.of("d"))
@@ -50,6 +49,69 @@ public class ChromaClientBuilderTest {
                 .build();
         assertNotNull(client);
         client.close();
+    }
+
+    @Test
+    public void testBuilderApiKeyUsesTokenAuth() throws Exception {
+        ChromaClient.Builder builder = ChromaClient.builder().apiKey("key");
+        Field authProviderField = ChromaClient.Builder.class.getDeclaredField("authProvider");
+        authProviderField.setAccessible(true);
+
+        assertTrue(authProviderField.get(builder) instanceof TokenAuth);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testBuilderRejectsNullAuthProvider() {
+        ChromaClient.builder().auth(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testBuilderRejectsNullApiKey() {
+        ChromaClient.builder().apiKey(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuilderRejectsBlankApiKey() {
+        ChromaClient.builder().apiKey("   ");
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterAuthThenApiKey() {
+        try {
+            ChromaClient.builder()
+                    .auth(TokenAuth.of("tok"))
+                    .apiKey("other");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterApiKeyThenAuth() {
+        try {
+            ChromaClient.builder()
+                    .apiKey("tok")
+                    .auth(BasicAuth.of("user", "pass"));
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterAuthThenAuth() {
+        try {
+            ChromaClient.builder()
+                    .auth(TokenAuth.of("one"))
+                    .auth(TokenAuth.of("two"));
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
     }
 
     @Test
@@ -192,6 +254,63 @@ public class ChromaClientBuilderTest {
     }
 
     @Test
+    public void testBuilderRejectsAuthorizationInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("Authorization", "Bearer stale");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsXChromaTokenInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("x-chroma-token", "stale");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsNullHeaderKeyInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put(null, "value");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("null header names"));
+        }
+    }
+
+    @Test
+    public void testBuildRejectsConflictingAuthHeaderInjectedIntoBuilderState() throws Exception {
+        ChromaClient.Builder builder = ChromaClient.builder();
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("Authorization", "Bearer stale");
+
+        Field field = ChromaClient.Builder.class.getDeclaredField("defaultHeaders");
+        field.setAccessible(true);
+        field.set(builder, headers);
+
+        try {
+            builder.build();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
     public void testCloudBuilderNormalizesWhitespaceInTenantAndDatabase() throws Exception {
         ChromaClient.CloudBuilder builder = ChromaClient.cloud()
                 .apiKey("key")
@@ -205,6 +324,19 @@ public class ChromaClientBuilderTest {
 
         assertEquals("tenant-a", tenantField.get(builder));
         assertEquals("db-a", databaseField.get(builder));
+    }
+
+    @Test
+    public void testCloudBuilderRejectsSecondApiKeySetterCall() {
+        try {
+            ChromaClient.cloud()
+                    .apiKey("key-one")
+                    .apiKey("key-two");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
     }
 
     @Test

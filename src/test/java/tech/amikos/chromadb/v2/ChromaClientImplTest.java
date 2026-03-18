@@ -49,6 +49,23 @@ public class ChromaClientImplTest {
         return client;
     }
 
+    private static void assertAuthContractMessage(ChromaException e, String endpoint, int statusCode) {
+        assertEquals(statusCode, e.getStatusCode());
+        assertTrue(e.getMessage().contains(endpoint));
+        assertTrue(e.getMessage().contains("HTTP " + statusCode));
+        assertTrue(e.getMessage().contains("Verify your Chroma credentials"));
+    }
+
+    private static void assertWrappedAuthCause(
+            ChromaException e,
+            Class<? extends ChromaException> expectedCauseType,
+            int expectedStatusCode) {
+        assertNotNull(e.getCause());
+        assertTrue(expectedCauseType.isInstance(e.getCause()));
+        ChromaException cause = (ChromaException) e.getCause();
+        assertEquals(expectedStatusCode, cause.getStatusCode());
+    }
+
     private static Schema schemaWithSpace(DistanceFunction space) {
         return Schema.builder()
                 .key(Schema.EMBEDDING_KEY, ValueTypes.builder()
@@ -199,6 +216,7 @@ public class ChromaClientImplTest {
             newClient().preFlight();
             fail("Expected ChromaDeserializationException");
         } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("/api/v2/pre-flight-checks"));
             assertTrue(e.getMessage().contains("max_batch_size"));
         }
     }
@@ -216,6 +234,58 @@ public class ChromaClientImplTest {
             fail("Expected ChromaDeserializationException");
         } catch (ChromaDeserializationException e) {
             assertTrue(e.getMessage().contains("max_batch_size"));
+        }
+    }
+
+    @Test
+    public void testPreFlightUnauthorized() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(401)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"unauthorized\"}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaUnauthorizedException");
+        } catch (ChromaUnauthorizedException e) {
+            assertAuthContractMessage(e, "/api/v2/pre-flight-checks", 401);
+            assertWrappedAuthCause(e, ChromaUnauthorizedException.class, 401);
+        }
+    }
+
+    @Test
+    public void testPreFlightForbidden() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(403)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"forbidden\"}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaForbiddenException");
+        } catch (ChromaForbiddenException e) {
+            assertAuthContractMessage(e, "/api/v2/pre-flight-checks", 403);
+            assertWrappedAuthCause(e, ChromaForbiddenException.class, 403);
+        }
+    }
+
+    @Test
+    public void testPreFlightServerErrorPassesThroughUnwrapped() {
+        stubFor(get(urlEqualTo("/api/v2/pre-flight-checks"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"boom\"}")));
+
+        try {
+            newClient().preFlight();
+            fail("Expected ChromaServerException");
+        } catch (ChromaServerException e) {
+            assertEquals(500, e.getStatusCode());
+            assertNull(e.getCause());
+            assertFalse(e.getMessage().contains("Verify your Chroma credentials"));
         }
     }
 
@@ -264,6 +334,7 @@ public class ChromaClientImplTest {
             newClient().getIdentity();
             fail("Expected ChromaDeserializationException");
         } catch (ChromaDeserializationException e) {
+            assertTrue(e.getMessage().contains("/api/v2/auth/identity"));
             assertTrue(e.getMessage().contains("identity.user_id"));
         }
     }
@@ -346,7 +417,7 @@ public class ChromaClientImplTest {
         assertTrue(identity.getDatabases().isEmpty());
     }
 
-    @Test(expected = ChromaUnauthorizedException.class)
+    @Test
     public void testGetIdentityUnauthorized() {
         stubFor(get(urlEqualTo("/api/v2/auth/identity"))
                 .willReturn(aResponse()
@@ -354,7 +425,30 @@ public class ChromaClientImplTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"error\":\"unauthorized\"}")));
 
-        newClient().getIdentity();
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaUnauthorizedException");
+        } catch (ChromaUnauthorizedException e) {
+            assertAuthContractMessage(e, "/api/v2/auth/identity", 401);
+            assertWrappedAuthCause(e, ChromaUnauthorizedException.class, 401);
+        }
+    }
+
+    @Test
+    public void testGetIdentityForbidden() {
+        stubFor(get(urlEqualTo("/api/v2/auth/identity"))
+                .willReturn(aResponse()
+                        .withStatus(403)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"forbidden\"}")));
+
+        try {
+            newClient().getIdentity();
+            fail("Expected ChromaForbiddenException");
+        } catch (ChromaForbiddenException e) {
+            assertAuthContractMessage(e, "/api/v2/auth/identity", 403);
+            assertWrappedAuthCause(e, ChromaForbiddenException.class, 403);
+        }
     }
 
     // --- reset ---

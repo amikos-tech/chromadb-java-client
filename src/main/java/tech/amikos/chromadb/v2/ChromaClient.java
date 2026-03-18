@@ -11,6 +11,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -64,9 +65,15 @@ public final class ChromaClient {
     public static final class Builder {
         private static final String DEFAULT_TENANT_ENV = "CHROMA_TENANT";
         private static final String DEFAULT_DATABASE_ENV = "CHROMA_DATABASE";
+        private static final String AUTH_SETTER_AUTH = "auth(...)";
+        private static final String AUTH_SETTER_API_KEY = "apiKey(...)";
+        private static final String AUTHORIZATION_HEADER = "Authorization";
+        private static final String CHROMA_TOKEN_HEADER = "X-Chroma-Token";
 
         private String baseUrl;
         private AuthProvider authProvider;
+        private String authSetter;
+        private int authStrategyCount;
         private Tenant tenant;
         private Database database;
         private Duration connectTimeout;
@@ -91,23 +98,30 @@ public final class ChromaClient {
         /**
          * Sets the authentication provider directly.
          *
-         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
-         * method invoked determines the effective authentication.</p>
+         * @param authProvider auth provider instance applied on every request
+         * @return this builder
+         * @throws NullPointerException  if {@code authProvider} is {@code null}
+         * @throws IllegalStateException if an auth strategy was already configured
          */
-        public Builder auth(AuthProvider authProvider) { this.authProvider = authProvider; return this; }
+        public Builder auth(AuthProvider authProvider) {
+            return configureAuth(
+                    Objects.requireNonNull(authProvider, "authProvider"),
+                    AUTH_SETTER_AUTH
+            );
+        }
 
         /**
          * Convenience for {@code auth(TokenAuth.of(apiKey))}.
          *
-         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
-         * method invoked determines the effective authentication.</p>
-         *
          * <p>This configures standard bearer auth and sends
          * {@code Authorization: Bearer &lt;token&gt;}.</p>
+         *
+         * @throws NullPointerException     if {@code apiKey} is {@code null}
+         * @throws IllegalArgumentException if {@code apiKey} is blank
+         * @throws IllegalStateException    if an auth strategy was already configured
          */
         public Builder apiKey(String apiKey) {
-            this.authProvider = TokenAuth.of(apiKey);
-            return this;
+            return configureAuth(TokenAuth.of(apiKey), AUTH_SETTER_API_KEY);
         }
 
         public Builder tenant(Tenant tenant) { this.tenant = tenant; return this; }
@@ -131,8 +145,18 @@ public final class ChromaClient {
 
         public Builder writeTimeout(Duration timeout) { this.writeTimeout = timeout; return this; }
 
+        /**
+         * Sets additional default headers to include on every request.
+         *
+         * <p>Auth headers are reserved and must be configured via {@link #auth(AuthProvider)}
+         * or convenience auth setters.</p>
+         *
+         * @throws IllegalArgumentException if headers include reserved auth header names or null keys
+         */
         public Builder defaultHeaders(Map<String, String> headers) {
-            this.defaultHeaders = headers == null ? null : new LinkedHashMap<String, String>(headers);
+            Map<String, String> headerCopy = headers == null ? null : new LinkedHashMap<String, String>(headers);
+            validateNoReservedAuthHeaders(headerCopy);
+            this.defaultHeaders = headerCopy;
             return this;
         }
 
@@ -210,6 +234,8 @@ public final class ChromaClient {
         }
 
         public Client build() {
+            validateAuthConfiguration();
+            validateNoReservedAuthHeaders(defaultHeaders);
             String effectiveBaseUrl = baseUrl != null ? baseUrl : DEFAULT_BASE_URL;
             Tenant effectiveTenant = tenant != null ? tenant : Tenant.defaultTenant();
             Database effectiveDatabase = database != null ? database : Database.defaultDatabase();
@@ -223,6 +249,40 @@ public final class ChromaClient {
                     ownsHttpClient,
                     logger);
             return new ChromaClientImpl(apiClient, effectiveTenant, effectiveDatabase);
+        }
+
+        private Builder configureAuth(AuthProvider provider, String setterName) {
+            if (authStrategyCount >= 1) {
+                throw new IllegalStateException(ChromaClient.buildAuthStrategyConflictMessage(authSetter, setterName));
+            }
+            this.authProvider = Objects.requireNonNull(provider, "provider");
+            this.authSetter = setterName;
+            this.authStrategyCount = 1;
+            return this;
+        }
+
+        private void validateAuthConfiguration() {
+            ChromaClient.validateAuthConfiguration(authProvider, authStrategyCount);
+        }
+
+        private void validateNoReservedAuthHeaders(Map<String, String> headers) {
+            if (headers == null) {
+                return;
+            }
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                String name = entry.getKey();
+                if (name == null) {
+                    throw new IllegalArgumentException("defaultHeaders must not contain null header names");
+                }
+                String trimmedName = name.trim();
+                if (AUTHORIZATION_HEADER.equalsIgnoreCase(trimmedName)
+                        || CHROMA_TOKEN_HEADER.equalsIgnoreCase(trimmedName)) {
+                    throw new IllegalArgumentException(
+                            "defaultHeaders must not include " + AUTHORIZATION_HEADER + " or "
+                                    + CHROMA_TOKEN_HEADER
+                                    + "; configure credentials via auth(...).");
+                }
+            }
         }
 
         private OkHttpClient buildHttpClient() {
@@ -441,7 +501,11 @@ public final class ChromaClient {
     }
 
     public static final class CloudBuilder {
-        private String apiKey;
+        private static final String AUTH_SETTER_API_KEY = "apiKey(...)";
+
+        private AuthProvider authProvider;
+        private String authSetter;
+        private int authStrategyCount;
         private String tenant;
         private String database;
         private Duration timeout;
@@ -454,10 +518,16 @@ public final class ChromaClient {
          *
          * <p>This configures Chroma Cloud token auth and sends
          * {@code X-Chroma-Token: &lt;token&gt;} (not bearer auth).</p>
+         *
+         * @throws NullPointerException     if {@code apiKey} is {@code null}
+         * @throws IllegalArgumentException if {@code apiKey} is blank
+         * @throws IllegalStateException    if an auth strategy was already configured
          */
         public CloudBuilder apiKey(String apiKey) {
-            this.apiKey = requireNonBlank("apiKey", apiKey);
-            return this;
+            return configureAuth(
+                    ChromaTokenAuth.of(requireNonBlank("apiKey", apiKey)),
+                    AUTH_SETTER_API_KEY
+            );
         }
 
         public CloudBuilder tenant(String tenant) {
@@ -481,7 +551,8 @@ public final class ChromaClient {
         }
 
         public Client build() {
-            if (apiKey == null) {
+            validateAuthConfiguration();
+            if (authProvider == null) {
                 throw new IllegalStateException("apiKey is required for Chroma Cloud");
             }
             if (tenant == null) {
@@ -492,7 +563,7 @@ public final class ChromaClient {
             }
             Builder delegate = ChromaClient.builder()
                     .baseUrl(CLOUD_BASE_URL)
-                    .auth(ChromaTokenAuth.of(apiKey))
+                    .auth(authProvider)
                     .tenant(tenant)
                     .database(database);
             if (timeout != null) {
@@ -503,6 +574,36 @@ public final class ChromaClient {
             }
             return delegate.build();
         }
+
+        private CloudBuilder configureAuth(AuthProvider provider, String setterName) {
+            if (authStrategyCount >= 1) {
+                throw new IllegalStateException(ChromaClient.buildAuthStrategyConflictMessage(authSetter, setterName));
+            }
+            this.authProvider = Objects.requireNonNull(provider, "provider");
+            this.authSetter = setterName;
+            this.authStrategyCount = 1;
+            return this;
+        }
+
+        private void validateAuthConfiguration() {
+            ChromaClient.validateAuthConfiguration(authProvider, authStrategyCount);
+        }
+    }
+
+    private static void validateAuthConfiguration(AuthProvider authProvider, int authStrategyCount) {
+        if (authStrategyCount > 1) {
+            throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
+        }
+        if ((authProvider == null) != (authStrategyCount == 0)) {
+            throw new IllegalStateException(
+                    "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
+        }
+    }
+
+    private static String buildAuthStrategyConflictMessage(String configuredSetter, String attemptedSetter) {
+        return "Auth strategy already configured via " + configuredSetter
+                + "; cannot also configure " + attemptedSetter
+                + ". Configure exactly one auth strategy per builder instance via auth(...).";
     }
 
     private static String requireNonBlank(String fieldName, String value) {
@@ -517,6 +618,11 @@ public final class ChromaClient {
     // --- Private implementation ---
 
     private static final class ChromaClientImpl implements Client {
+
+        private static final String PREFLIGHT_ENDPOINT = ChromaApiPaths.preFlightChecks();
+        private static final String IDENTITY_ENDPOINT = ChromaApiPaths.authIdentity();
+        private static final String AUTH_HINT =
+                "Verify your Chroma credentials and that your API key/token has access to the configured tenant/database.";
 
         private final ChromaApiClient apiClient;
         private final AtomicReference<SessionContext> sessionContext;
@@ -536,7 +642,8 @@ public final class ChromaClient {
             Long value = result.get("nanosecond heartbeat");
             if (value == null) {
                 throw new ChromaDeserializationException(
-                        "Server returned heartbeat payload without required 'nanosecond heartbeat' field",
+                        "Server returned invalid payload from " + ChromaApiPaths.heartbeat()
+                                + ": missing required field 'nanosecond heartbeat'",
                         200
                 );
             }
@@ -550,19 +657,22 @@ public final class ChromaClient {
 
         @Override
         public PreFlightInfo preFlight() {
-            ChromaDtos.PreFlightResponse dto = apiClient.get(
-                    ChromaApiPaths.preFlightChecks(),
-                    ChromaDtos.PreFlightResponse.class);
+            ChromaDtos.PreFlightResponse dto = getAuthProtected(
+                    PREFLIGHT_ENDPOINT,
+                    ChromaDtos.PreFlightResponse.class,
+                    "pre-flight checks");
             if (dto.maxBatchSize == null) {
                 throw new ChromaDeserializationException(
-                        "Server returned pre-flight payload without required max_batch_size field",
+                        "Server returned invalid payload from " + PREFLIGHT_ENDPOINT
+                                + ": missing required field 'max_batch_size'",
                         200
                 );
             }
             int maxBatchSize = dto.maxBatchSize.intValue();
             if (maxBatchSize <= 0) {
                 throw new ChromaDeserializationException(
-                        "Server returned pre-flight payload with invalid max_batch_size field: " + dto.maxBatchSize,
+                        "Server returned invalid payload from " + PREFLIGHT_ENDPOINT
+                                + ": invalid field 'max_batch_size' value: " + dto.maxBatchSize,
                         200
                 );
             }
@@ -571,16 +681,17 @@ public final class ChromaClient {
 
         @Override
         public Identity getIdentity() {
-            ChromaDtos.IdentityResponse dto = apiClient.get(
-                    ChromaApiPaths.authIdentity(),
-                    ChromaDtos.IdentityResponse.class);
-            String userId = requireNonBlankField("identity.user_id", dto.userId);
-            String tenantName = requireNonBlankField("identity.tenant", dto.tenant);
-            List<String> databases = requireNonNullListField("identity.databases", dto.databases);
+            ChromaDtos.IdentityResponse dto = getAuthProtected(
+                    IDENTITY_ENDPOINT,
+                    ChromaDtos.IdentityResponse.class,
+                    "identity");
+            String userId = requireNonBlankField(IDENTITY_ENDPOINT, "identity.user_id", dto.userId);
+            String tenantName = requireNonBlankField(IDENTITY_ENDPOINT, "identity.tenant", dto.tenant);
+            List<String> databases = requireNonNullListField(IDENTITY_ENDPOINT, "identity.databases", dto.databases);
             List<String> normalizedDatabases = new ArrayList<String>(databases.size());
             for (int i = 0; i < databases.size(); i++) {
                 normalizedDatabases.add(requireNonBlankField(
-                        "identity.databases[" + i + "]", databases.get(i)));
+                        IDENTITY_ENDPOINT, "identity.databases[" + i + "]", databases.get(i)));
             }
             return new Identity(userId, tenantName, normalizedDatabases);
         }
@@ -858,6 +969,64 @@ public final class ChromaClient {
                 );
             }
             return value;
+        }
+
+        private static String requireNonBlankField(String endpoint, String fieldName, String value) {
+            if (value == null || value.trim().isEmpty()) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid payload from " + endpoint
+                                + ": invalid field '" + fieldName + "'",
+                        200
+                );
+            }
+            return value.trim();
+        }
+
+        private static <T> List<T> requireNonNullListField(String endpoint, String fieldName, List<T> value) {
+            if (value == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid payload from " + endpoint
+                                + ": missing required field '" + fieldName + "'",
+                        200
+                );
+            }
+            return value;
+        }
+
+        /**
+         * Performs GET against an auth-protected endpoint and enriches 401/403 messages with
+         * actionable credential guidance while preserving original exception types.
+         */
+        private <T> T getAuthProtected(String endpoint, Type responseType, String operation) {
+            try {
+                return apiClient.get(endpoint, responseType);
+            } catch (ChromaUnauthorizedException e) {
+                throw withAuthContext(e, endpoint, operation);
+            } catch (ChromaForbiddenException e) {
+                throw withAuthContext(e, endpoint, operation);
+            }
+        }
+
+        private ChromaUnauthorizedException withAuthContext(
+                ChromaUnauthorizedException cause, String endpoint, String operation) {
+            return new ChromaUnauthorizedException(
+                    buildAuthFailureMessage(endpoint, operation, cause.getStatusCode()),
+                    cause.getErrorCode(),
+                    cause);
+        }
+
+        private ChromaForbiddenException withAuthContext(
+                ChromaForbiddenException cause, String endpoint, String operation) {
+            return new ChromaForbiddenException(
+                    buildAuthFailureMessage(endpoint, operation, cause.getStatusCode()),
+                    cause.getErrorCode(),
+                    cause);
+        }
+
+        private String buildAuthFailureMessage(String endpoint, String operation, int statusCode) {
+            String failureType = statusCode == 403 ? "Authorization failed" : "Authentication failed";
+            return failureType + " for " + operation + " endpoint " + endpoint
+                    + " (HTTP " + statusCode + "). " + AUTH_HINT;
         }
     }
 }

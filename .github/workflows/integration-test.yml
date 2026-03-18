@@ -39,3 +39,6 @@ jobs:
         run: mvn --batch-mode test -Pintegration
         env:
           CHROMA_VERSION: 1.5.2
+          CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
+          CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
+          CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
