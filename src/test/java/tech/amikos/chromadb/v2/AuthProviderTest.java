@@ -31,6 +31,16 @@ public class AuthProviderTest {
         BasicAuth.of("user", null);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testBasicAuthRejectsBlankUsername() {
+        BasicAuth.of("   ", "pass");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBasicAuthRejectsBlankPassword() {
+        BasicAuth.of("user", "   ");
+    }
+
     @Test
     public void testTokenAuthAppliesBearerHeader() {
         TokenAuth auth = TokenAuth.of("my-token");

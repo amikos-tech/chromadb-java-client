@@ -60,6 +60,21 @@ public class ChromaClientBuilderTest {
         assertTrue(authProviderField.get(builder) instanceof TokenAuth);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testBuilderRejectsNullAuthProvider() {
+        ChromaClient.builder().auth(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testBuilderRejectsNullApiKey() {
+        ChromaClient.builder().apiKey(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuilderRejectsBlankApiKey() {
+        ChromaClient.builder().apiKey("   ");
+    }
+
     @Test
     public void testBuilderRejectsSecondAuthSetterAuthThenApiKey() {
         try {
@@ -79,6 +94,19 @@ public class ChromaClientBuilderTest {
             ChromaClient.builder()
                     .apiKey("tok")
                     .auth(BasicAuth.of("user", "pass"));
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterAuthThenAuth() {
+        try {
+            ChromaClient.builder()
+                    .auth(TokenAuth.of("one"))
+                    .auth(TokenAuth.of("two"));
             fail("Expected IllegalStateException");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("exactly one auth strategy"));
@@ -248,6 +276,19 @@ public class ChromaClientBuilderTest {
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsNullHeaderKeyInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put(null, "value");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("null header names"));
         }
     }
 

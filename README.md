@@ -249,7 +249,7 @@ This repository enforces one auth contract across all v2 builders and auth entry
 - Convenience setters must route through the same canonical auth slot as `auth(...)`.
 - `defaultHeaders` must not include `Authorization` or `X-Chroma-Token`; users should configure credentials through `auth(...)`.
 - Auth inputs must be validated immediately at setter/factory time, with a final build-time invariant check as a safety net.
-- Cloud `preFlight()` and `getIdentity()` auth failures are strict: HTTP 401/403 must surface as `ChromaUnauthorizedException` with actionable guidance.
+- `preFlight()` and `getIdentity()` auth failures are strict across all v2 clients: HTTP 401 must surface as `ChromaUnauthorizedException`, HTTP 403 as `ChromaForbiddenException`, each with actionable guidance.
 - Malformed successful identity/preflight payloads must raise `ChromaDeserializationException` with endpoint + field context.
 
 ### Error Mapping-Change Governance
@@ -274,7 +274,7 @@ mvn -Dtest=AuthProviderTest,ChromaClientBuilderTest,ChromaClientImplTest,ErrorHa
 # Transport error translation and exception mapping governance
 mvn -Dtest=ChromaApiClientTest,ChromaExceptionTest test
 
-# README contract anchors (maintainer policy)
+# README contract anchors (documentation sanity check)
 rg -n "Auth Contract|one auth strategy|defaultHeaders|mapping-change" README.md
 ```
 

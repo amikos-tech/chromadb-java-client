@@ -97,6 +97,11 @@ public final class ChromaClient {
 
         /**
          * Sets the authentication provider directly.
+         *
+         * @param authProvider auth provider instance applied on every request
+         * @return this builder
+         * @throws NullPointerException  if {@code authProvider} is {@code null}
+         * @throws IllegalStateException if an auth strategy was already configured
          */
         public Builder auth(AuthProvider authProvider) {
             return configureAuth(
@@ -110,6 +115,10 @@ public final class ChromaClient {
          *
          * <p>This configures standard bearer auth and sends
          * {@code Authorization: Bearer &lt;token&gt;}.</p>
+         *
+         * @throws NullPointerException     if {@code apiKey} is {@code null}
+         * @throws IllegalArgumentException if {@code apiKey} is blank
+         * @throws IllegalStateException    if an auth strategy was already configured
          */
         public Builder apiKey(String apiKey) {
             return configureAuth(TokenAuth.of(apiKey), AUTH_SETTER_API_KEY);
@@ -136,6 +145,14 @@ public final class ChromaClient {
 
         public Builder writeTimeout(Duration timeout) { this.writeTimeout = timeout; return this; }
 
+        /**
+         * Sets additional default headers to include on every request.
+         *
+         * <p>Auth headers are reserved and must be configured via {@link #auth(AuthProvider)}
+         * or convenience auth setters.</p>
+         *
+         * @throws IllegalArgumentException if headers include reserved auth header names or null keys
+         */
         public Builder defaultHeaders(Map<String, String> headers) {
             Map<String, String> headerCopy = headers == null ? null : new LinkedHashMap<String, String>(headers);
             validateNoReservedAuthHeaders(headerCopy);
@@ -236,7 +253,7 @@ public final class ChromaClient {
 
         private Builder configureAuth(AuthProvider provider, String setterName) {
             if (authStrategyCount >= 1) {
-                throw new IllegalStateException(buildAuthStrategyConflictMessage(setterName));
+                throw new IllegalStateException(ChromaClient.buildAuthStrategyConflictMessage(authSetter, setterName));
             }
             this.authProvider = Objects.requireNonNull(provider, "provider");
             this.authSetter = setterName;
@@ -245,19 +262,7 @@ public final class ChromaClient {
         }
 
         private void validateAuthConfiguration() {
-            if (authStrategyCount < 0 || authStrategyCount > 1) {
-                throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
-            }
-            if ((authProvider == null) != (authStrategyCount == 0)) {
-                throw new IllegalStateException(
-                        "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
-            }
-        }
-
-        private String buildAuthStrategyConflictMessage(String attemptedSetter) {
-            return "Auth strategy already configured via " + authSetter
-                    + "; cannot also configure " + attemptedSetter
-                    + ". Configure exactly one auth strategy per builder instance via auth(...).";
+            ChromaClient.validateAuthConfiguration(authProvider, authStrategyCount);
         }
 
         private void validateNoReservedAuthHeaders(Map<String, String> headers) {
@@ -267,7 +272,7 @@ public final class ChromaClient {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 String name = entry.getKey();
                 if (name == null) {
-                    continue;
+                    throw new IllegalArgumentException("defaultHeaders must not contain null header names");
                 }
                 String trimmedName = name.trim();
                 if (AUTHORIZATION_HEADER.equalsIgnoreCase(trimmedName)
@@ -513,6 +518,10 @@ public final class ChromaClient {
          *
          * <p>This configures Chroma Cloud token auth and sends
          * {@code X-Chroma-Token: &lt;token&gt;} (not bearer auth).</p>
+         *
+         * @throws NullPointerException     if {@code apiKey} is {@code null}
+         * @throws IllegalArgumentException if {@code apiKey} is blank
+         * @throws IllegalStateException    if an auth strategy was already configured
          */
         public CloudBuilder apiKey(String apiKey) {
             return configureAuth(
@@ -568,7 +577,7 @@ public final class ChromaClient {
 
         private CloudBuilder configureAuth(AuthProvider provider, String setterName) {
             if (authStrategyCount >= 1) {
-                throw new IllegalStateException(buildAuthStrategyConflictMessage(setterName));
+                throw new IllegalStateException(ChromaClient.buildAuthStrategyConflictMessage(authSetter, setterName));
             }
             this.authProvider = Objects.requireNonNull(provider, "provider");
             this.authSetter = setterName;
@@ -577,20 +586,24 @@ public final class ChromaClient {
         }
 
         private void validateAuthConfiguration() {
-            if (authStrategyCount < 0 || authStrategyCount > 1) {
-                throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
-            }
-            if ((authProvider == null) != (authStrategyCount == 0)) {
-                throw new IllegalStateException(
-                        "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
-            }
+            ChromaClient.validateAuthConfiguration(authProvider, authStrategyCount);
         }
+    }
 
-        private String buildAuthStrategyConflictMessage(String attemptedSetter) {
-            return "Auth strategy already configured via " + authSetter
-                    + "; cannot also configure " + attemptedSetter
-                    + ". Configure exactly one auth strategy per builder instance via auth(...).";
+    private static void validateAuthConfiguration(AuthProvider authProvider, int authStrategyCount) {
+        if (authStrategyCount > 1) {
+            throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
         }
+        if ((authProvider == null) != (authStrategyCount == 0)) {
+            throw new IllegalStateException(
+                    "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
+        }
+    }
+
+    private static String buildAuthStrategyConflictMessage(String configuredSetter, String attemptedSetter) {
+        return "Auth strategy already configured via " + configuredSetter
+                + "; cannot also configure " + attemptedSetter
+                + ". Configure exactly one auth strategy per builder instance via auth(...).";
     }
 
     private static String requireNonBlank(String fieldName, String value) {
@@ -629,7 +642,8 @@ public final class ChromaClient {
             Long value = result.get("nanosecond heartbeat");
             if (value == null) {
                 throw new ChromaDeserializationException(
-                        "Server returned heartbeat payload without required 'nanosecond heartbeat' field",
+                        "Server returned invalid payload from " + ChromaApiPaths.heartbeat()
+                                + ": missing required field 'nanosecond heartbeat'",
                         200
                 );
             }
@@ -979,20 +993,40 @@ public final class ChromaClient {
             return value;
         }
 
+        /**
+         * Performs GET against an auth-protected endpoint and enriches 401/403 messages with
+         * actionable credential guidance while preserving original exception types.
+         */
         private <T> T getAuthProtected(String endpoint, Type responseType, String operation) {
             try {
                 return apiClient.get(endpoint, responseType);
             } catch (ChromaUnauthorizedException e) {
-                throw asUnauthorized(e, endpoint, operation);
+                throw withAuthContext(e, endpoint, operation);
             } catch (ChromaForbiddenException e) {
-                throw asUnauthorized(e, endpoint, operation);
+                throw withAuthContext(e, endpoint, operation);
             }
         }
 
-        private ChromaUnauthorizedException asUnauthorized(ChromaException cause, String endpoint, String operation) {
-            String message = "Authentication failed for " + operation + " endpoint " + endpoint
-                    + " (HTTP " + cause.getStatusCode() + "). " + AUTH_HINT;
-            return new ChromaUnauthorizedException(message, cause.getErrorCode(), cause);
+        private ChromaUnauthorizedException withAuthContext(
+                ChromaUnauthorizedException cause, String endpoint, String operation) {
+            return new ChromaUnauthorizedException(
+                    buildAuthFailureMessage(endpoint, operation, cause.getStatusCode()),
+                    cause.getErrorCode(),
+                    cause);
+        }
+
+        private ChromaForbiddenException withAuthContext(
+                ChromaForbiddenException cause, String endpoint, String operation) {
+            return new ChromaForbiddenException(
+                    buildAuthFailureMessage(endpoint, operation, cause.getStatusCode()),
+                    cause.getErrorCode(),
+                    cause);
+        }
+
+        private String buildAuthFailureMessage(String endpoint, String operation, int statusCode) {
+            String failureType = statusCode == 403 ? "Authorization failed" : "Authentication failed";
+            return failureType + " for " + operation + " endpoint " + endpoint
+                    + " (HTTP " + statusCode + "). " + AUTH_HINT;
         }
     }
 }
