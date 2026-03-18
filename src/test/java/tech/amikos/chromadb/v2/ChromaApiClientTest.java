@@ -18,8 +18,11 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -318,7 +321,7 @@ public class ChromaApiClientTest {
             fail("Expected ChromaServerException");
         } catch (ChromaServerException e) {
             assertEquals(500, e.getStatusCode());
-            assertEquals("HTTP 500: {\"error\":{\"nested\":true}}", e.getMessage());
+            assertEquals("HTTP 500: {\"nested\":true}", e.getMessage());
         }
     }
 
@@ -529,6 +532,24 @@ public class ChromaApiClientTest {
         } catch (ChromaBadRequestException e) {
             assertEquals(400, e.getStatusCode());
             assertEquals("validation failed", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testNonPrimitiveMessageFieldIsIncludedInFallbackMessage() {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"message\":{\"detail\":\"validation failed\"}}")));
+
+        ChromaApiClient c = newClient();
+        try {
+            c.get("/api/v2/test", String.class);
+            fail("Expected ChromaBadRequestException");
+        } catch (ChromaBadRequestException e) {
+            assertEquals(400, e.getStatusCode());
+            assertEquals("HTTP 400: {\"detail\":\"validation failed\"}", e.getMessage());
         }
     }
 
@@ -1301,6 +1322,40 @@ public class ChromaApiClientTest {
         } catch (ChromaServerException e) {
             assertEquals(500, e.getStatusCode());
         }
+    }
+
+    @Test
+    public void testLoggerExceptionsEmitSystemErrFallback() throws Exception {
+        stubFor(get(urlEqualTo("/api/v2/test"))
+                .willReturn(aResponse().withStatus(500).withBody("{\"error\":\"boom\"}")));
+
+        ByteArrayOutputStream stderrBuffer = new ByteArrayOutputStream();
+        PrintStream originalErr = System.err;
+        PrintStream capture = new PrintStream(stderrBuffer, true, "UTF-8");
+        System.setErr(capture);
+        try {
+            client = new ChromaApiClient(
+                    "http://localhost:" + wireMock.port(),
+                    null,
+                    null,
+                    new OkHttpClient(),
+                    true,
+                    new ThrowingLogger()
+            );
+
+            try {
+                client.get("/api/v2/test", String.class);
+                fail("Expected ChromaServerException");
+            } catch (ChromaServerException e) {
+                assertEquals(500, e.getStatusCode());
+            }
+        } finally {
+            System.setErr(originalErr);
+            capture.close();
+        }
+
+        String stderrOutput = new String(stderrBuffer.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(stderrOutput.contains("logger failure suppressed"));
     }
 
     @Test

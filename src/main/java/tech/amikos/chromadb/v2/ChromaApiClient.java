@@ -356,6 +356,15 @@ class ChromaApiClient implements AutoCloseable {
                 message = getStringField(json, "message");
             }
             if (message == null) {
+                String nonStringMessage = getNonStringField(json, "error");
+                if (nonStringMessage == null) {
+                    nonStringMessage = getNonStringField(json, "message");
+                }
+                if (nonStringMessage != null) {
+                    message = "HTTP " + statusCode + ": " + truncateBody(nonStringMessage);
+                }
+            }
+            if (message == null) {
                 message = "HTTP " + statusCode + ": " + truncateBody(json.toString());
             }
             String errorCode = getStringField(json, "error_code");
@@ -393,6 +402,14 @@ class ChromaApiClient implements AutoCloseable {
             // Field was a JSON array/object, not a primitive.
             return null;
         }
+    }
+
+    private static String getNonStringField(JsonObject json, String field) {
+        if (!json.has(field) || json.get(field).isJsonNull() || json.get(field).isJsonPrimitive()) {
+            return null;
+        }
+        String value = json.get(field).toString();
+        return value.trim().isEmpty() ? null : value;
     }
 
     private RequestBody jsonBody(Object body) {
@@ -453,8 +470,15 @@ class ChromaApiClient implements AutoCloseable {
     private static void safeLog(Runnable logAction) {
         try {
             logAction.run();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException loggerFailure) {
             // Logging must never alter transport behavior.
+            try {
+                System.err.println("[chroma-java-client] logger failure suppressed: "
+                        + loggerFailure.getClass().getSimpleName()
+                        + (isBlank(loggerFailure.getMessage()) ? "" : " - " + loggerFailure.getMessage()));
+            } catch (RuntimeException ignored) {
+                // Best effort only.
+            }
         }
     }
 
