@@ -8,9 +8,11 @@ import tech.amikos.chromadb.Utils;
 
 import java.time.Duration;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Optional live-cloud integration checks for Chroma Cloud authentication.
@@ -70,8 +72,18 @@ public class CloudAuthIntegrationTest {
     }
 
     @Test
-    public void testCloudAuthAllowsCollectionListing() {
-        assertNotNull(client.listCollections());
+    public void testCloudAuthCollectionListingRespectsPermissions() {
+        try {
+            assertNotNull(client.listCollections());
+        } catch (ChromaForbiddenException forbidden) {
+            // Some cloud API keys are scoped to identity checks but cannot list collections.
+            assertEquals(403, forbidden.getStatusCode());
+            assertNotNull(forbidden.getMessage());
+            assertFalse(forbidden.getMessage().trim().isEmpty());
+        } catch (ChromaUnauthorizedException unauthorized) {
+            fail("Cloud auth should be valid for configured credentials, but got 401 Unauthorized: "
+                    + unauthorized.getMessage());
+        }
     }
 
     private static boolean isNonBlank(String value) {
