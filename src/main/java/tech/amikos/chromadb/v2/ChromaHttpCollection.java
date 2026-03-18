@@ -612,33 +612,18 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public QueryBuilder queryTexts(List<String> texts) {
-            if (queryEmbeddings != null) {
-                throw new IllegalArgumentException(
-                        "cannot set both queryTexts and queryEmbeddings in the same query"
-                );
-            }
             this.queryTexts = validateQueryTexts(texts);
             return this;
         }
 
         @Override
         public QueryBuilder queryEmbeddings(float[]... embeddings) {
-            if (queryTexts != null) {
-                throw new IllegalArgumentException(
-                        "cannot set both queryTexts and queryEmbeddings in the same query"
-                );
-            }
             this.queryEmbeddings = Arrays.asList(embeddings);
             return this;
         }
 
         @Override
         public QueryBuilder queryEmbeddings(List<float[]> embeddings) {
-            if (queryTexts != null) {
-                throw new IllegalArgumentException(
-                        "cannot set both queryTexts and queryEmbeddings in the same query"
-                );
-            }
             this.queryEmbeddings = embeddings;
             return this;
         }
