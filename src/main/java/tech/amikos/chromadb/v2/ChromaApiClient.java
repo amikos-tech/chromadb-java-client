@@ -18,14 +18,17 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Package-private HTTP transport for the Chroma v2 REST API.
- * Owns the {@link OkHttpClient} and {@link Gson} instances and must be closed
- * to release HTTP thread and connection-pool resources.
+ * Owns the {@link Gson} instance and may own the {@link OkHttpClient} instance.
+ * If this client owns the HTTP client, {@link #close()} releases HTTP thread and
+ * connection-pool resources; otherwise it leaves externally provided resources intact.
  *
  * <p>Note: {@link #close()} performs both dispatcher shutdown and connection-pool eviction and
  * may throw unchecked exceptions from those underlying OkHttp operations.</p>
@@ -38,6 +41,9 @@ class ChromaApiClient implements AutoCloseable {
     private final AuthProvider authProvider;
     private final Map<String, String> defaultHeaders;
     private final OkHttpClient httpClient;
+    private final boolean ownsHttpClient;
+    private final ChromaLogger logger;
+    private final boolean loggingEnabled;
     private final Gson gson;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -45,6 +51,17 @@ class ChromaApiClient implements AutoCloseable {
                     Map<String, String> defaultHeaders,
                     Duration connectTimeout, Duration readTimeout,
                     Duration writeTimeout) {
+        this(baseUrl, authProvider, defaultHeaders,
+                buildHttpClient(connectTimeout, readTimeout, writeTimeout),
+                true,
+                ChromaLogger.noop());
+    }
+
+    ChromaApiClient(String baseUrl, AuthProvider authProvider,
+                    Map<String, String> defaultHeaders,
+                    OkHttpClient httpClient,
+                    boolean ownsHttpClient,
+                    ChromaLogger logger) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("baseUrl must not be blank");
         }
@@ -57,7 +74,16 @@ class ChromaApiClient implements AutoCloseable {
         this.defaultHeaders = defaultHeaders == null
                 ? Collections.<String, String>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, String>(defaultHeaders));
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+        this.ownsHttpClient = ownsHttpClient;
+        this.logger = logger == null ? ChromaLogger.noop() : logger;
+        this.loggingEnabled = !this.logger.isNoop();
+        this.gson = new GsonBuilder().create();
+    }
 
+    private static OkHttpClient buildHttpClient(Duration connectTimeout,
+                                                Duration readTimeout,
+                                                Duration writeTimeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         if (connectTimeout != null) {
             builder.connectTimeout(connectTimeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -68,8 +94,7 @@ class ChromaApiClient implements AutoCloseable {
         if (writeTimeout != null) {
             builder.writeTimeout(writeTimeout.toMillis(), TimeUnit.MILLISECONDS);
         }
-        this.httpClient = builder.build();
-        this.gson = new GsonBuilder().create();
+        return builder.build();
     }
 
     <T> T get(String path, Type responseType) {
@@ -153,6 +178,9 @@ class ChromaApiClient implements AutoCloseable {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
+        if (!ownsHttpClient) {
+            return;
+        }
         RuntimeException closeFailure = null;
         try {
             httpClient.dispatcher().executorService().shutdown();
@@ -234,33 +262,83 @@ class ChromaApiClient implements AutoCloseable {
     }
 
     private SuccessfulResponse execute(Request request) {
+        long startNanos = System.nanoTime();
+        if (loggingEnabled) {
+            safeLog(() -> logger.debug("chroma.http.request", logFields(request, null, null)));
+        }
+
         Response response;
         try {
             response = httpClient.newCall(request).execute();
         } catch (IOException e) {
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.network_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaConnectionException("Network error communicating with " + request.url(), e);
+        } catch (RuntimeException e) {
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.network_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
+            throw new ChromaException(
+                    "Unexpected client-side error while executing request to "
+                            + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
+                    ChromaException.STATUS_CODE_UNAVAILABLE,
+                    null,
+                    e
+            );
         }
 
         try {
             int statusCode = response.code();
             ResponseBody responseBody = response.body();
             String bodyString = responseBody != null ? responseBody.string() : null;
+            long elapsedMillis = elapsedMillis(startNanos);
 
             if (statusCode >= 400) {
+                if (loggingEnabled) {
+                    safeLog(() -> logger.warn("chroma.http.response_error",
+                            logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+                }
                 ErrorBody error = parseErrorBody(bodyString, statusCode);
                 throw ChromaExceptions.fromHttpResponse(statusCode, error.message, error.errorCode);
             }
 
             if (statusCode < 200 || statusCode >= 300) {
+                if (loggingEnabled) {
+                    safeLog(() -> logger.warn("chroma.http.response_unexpected",
+                            logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+                }
                 throw new ChromaException("Unexpected non-2xx response: " + formatStatusWithBody(statusCode, bodyString),
                         statusCode, null);
             }
 
+            if (loggingEnabled) {
+                safeLog(() -> logger.debug("chroma.http.response",
+                        logFields(request, Integer.valueOf(statusCode), Long.valueOf(elapsedMillis))));
+            }
             return new SuccessfulResponse(statusCode, bodyString);
         } catch (ChromaException e) {
             throw e;
         } catch (IOException e) {
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.read_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
             throw new ChromaConnectionException("Network error reading response from " + request.url(), e);
+        } catch (RuntimeException e) {
+            if (loggingEnabled) {
+                safeLog(() -> logger.error("chroma.http.response_processing_error",
+                        logFields(request, null, elapsedMillis(startNanos)), e));
+            }
+            throw new ChromaException(
+                    "Unexpected client-side error while processing response from "
+                            + sanitizeUrlForLogs(request.url()) + ": " + e.getMessage(),
+                    ChromaException.STATUS_CODE_UNAVAILABLE,
+                    null,
+                    e
+            );
         } finally {
             response.close();
         }
@@ -336,6 +414,48 @@ class ChromaApiClient implements AutoCloseable {
             return "HTTP " + statusCode;
         }
         return "HTTP " + statusCode + ": " + truncateBody(body);
+    }
+
+    private Map<String, Object> logFields(Request request, Integer statusCode, Long durationMillis) {
+        Map<String, Object> fields = new LinkedHashMap<String, Object>();
+        fields.put("method", request.method());
+        fields.put("url", sanitizeUrlForLogs(request.url()));
+        if (statusCode != null) {
+            fields.put("status", statusCode);
+        }
+        if (durationMillis != null) {
+            fields.put("duration_ms", durationMillis);
+        }
+        return fields;
+    }
+
+    private static long elapsedMillis(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+    }
+
+    /**
+     * Strips query/fragment and redacts resource identifiers (tenant, database,
+     * collection) from the URL path so that sensitive cloud identifiers are not
+     * leaked into log output.
+     */
+    private static String sanitizeUrlForLogs(HttpUrl url) {
+        HttpUrl.Builder builder = url.newBuilder().query(null).fragment(null);
+        List<String> segments = url.pathSegments();
+        for (int i = 1; i < segments.size(); i++) {
+            String prev = segments.get(i - 1);
+            if ("tenants".equals(prev) || "databases".equals(prev) || "collections".equals(prev)) {
+                builder.setPathSegment(i, "***");
+            }
+        }
+        return builder.build().toString();
+    }
+
+    private static void safeLog(Runnable logAction) {
+        try {
+            logAction.run();
+        } catch (RuntimeException ignored) {
+            // Logging must never alter transport behavior.
+        }
     }
 
     private static boolean isBlank(String s) {
