@@ -704,10 +704,10 @@ public final class ChromaClient {
         @Override
         public Tenant createTenant(String name) {
             String tenantName = requireNonBlank("name", name);
-            apiClient.post(ChromaApiPaths.tenants(),
+            ChromaDtos.TenantResponse dto = apiClient.post(ChromaApiPaths.tenants(),
                     new ChromaDtos.CreateTenantRequest(tenantName),
                     ChromaDtos.TenantResponse.class);
-            return Tenant.of(tenantName);
+            return Tenant.of(resolveCreateName(dto != null ? dto.name : null, tenantName));
         }
 
         @Override
@@ -749,10 +749,10 @@ public final class ChromaClient {
         public Database createDatabase(String name) {
             String databaseName = requireNonBlank("name", name);
             SessionContext context = sessionContext.get();
-            apiClient.post(ChromaApiPaths.databases(context.tenant.getName()),
+            ChromaDtos.DatabaseResponse dto = apiClient.post(ChromaApiPaths.databases(context.tenant.getName()),
                     new ChromaDtos.CreateDatabaseRequest(databaseName),
                     ChromaDtos.DatabaseResponse.class);
-            return Database.of(databaseName);
+            return Database.of(resolveCreateName(dto != null ? dto.name : null, databaseName));
         }
 
         @Override
@@ -969,6 +969,17 @@ public final class ChromaClient {
                 );
             }
             return value;
+        }
+
+        private static String resolveCreateName(String responseName, String requestName) {
+            if (responseName == null) {
+                return requestName;
+            }
+            String normalizedResponseName = responseName.trim();
+            if (normalizedResponseName.isEmpty()) {
+                return requestName;
+            }
+            return normalizedResponseName;
         }
 
         private static String requireNonBlankField(String endpoint, String fieldName, String value) {
