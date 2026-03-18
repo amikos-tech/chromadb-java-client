@@ -241,6 +241,43 @@ Notes:
 - `.httpClient(...)` cannot be combined with `.connectTimeout(...)`, `.readTimeout(...)`, `.writeTimeout(...)`, `.sslCert(...)`, or `.insecure(...)`.
 - `.tenantAndDatabaseFromEnv()` reads `CHROMA_TENANT` and `CHROMA_DATABASE`.
 
+### v2 Auth Contract (Maintainer Rule)
+
+This repository enforces one auth contract across all v2 builders and auth entry points.
+
+- Use exactly one auth strategy per builder instance (`auth(...)`, `apiKey(...)`, or cloud equivalents). A second auth setter call must fail fast.
+- Convenience setters must route through the same canonical auth slot as `auth(...)`.
+- `defaultHeaders` must not include `Authorization` or `X-Chroma-Token`; users should configure credentials through `auth(...)`.
+- Auth inputs must be validated immediately at setter/factory time, with a final build-time invariant check as a safety net.
+- Cloud `preFlight()` and `getIdentity()` auth failures are strict: HTTP 401/403 must surface as `ChromaUnauthorizedException` with actionable guidance.
+- Malformed successful identity/preflight payloads must raise `ChromaDeserializationException` with endpoint + field context.
+
+### Error Mapping-Change Governance
+
+Status-to-exception mapping and transport error translation are API behavior. Any mapping-change must include both:
+
+- explicit regression tests (unit/integration as applicable), and
+- a changelog entry describing the behavior change and migration impact.
+
+Fallback error text must remain deterministic and sanitized:
+
+- `HTTP <status>: <sanitized-truncated-body or reason>`
+
+`error_code` is first-class exception metadata and should be preserved/test-asserted.
+
+### Phase 1 Auth Hardening Regression Commands
+
+```bash
+# Auth validation, builder boundary, cloud auth contract
+mvn -Dtest=AuthProviderTest,ChromaClientBuilderTest,ChromaClientImplTest,ErrorHandlingIntegrationTest test
+
+# Transport error translation and exception mapping governance
+mvn -Dtest=ChromaApiClientTest,ChromaExceptionTest test
+
+# README contract anchors (maintainer policy)
+rg -n "Auth Contract|one auth strategy|defaultHeaders|mapping-change" README.md
+```
+
 ### Default Embedding Function
 
 Since version `0.1.6` the library also offers a built-in default embedding function which does not rely on any external

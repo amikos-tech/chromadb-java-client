@@ -75,7 +75,7 @@ public class ErrorHandlingIntegrationTest extends AbstractChromaIntegrationTest 
 
     // --- connection to bad URL → ChromaConnectionException ---
 
-    @Test(expected = ChromaConnectionException.class)
+    @Test
     public void testConnectionToBadUrlThrowsConnectionException() {
         Client badClient = ChromaClient.builder()
                 .baseUrl("http://localhost:1")
@@ -83,6 +83,12 @@ public class ErrorHandlingIntegrationTest extends AbstractChromaIntegrationTest 
                 .build();
         try {
             badClient.heartbeat();
+            fail("Expected ChromaConnectionException");
+        } catch (ChromaConnectionException e) {
+            assertTrue(e.getMessage().contains("Network error communicating with"));
+            assertTrue(e.getMessage().contains("/api/v2/heartbeat"));
+            assertFalse(e.getMessage().contains("Authorization"));
+            assertFalse(e.getMessage().contains("X-Chroma-Token"));
         } finally {
             badClient.close();
         }
