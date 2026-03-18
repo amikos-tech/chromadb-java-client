@@ -333,6 +333,29 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         }
     }
 
+    @Test
+    public void testQueryEmbeddingsAuthoritativeWhenMixedQueryInputs() {
+        collection.add()
+                .ids("mixed-left", "mixed-right")
+                .embeddings(
+                        new float[]{1.0f, 0.0f, 0.0f},
+                        new float[]{0.0f, 1.0f, 0.0f}
+                )
+                .documents("left doc", "right doc")
+                .execute();
+
+        QueryResult result = collection.query()
+                .queryTexts("left side hint")
+                .queryEmbeddings(new float[]{0.0f, 1.0f, 0.0f})
+                .nResults(1)
+                .execute();
+
+        assertNotNull(result.getIds());
+        assertEquals(1, result.getIds().size());
+        assertEquals(1, result.getIds().get(0).size());
+        assertEquals("mixed-right", result.getIds().get(0).get(0));
+    }
+
     // --- query: all include fields ---
 
     @Test
