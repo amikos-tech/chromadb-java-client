@@ -62,6 +62,12 @@ test-integration: check-tools ## Run integration tests only
 	@echo "$(BLUE)Running integration tests...$(NC)"
 	$(MAVEN) -Pintegration test
 
+.PHONY: test-phase-02-parity
+test-phase-02-parity: check-tools ## Run Phase 2 parity matrix for locked Chroma versions
+	mvn -q -Dtest=ChromaClientImplTest,ChromaHttpCollectionTest,ChromaDtosContractTest test
+	CHROMA_VERSION=1.5.5 mvn -q -Pintegration -Dtest=TenantDatabaseIntegrationTest,CollectionLifecycleIntegrationTest,RecordOperationsIntegrationTest,SchemaAndQueryTextsIntegrationTest test
+	CHROMA_VERSION=1.3.7 mvn -q -Pintegration -Dtest=TenantDatabaseIntegrationTest,CollectionLifecycleIntegrationTest,RecordOperationsIntegrationTest,SchemaAndQueryTextsIntegrationTest test
+
 .PHONY: test-version
 test-version: check-tools ## Test with specific ChromaDB version (use CHROMA_VERSION=x.x.x)
 ifndef CHROMA_VERSION
