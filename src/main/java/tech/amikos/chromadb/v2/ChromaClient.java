@@ -64,9 +64,13 @@ public final class ChromaClient {
     public static final class Builder {
         private static final String DEFAULT_TENANT_ENV = "CHROMA_TENANT";
         private static final String DEFAULT_DATABASE_ENV = "CHROMA_DATABASE";
+        private static final String AUTH_SETTER_AUTH = "auth(...)";
+        private static final String AUTH_SETTER_API_KEY = "apiKey(...)";
 
         private String baseUrl;
         private AuthProvider authProvider;
+        private String authSetter;
+        private int authStrategyCount;
         private Tenant tenant;
         private Database database;
         private Duration connectTimeout;
@@ -90,24 +94,22 @@ public final class ChromaClient {
 
         /**
          * Sets the authentication provider directly.
-         *
-         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
-         * method invoked determines the effective authentication.</p>
          */
-        public Builder auth(AuthProvider authProvider) { this.authProvider = authProvider; return this; }
+        public Builder auth(AuthProvider authProvider) {
+            return configureAuth(
+                    Objects.requireNonNull(authProvider, "authProvider"),
+                    AUTH_SETTER_AUTH
+            );
+        }
 
         /**
          * Convenience for {@code auth(TokenAuth.of(apiKey))}.
-         *
-         * <p>If both {@link #auth(AuthProvider)} and {@link #apiKey(String)} are used, the last
-         * method invoked determines the effective authentication.</p>
          *
          * <p>This configures standard bearer auth and sends
          * {@code Authorization: Bearer &lt;token&gt;}.</p>
          */
         public Builder apiKey(String apiKey) {
-            this.authProvider = TokenAuth.of(apiKey);
-            return this;
+            return configureAuth(TokenAuth.of(apiKey), AUTH_SETTER_API_KEY);
         }
 
         public Builder tenant(Tenant tenant) { this.tenant = tenant; return this; }
@@ -210,6 +212,7 @@ public final class ChromaClient {
         }
 
         public Client build() {
+            validateAuthConfiguration();
             String effectiveBaseUrl = baseUrl != null ? baseUrl : DEFAULT_BASE_URL;
             Tenant effectiveTenant = tenant != null ? tenant : Tenant.defaultTenant();
             Database effectiveDatabase = database != null ? database : Database.defaultDatabase();
@@ -223,6 +226,32 @@ public final class ChromaClient {
                     ownsHttpClient,
                     logger);
             return new ChromaClientImpl(apiClient, effectiveTenant, effectiveDatabase);
+        }
+
+        private Builder configureAuth(AuthProvider provider, String setterName) {
+            if (authStrategyCount >= 1) {
+                throw new IllegalStateException(buildAuthStrategyConflictMessage(setterName));
+            }
+            this.authProvider = Objects.requireNonNull(provider, "provider");
+            this.authSetter = setterName;
+            this.authStrategyCount = 1;
+            return this;
+        }
+
+        private void validateAuthConfiguration() {
+            if (authStrategyCount < 0 || authStrategyCount > 1) {
+                throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
+            }
+            if ((authProvider == null) != (authStrategyCount == 0)) {
+                throw new IllegalStateException(
+                        "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
+            }
+        }
+
+        private String buildAuthStrategyConflictMessage(String attemptedSetter) {
+            return "Auth strategy already configured via " + authSetter
+                    + "; cannot also configure " + attemptedSetter
+                    + ". Configure exactly one auth strategy per builder instance via auth(...).";
         }
 
         private OkHttpClient buildHttpClient() {
@@ -441,7 +470,11 @@ public final class ChromaClient {
     }
 
     public static final class CloudBuilder {
-        private String apiKey;
+        private static final String AUTH_SETTER_API_KEY = "apiKey(...)";
+
+        private AuthProvider authProvider;
+        private String authSetter;
+        private int authStrategyCount;
         private String tenant;
         private String database;
         private Duration timeout;
@@ -456,8 +489,10 @@ public final class ChromaClient {
          * {@code X-Chroma-Token: &lt;token&gt;} (not bearer auth).</p>
          */
         public CloudBuilder apiKey(String apiKey) {
-            this.apiKey = requireNonBlank("apiKey", apiKey);
-            return this;
+            return configureAuth(
+                    ChromaTokenAuth.of(requireNonBlank("apiKey", apiKey)),
+                    AUTH_SETTER_API_KEY
+            );
         }
 
         public CloudBuilder tenant(String tenant) {
@@ -481,7 +516,8 @@ public final class ChromaClient {
         }
 
         public Client build() {
-            if (apiKey == null) {
+            validateAuthConfiguration();
+            if (authProvider == null) {
                 throw new IllegalStateException("apiKey is required for Chroma Cloud");
             }
             if (tenant == null) {
@@ -492,7 +528,7 @@ public final class ChromaClient {
             }
             Builder delegate = ChromaClient.builder()
                     .baseUrl(CLOUD_BASE_URL)
-                    .auth(ChromaTokenAuth.of(apiKey))
+                    .auth(authProvider)
                     .tenant(tenant)
                     .database(database);
             if (timeout != null) {
@@ -502,6 +538,32 @@ public final class ChromaClient {
                 delegate.logger(logger);
             }
             return delegate.build();
+        }
+
+        private CloudBuilder configureAuth(AuthProvider provider, String setterName) {
+            if (authStrategyCount >= 1) {
+                throw new IllegalStateException(buildAuthStrategyConflictMessage(setterName));
+            }
+            this.authProvider = Objects.requireNonNull(provider, "provider");
+            this.authSetter = setterName;
+            this.authStrategyCount = 1;
+            return this;
+        }
+
+        private void validateAuthConfiguration() {
+            if (authStrategyCount < 0 || authStrategyCount > 1) {
+                throw new IllegalStateException("Exactly one auth strategy can be configured per builder instance");
+            }
+            if ((authProvider == null) != (authStrategyCount == 0)) {
+                throw new IllegalStateException(
+                        "Builder auth state is inconsistent; configure credentials exactly once via auth(...)");
+            }
+        }
+
+        private String buildAuthStrategyConflictMessage(String attemptedSetter) {
+            return "Auth strategy already configured via " + authSetter
+                    + "; cannot also configure " + attemptedSetter
+                    + ". Configure exactly one auth strategy per builder instance via auth(...).";
         }
     }
 

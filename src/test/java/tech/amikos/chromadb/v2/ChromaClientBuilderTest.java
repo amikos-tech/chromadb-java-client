@@ -36,7 +36,6 @@ public class ChromaClientBuilderTest {
         Client client = ChromaClient.builder()
                 .baseUrl("http://localhost:8000")
                 .auth(TokenAuth.of("tok"))
-                .apiKey("key")
                 .tenant(Tenant.of("t"))
                 .tenant("t-string")
                 .database(Database.of("d"))
@@ -50,6 +49,41 @@ public class ChromaClientBuilderTest {
                 .build();
         assertNotNull(client);
         client.close();
+    }
+
+    @Test
+    public void testBuilderApiKeyUsesTokenAuth() throws Exception {
+        ChromaClient.Builder builder = ChromaClient.builder().apiKey("key");
+        Field authProviderField = ChromaClient.Builder.class.getDeclaredField("authProvider");
+        authProviderField.setAccessible(true);
+
+        assertTrue(authProviderField.get(builder) instanceof TokenAuth);
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterAuthThenApiKey() {
+        try {
+            ChromaClient.builder()
+                    .auth(TokenAuth.of("tok"))
+                    .apiKey("other");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsSecondAuthSetterApiKeyThenAuth() {
+        try {
+            ChromaClient.builder()
+                    .apiKey("tok")
+                    .auth(BasicAuth.of("user", "pass"));
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
     }
 
     @Test
@@ -205,6 +239,19 @@ public class ChromaClientBuilderTest {
 
         assertEquals("tenant-a", tenantField.get(builder));
         assertEquals("db-a", databaseField.get(builder));
+    }
+
+    @Test
+    public void testCloudBuilderRejectsSecondApiKeySetterCall() {
+        try {
+            ChromaClient.cloud()
+                    .apiKey("key-one")
+                    .apiKey("key-two");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("exactly one auth strategy"));
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
     }
 
     @Test
