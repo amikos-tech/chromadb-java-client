@@ -11,6 +11,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -66,6 +67,8 @@ public final class ChromaClient {
         private static final String DEFAULT_DATABASE_ENV = "CHROMA_DATABASE";
         private static final String AUTH_SETTER_AUTH = "auth(...)";
         private static final String AUTH_SETTER_API_KEY = "apiKey(...)";
+        private static final String AUTHORIZATION_HEADER = "Authorization";
+        private static final String CHROMA_TOKEN_HEADER = "X-Chroma-Token";
 
         private String baseUrl;
         private AuthProvider authProvider;
@@ -134,7 +137,9 @@ public final class ChromaClient {
         public Builder writeTimeout(Duration timeout) { this.writeTimeout = timeout; return this; }
 
         public Builder defaultHeaders(Map<String, String> headers) {
-            this.defaultHeaders = headers == null ? null : new LinkedHashMap<String, String>(headers);
+            Map<String, String> headerCopy = headers == null ? null : new LinkedHashMap<String, String>(headers);
+            validateNoReservedAuthHeaders(headerCopy);
+            this.defaultHeaders = headerCopy;
             return this;
         }
 
@@ -213,6 +218,7 @@ public final class ChromaClient {
 
         public Client build() {
             validateAuthConfiguration();
+            validateNoReservedAuthHeaders(defaultHeaders);
             String effectiveBaseUrl = baseUrl != null ? baseUrl : DEFAULT_BASE_URL;
             Tenant effectiveTenant = tenant != null ? tenant : Tenant.defaultTenant();
             Database effectiveDatabase = database != null ? database : Database.defaultDatabase();
@@ -252,6 +258,26 @@ public final class ChromaClient {
             return "Auth strategy already configured via " + authSetter
                     + "; cannot also configure " + attemptedSetter
                     + ". Configure exactly one auth strategy per builder instance via auth(...).";
+        }
+
+        private void validateNoReservedAuthHeaders(Map<String, String> headers) {
+            if (headers == null) {
+                return;
+            }
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                String name = entry.getKey();
+                if (name == null) {
+                    continue;
+                }
+                String trimmedName = name.trim();
+                if (AUTHORIZATION_HEADER.equalsIgnoreCase(trimmedName)
+                        || CHROMA_TOKEN_HEADER.equalsIgnoreCase(trimmedName)) {
+                    throw new IllegalArgumentException(
+                            "defaultHeaders must not include " + AUTHORIZATION_HEADER + " or "
+                                    + CHROMA_TOKEN_HEADER
+                                    + "; configure credentials via auth(...).");
+                }
+            }
         }
 
         private OkHttpClient buildHttpClient() {
@@ -580,6 +606,11 @@ public final class ChromaClient {
 
     private static final class ChromaClientImpl implements Client {
 
+        private static final String PREFLIGHT_ENDPOINT = ChromaApiPaths.preFlightChecks();
+        private static final String IDENTITY_ENDPOINT = ChromaApiPaths.authIdentity();
+        private static final String AUTH_HINT =
+                "Verify your Chroma credentials and that your API key/token has access to the configured tenant/database.";
+
         private final ChromaApiClient apiClient;
         private final AtomicReference<SessionContext> sessionContext;
 
@@ -612,19 +643,22 @@ public final class ChromaClient {
 
         @Override
         public PreFlightInfo preFlight() {
-            ChromaDtos.PreFlightResponse dto = apiClient.get(
-                    ChromaApiPaths.preFlightChecks(),
-                    ChromaDtos.PreFlightResponse.class);
+            ChromaDtos.PreFlightResponse dto = getAuthProtected(
+                    PREFLIGHT_ENDPOINT,
+                    ChromaDtos.PreFlightResponse.class,
+                    "pre-flight checks");
             if (dto.maxBatchSize == null) {
                 throw new ChromaDeserializationException(
-                        "Server returned pre-flight payload without required max_batch_size field",
+                        "Server returned invalid payload from " + PREFLIGHT_ENDPOINT
+                                + ": missing required field 'max_batch_size'",
                         200
                 );
             }
             int maxBatchSize = dto.maxBatchSize.intValue();
             if (maxBatchSize <= 0) {
                 throw new ChromaDeserializationException(
-                        "Server returned pre-flight payload with invalid max_batch_size field: " + dto.maxBatchSize,
+                        "Server returned invalid payload from " + PREFLIGHT_ENDPOINT
+                                + ": invalid field 'max_batch_size' value: " + dto.maxBatchSize,
                         200
                 );
             }
@@ -633,16 +667,17 @@ public final class ChromaClient {
 
         @Override
         public Identity getIdentity() {
-            ChromaDtos.IdentityResponse dto = apiClient.get(
-                    ChromaApiPaths.authIdentity(),
-                    ChromaDtos.IdentityResponse.class);
-            String userId = requireNonBlankField("identity.user_id", dto.userId);
-            String tenantName = requireNonBlankField("identity.tenant", dto.tenant);
-            List<String> databases = requireNonNullListField("identity.databases", dto.databases);
+            ChromaDtos.IdentityResponse dto = getAuthProtected(
+                    IDENTITY_ENDPOINT,
+                    ChromaDtos.IdentityResponse.class,
+                    "identity");
+            String userId = requireNonBlankField(IDENTITY_ENDPOINT, "identity.user_id", dto.userId);
+            String tenantName = requireNonBlankField(IDENTITY_ENDPOINT, "identity.tenant", dto.tenant);
+            List<String> databases = requireNonNullListField(IDENTITY_ENDPOINT, "identity.databases", dto.databases);
             List<String> normalizedDatabases = new ArrayList<String>(databases.size());
             for (int i = 0; i < databases.size(); i++) {
                 normalizedDatabases.add(requireNonBlankField(
-                        "identity.databases[" + i + "]", databases.get(i)));
+                        IDENTITY_ENDPOINT, "identity.databases[" + i + "]", databases.get(i)));
             }
             return new Identity(userId, tenantName, normalizedDatabases);
         }
@@ -920,6 +955,44 @@ public final class ChromaClient {
                 );
             }
             return value;
+        }
+
+        private static String requireNonBlankField(String endpoint, String fieldName, String value) {
+            if (value == null || value.trim().isEmpty()) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid payload from " + endpoint
+                                + ": invalid field '" + fieldName + "'",
+                        200
+                );
+            }
+            return value.trim();
+        }
+
+        private static <T> List<T> requireNonNullListField(String endpoint, String fieldName, List<T> value) {
+            if (value == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned invalid payload from " + endpoint
+                                + ": missing required field '" + fieldName + "'",
+                        200
+                );
+            }
+            return value;
+        }
+
+        private <T> T getAuthProtected(String endpoint, Type responseType, String operation) {
+            try {
+                return apiClient.get(endpoint, responseType);
+            } catch (ChromaUnauthorizedException e) {
+                throw asUnauthorized(e, endpoint, operation);
+            } catch (ChromaForbiddenException e) {
+                throw asUnauthorized(e, endpoint, operation);
+            }
+        }
+
+        private ChromaUnauthorizedException asUnauthorized(ChromaException cause, String endpoint, String operation) {
+            String message = "Authentication failed for " + operation + " endpoint " + endpoint
+                    + " (HTTP " + cause.getStatusCode() + "). " + AUTH_HINT;
+            return new ChromaUnauthorizedException(message, cause.getErrorCode(), cause);
         }
     }
 }

@@ -823,6 +823,17 @@ public class ChromaApiClientTest {
         assertEquals("ok", result);
     }
 
+    @Test
+    public void testBuilderRejectsAuthConflictingDefaultHeaderWithGuidance() {
+        try {
+            ChromaClient.builder()
+                    .defaultHeaders(Collections.singletonMap("Authorization", "Basic stale"));
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
     // --- Null path guard ---
 
     @Test(expected = IllegalArgumentException.class)

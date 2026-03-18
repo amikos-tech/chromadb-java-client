@@ -233,10 +233,24 @@ public class ChromaExceptionTest {
     }
 
     @Test
+    public void testFactoryPreservesErrorCodeForUnknown4xx() {
+        ChromaException ex = ChromaExceptions.fromHttpResponse(422, "unprocessable", "ValidationError");
+        assertTrue(ex instanceof ChromaClientException);
+        assertEquals("ValidationError", ex.getErrorCode());
+    }
+
+    @Test
     public void testFactoryMaps5xxToServerException() {
         ChromaException ex = ChromaExceptions.fromHttpResponse(503, "unavailable", null);
         assertTrue(ex instanceof ChromaServerException);
         assertEquals(503, ex.getStatusCode());
+    }
+
+    @Test
+    public void testFactoryPreservesErrorCodeFor5xx() {
+        ChromaException ex = ChromaExceptions.fromHttpResponse(503, "unavailable", "ProxyTimeout");
+        assertTrue(ex instanceof ChromaServerException);
+        assertEquals("ProxyTimeout", ex.getErrorCode());
     }
 
     @Test

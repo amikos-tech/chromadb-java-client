@@ -226,6 +226,50 @@ public class ChromaClientBuilderTest {
     }
 
     @Test
+    public void testBuilderRejectsAuthorizationInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("Authorization", "Bearer stale");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuilderRejectsXChromaTokenInDefaultHeaders() {
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("x-chroma-token", "stale");
+
+        try {
+            ChromaClient.builder().defaultHeaders(headers);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
+    public void testBuildRejectsConflictingAuthHeaderInjectedIntoBuilderState() throws Exception {
+        ChromaClient.Builder builder = ChromaClient.builder();
+        Map<String, String> headers = new LinkedHashMap<String, String>();
+        headers.put("Authorization", "Bearer stale");
+
+        Field field = ChromaClient.Builder.class.getDeclaredField("defaultHeaders");
+        field.setAccessible(true);
+        field.set(builder, headers);
+
+        try {
+            builder.build();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("auth(...)"));
+        }
+    }
+
+    @Test
     public void testCloudBuilderNormalizesWhitespaceInTenantAndDatabase() throws Exception {
         ChromaClient.CloudBuilder builder = ChromaClient.cloud()
                 .apiKey("key")
