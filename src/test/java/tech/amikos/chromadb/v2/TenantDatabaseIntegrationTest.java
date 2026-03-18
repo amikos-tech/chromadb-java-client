@@ -65,6 +65,48 @@ public class TenantDatabaseIntegrationTest extends AbstractChromaIntegrationTest
         assertEquals("test_db", fetched.getName());
     }
 
+    @Test
+    public void testCreateGetListLifecycleReturnsTypedNonBlankNames() {
+        String tenant = "typed_non_blank_tenant_" + System.currentTimeMillis();
+        String database = "typed_non_blank_db_" + System.currentTimeMillis();
+
+        // create->get->list lifecycle should remain typed and non-blank end-to-end.
+        Tenant createdTenant = client.createTenant(tenant);
+        assertNotNull(createdTenant);
+        assertNotNull(createdTenant.getName());
+        assertFalse(createdTenant.getName().trim().isEmpty());
+
+        Tenant fetchedTenant = client.getTenant(tenant);
+        assertNotNull(fetchedTenant);
+        assertNotNull(fetchedTenant.getName());
+        assertFalse(fetchedTenant.getName().trim().isEmpty());
+
+        Database createdDatabase = client.createDatabase(database);
+        assertNotNull(createdDatabase);
+        assertNotNull(createdDatabase.getName());
+        assertFalse(createdDatabase.getName().trim().isEmpty());
+
+        Database fetchedDatabase = client.getDatabase(database);
+        assertNotNull(fetchedDatabase);
+        assertNotNull(fetchedDatabase.getName());
+        assertFalse(fetchedDatabase.getName().trim().isEmpty());
+
+        List<Database> databases = client.listDatabases();
+        assertNotNull(databases);
+        assertFalse(databases.isEmpty());
+
+        boolean foundCreatedDatabase = false;
+        for (Database db : databases) {
+            assertNotNull(db);
+            assertNotNull(db.getName());
+            assertFalse(db.getName().trim().isEmpty());
+            if (database.equals(db.getName())) {
+                foundCreatedDatabase = true;
+            }
+        }
+        assertTrue(foundCreatedDatabase);
+    }
+
     // --- Database: duplicate → conflict ---
 
     @Test(expected = ChromaConflictException.class)

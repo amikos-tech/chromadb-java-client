@@ -465,6 +465,7 @@ public class ChromaClientImplTest {
     }
 
     // --- createTenant ---
+    // createTenant response-authoritative + fallback contract
 
     @Test
     public void testCreateTenant() {
@@ -478,6 +479,58 @@ public class ChromaClientImplTest {
         Client c = newClient();
         Tenant tenant = c.createTenant("my_tenant");
         assertEquals(Tenant.of("my_tenant"), tenant);
+    }
+
+    @Test
+    public void testCreateTenantUsesResponseNameWhenNonBlank() {
+        stubFor(post(urlEqualTo("/api/v2/tenants"))
+                .withRequestBody(equalToJson("{\"name\":\"request_tenant\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"response_tenant\"}")));
+
+        Tenant tenant = newClient().createTenant("request_tenant");
+        assertEquals(Tenant.of("response_tenant"), tenant);
+    }
+
+    @Test
+    public void testCreateTenantFallbackToRequestNameWhenResponseNameIsNull() {
+        stubFor(post(urlEqualTo("/api/v2/tenants"))
+                .withRequestBody(equalToJson("{\"name\":\"request_tenant\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":null}")));
+
+        Tenant tenant = newClient().createTenant("request_tenant");
+        assertEquals(Tenant.of("request_tenant"), tenant);
+    }
+
+    @Test
+    public void testCreateTenantFallbackToRequestNameWhenResponseNameIsMissing() {
+        stubFor(post(urlEqualTo("/api/v2/tenants"))
+                .withRequestBody(equalToJson("{\"name\":\"request_tenant\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{}")));
+
+        Tenant tenant = newClient().createTenant("request_tenant");
+        assertEquals(Tenant.of("request_tenant"), tenant);
+    }
+
+    @Test
+    public void testCreateTenantFallbackToRequestNameWhenResponseNameIsBlank() {
+        stubFor(post(urlEqualTo("/api/v2/tenants"))
+                .withRequestBody(equalToJson("{\"name\":\"request_tenant\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"   \"}")));
+
+        Tenant tenant = newClient().createTenant("request_tenant");
+        assertEquals(Tenant.of("request_tenant"), tenant);
     }
 
     @Test(expected = NullPointerException.class)
@@ -549,6 +602,7 @@ public class ChromaClientImplTest {
     }
 
     // --- createDatabase ---
+    // createDatabase response-authoritative + fallback contract
 
     @Test
     public void testCreateDatabase() {
@@ -562,6 +616,58 @@ public class ChromaClientImplTest {
         Client c = newClient();
         Database db = c.createDatabase("my_db");
         assertEquals(Database.of("my_db"), db);
+    }
+
+    @Test
+    public void testCreateDatabaseUsesResponseNameWhenNonBlank() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"request_db\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"response_db\",\"tenant\":\"default_tenant\"}")));
+
+        Database db = newClient().createDatabase("request_db");
+        assertEquals(Database.of("response_db"), db);
+    }
+
+    @Test
+    public void testCreateDatabaseFallbackToRequestNameWhenResponseNameIsNull() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"request_db\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":null,\"tenant\":\"default_tenant\"}")));
+
+        Database db = newClient().createDatabase("request_db");
+        assertEquals(Database.of("request_db"), db);
+    }
+
+    @Test
+    public void testCreateDatabaseFallbackToRequestNameWhenResponseNameIsMissing() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"request_db\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"tenant\":\"default_tenant\"}")));
+
+        Database db = newClient().createDatabase("request_db");
+        assertEquals(Database.of("request_db"), db);
+    }
+
+    @Test
+    public void testCreateDatabaseFallbackToRequestNameWhenResponseNameIsBlank() {
+        stubFor(post(urlEqualTo("/api/v2/tenants/default_tenant/databases"))
+                .withRequestBody(equalToJson("{\"name\":\"request_db\"}"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"name\":\"  \",\"tenant\":\"default_tenant\"}")));
+
+        Database db = newClient().createDatabase("request_db");
+        assertEquals(Database.of("request_db"), db);
     }
 
     @Test(expected = NullPointerException.class)
