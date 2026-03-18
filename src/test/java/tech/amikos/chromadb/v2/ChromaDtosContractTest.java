@@ -346,6 +346,78 @@ public class ChromaDtosContractTest {
     }
 
     @Test
+    public void testConfigurationRoundTripPreservesUnknownTopLevelKeysPreservesUnknown() {
+        Map<String, Object> input = new LinkedHashMap<String, Object>();
+        input.put("hnsw:M", Integer.valueOf(32));
+        input.put("future_toggle", Boolean.TRUE);
+        Map<String, Object> extension = new LinkedHashMap<String, Object>();
+        extension.put("mode", "preview");
+        input.put("vendor:extensions", extension);
+
+        CollectionConfiguration parsed = ChromaDtos.parseConfiguration(input);
+        Map<String, Object> serialized = ChromaDtos.toConfigurationMap(parsed);
+
+        assertNotNull(serialized);
+        assertEquals(Integer.valueOf(32), serialized.get("hnsw:M"));
+        assertEquals(Boolean.TRUE, serialized.get("future_toggle"));
+        assertTrue(serialized.get("vendor:extensions") instanceof Map);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> serializedExtension = (Map<String, Object>) serialized.get("vendor:extensions");
+        assertEquals("preview", serializedExtension.get("mode"));
+    }
+
+    @Test
+    public void testSchemaRoundTripPreservesUnknownRootAndCmekProvidersPreservesUnknown() {
+        Map<String, Object> schema = new LinkedHashMap<String, Object>();
+        Map<String, Object> defaults = new LinkedHashMap<String, Object>();
+        Map<String, Object> stringType = new LinkedHashMap<String, Object>();
+        Map<String, Object> ftsIndex = new LinkedHashMap<String, Object>();
+        ftsIndex.put("enabled", Boolean.TRUE);
+        stringType.put("fts_index", ftsIndex);
+        defaults.put("string", stringType);
+        schema.put("defaults", defaults);
+        schema.put("future_schema_flag", "keep-me");
+
+        Map<String, Object> cmek = new LinkedHashMap<String, Object>();
+        cmek.put("gcp", "projects/p/locations/l/keyRings/r/cryptoKeys/k");
+        cmek.put("azure", "https://vault.example/keys/abc");
+        schema.put("cmek", cmek);
+
+        Schema parsed = ChromaDtos.parseSchema(schema);
+        Map<String, Object> serialized = ChromaDtos.toSchemaMap(parsed);
+
+        assertNotNull(parsed);
+        assertNotNull(parsed.getDefaults());
+        assertNotNull(parsed.getDefaults().getString());
+        assertNotNull(parsed.getDefaults().getString().getFtsIndex());
+        assertNotNull(serialized);
+        assertEquals("keep-me", serialized.get("future_schema_flag"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> serializedCmek = (Map<String, Object>) serialized.get("cmek");
+        assertNotNull(serializedCmek);
+        assertEquals("projects/p/locations/l/keyRings/r/cryptoKeys/k", serializedCmek.get("gcp"));
+        assertEquals("https://vault.example/keys/abc", serializedCmek.get("azure"));
+    }
+
+    @Test
+    public void testConfigurationSerializationTypedAuthoritativeOnConflictingPassthroughTypedAuthoritative() {
+        CollectionConfiguration.Builder builder = CollectionConfiguration.builder()
+                .hnswM(24)
+                .hnswSearchEf(42);
+        Map<String, Object> passthrough = new LinkedHashMap<String, Object>();
+        passthrough.put("hnsw:M", Integer.valueOf(999));
+        passthrough.put("hnsw:search_ef", Integer.valueOf(777));
+        passthrough.put("x:custom", "preserve-me");
+        applyPassthrough(builder, passthrough);
+
+        Map<String, Object> serialized = ChromaDtos.toConfigurationMap(builder.build());
+        assertNotNull(serialized);
+        assertEquals(Integer.valueOf(24), serialized.get("hnsw:M"));
+        assertEquals(Integer.valueOf(42), serialized.get("hnsw:search_ef"));
+        assertEquals("preserve-me", serialized.get("x:custom"));
+    }
+
+    @Test
     public void testParseConfigurationSupportsSchemaCompatibilityField() {
         Map<String, Object> config = new LinkedHashMap<String, Object>();
         Map<String, Object> schema = new LinkedHashMap<String, Object>();
@@ -500,5 +572,13 @@ public class ChromaDtosContractTest {
         assertEquals(spec, parsed.getEmbeddingFunction());
         assertNotNull(parsed.getEmbeddingFunction().getConfig());
         assertTrue(parsed.getEmbeddingFunction().getConfig().isEmpty());
+    }
+
+    private static void applyPassthrough(Object builder, Map<String, Object> passthrough) {
+        try {
+            builder.getClass().getMethod("passthrough", Map.class).invoke(builder, passthrough);
+        } catch (Exception e) {
+            fail("API-02 contract requires builder.passthrough(Map<String,Object>): " + e.getMessage());
+        }
     }
 }
