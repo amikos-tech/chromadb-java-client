@@ -16,6 +16,26 @@ import java.util.logging.Logger;
 final class ChromaDtos {
 
     private static final Logger LOG = Logger.getLogger(ChromaDtos.class.getName());
+    private static final String[] KNOWN_CONFIGURATION_KEYS = new String[]{
+            "hnsw:space",
+            "hnsw:M",
+            "hnsw:construction_ef",
+            "hnsw:search_ef",
+            "hnsw:num_threads",
+            "hnsw:batch_size",
+            "hnsw:sync_threshold",
+            "hnsw:resize_factor",
+            "spann:search_nprobe",
+            "spann:ef_search",
+            "embedding_function",
+            "schema"
+    };
+    private static final String[] KNOWN_SCHEMA_KEYS = new String[]{
+            "defaults",
+            "keys",
+            "cmek"
+    };
+    private static final String CMEK_GCP_PROVIDER_KEY = "gcp";
 
     private ChromaDtos() {}
 
@@ -329,6 +349,7 @@ final class ChromaDtos {
         if (schema != null) {
             params.put("schema", schema);
         }
+        mergePassthrough(params, config.getPassthrough());
         if (params.isEmpty()) {
             return null;
         }
@@ -364,6 +385,8 @@ final class ChromaDtos {
         if (cmek != null) {
             map.put("cmek", cmek);
         }
+        mergeSchemaCmekPassthrough(map, schema.getPassthrough());
+        mergePassthrough(map, schema.getPassthrough());
         if (map.isEmpty()) {
             return null;
         }
@@ -514,6 +537,7 @@ final class ChromaDtos {
                 }
             }
         }
+        builder.passthrough(extractUnknownEntries(configJson, KNOWN_CONFIGURATION_KEYS));
 
         try {
             return builder.build();
@@ -528,6 +552,7 @@ final class ChromaDtos {
         }
 
         Schema.Builder builder = Schema.builder();
+        Map<String, Object> passthrough = extractUnknownEntries(schemaJson, KNOWN_SCHEMA_KEYS);
 
         Object defaultsRaw = schemaJson.get("defaults");
         if (defaultsRaw != null) {
@@ -548,8 +573,13 @@ final class ChromaDtos {
 
         Object cmekRaw = schemaJson.get("cmek");
         if (cmekRaw != null) {
-            builder.cmek(parseCmek(requireMap(cmekRaw, "schema.cmek"), "schema.cmek"));
+            ParsedCmek parsedCmek = parseCmek(requireMap(cmekRaw, "schema.cmek"), "schema.cmek");
+            builder.cmek(parsedCmek.cmek);
+            if (!parsedCmek.passthroughProviders.isEmpty()) {
+                passthrough.put("cmek", parsedCmek.passthroughProviders);
+            }
         }
+        builder.passthrough(passthrough);
 
         return builder.build();
     }
@@ -1075,15 +1105,37 @@ final class ChromaDtos {
         return true;
     }
 
-    private static Cmek parseCmek(Map<String, Object> map, String fieldName) {
-        Object gcp = map.get("gcp");
-        if (gcp != null) {
-            if (!(gcp instanceof String)) {
-                throw new IllegalArgumentException(fieldName + ".gcp must be a string");
+    private static ParsedCmek parseCmek(Map<String, Object> map, String fieldName) {
+        Cmek typedCmek = null;
+        Map<String, Object> passthroughProviders = new LinkedHashMap<String, Object>();
+
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String provider = entry.getKey();
+            Object resource = entry.getValue();
+            if (CMEK_GCP_PROVIDER_KEY.equals(provider)) {
+                if (!(resource instanceof String)) {
+                    throw new IllegalArgumentException(fieldName + ".gcp must be a string");
+                }
+                typedCmek = Cmek.gcpKms((String) resource);
+                continue;
             }
-            return Cmek.gcpKms((String) gcp);
+            passthroughProviders.put(provider, copyValue(resource));
         }
-        throw new IllegalArgumentException(fieldName + " must include a supported provider (gcp)");
+
+        if (typedCmek == null && passthroughProviders.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " must include a supported provider (gcp)");
+        }
+        return new ParsedCmek(typedCmek, passthroughProviders);
+    }
+
+    private static final class ParsedCmek {
+        final Cmek cmek;
+        final Map<String, Object> passthroughProviders;
+
+        ParsedCmek(Cmek cmek, Map<String, Object> passthroughProviders) {
+            this.cmek = cmek;
+            this.passthroughProviders = passthroughProviders;
+        }
     }
 
     private static Map<String, Object> toValueTypesMap(ValueTypes valueTypes) {
@@ -1490,6 +1542,92 @@ final class ChromaDtos {
         if (value != null) {
             map.put(key, value);
         }
+    }
+
+    private static void mergePassthrough(Map<String, Object> target, Map<String, Object> passthrough) {
+        if (target == null || passthrough == null || passthrough.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : passthrough.entrySet()) {
+            if (target.containsKey(entry.getKey())) {
+                continue;
+            }
+            target.put(entry.getKey(), copyValue(entry.getValue()));
+        }
+    }
+
+    private static void mergeSchemaCmekPassthrough(Map<String, Object> schemaMap,
+                                                   Map<String, Object> passthrough) {
+        if (schemaMap == null || passthrough == null || passthrough.isEmpty()) {
+            return;
+        }
+        Object cmekPassthroughRaw = passthrough.get("cmek");
+        if (!(cmekPassthroughRaw instanceof Map)) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cmekPassthrough = (Map<String, Object>) cmekPassthroughRaw;
+        if (cmekPassthrough.isEmpty()) {
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mergedCmek = schemaMap.containsKey("cmek")
+                ? (Map<String, Object>) schemaMap.get("cmek")
+                : new LinkedHashMap<String, Object>();
+        if (!schemaMap.containsKey("cmek")) {
+            schemaMap.put("cmek", mergedCmek);
+        }
+        for (Map.Entry<String, Object> entry : cmekPassthrough.entrySet()) {
+            if (mergedCmek.containsKey(entry.getKey())) {
+                continue;
+            }
+            mergedCmek.put(entry.getKey(), copyValue(entry.getValue()));
+        }
+    }
+
+    private static Map<String, Object> extractUnknownEntries(Map<String, Object> source, String[] knownKeys) {
+        Map<String, Object> passthrough = new LinkedHashMap<String, Object>();
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            if (isKnownKey(entry.getKey(), knownKeys)) {
+                continue;
+            }
+            passthrough.put(entry.getKey(), copyValue(entry.getValue()));
+        }
+        return passthrough;
+    }
+
+    private static boolean isKnownKey(String key, String[] knownKeys) {
+        for (String knownKey : knownKeys) {
+            if (knownKey.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object copyValue(Object value) {
+        if (value instanceof Map) {
+            Map<?, ?> sourceMap = (Map<?, ?>) value;
+            Map<String, Object> copied = new LinkedHashMap<String, Object>();
+            for (Map.Entry<?, ?> entry : sourceMap.entrySet()) {
+                Object rawKey = entry.getKey();
+                if (rawKey instanceof String) {
+                    copied.put((String) rawKey, copyValue(entry.getValue()));
+                }
+            }
+            return copied;
+        }
+        if (value instanceof List) {
+            List<?> sourceList = (List<?>) value;
+            List<Object> copied = new ArrayList<Object>(sourceList.size());
+            for (Object item : sourceList) {
+                copied.add(copyValue(item));
+            }
+            return copied;
+        }
+        return value;
     }
 
     private static ChromaDeserializationException invalidConfiguration(String message) {

@@ -14,6 +14,7 @@ public final class Schema {
     private final ValueTypes defaults;
     private final Map<String, ValueTypes> keys;
     private final Cmek cmek;
+    private final Map<String, Object> passthrough;
 
     private Schema(Builder builder) {
         this.defaults = builder.defaults;
@@ -21,6 +22,9 @@ public final class Schema {
                 ? Collections.<String, ValueTypes>emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<String, ValueTypes>(builder.keys));
         this.cmek = builder.cmek;
+        this.passthrough = builder.passthrough == null
+                ? Collections.<String, Object>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.passthrough));
     }
 
     public static Builder builder() {
@@ -37,6 +41,10 @@ public final class Schema {
 
     public Cmek getCmek() {
         return cmek;
+    }
+
+    public Map<String, Object> getPassthrough() {
+        return passthrough;
     }
 
     public ValueTypes getKey(String key) {
@@ -65,23 +73,30 @@ public final class Schema {
         Schema schema = (Schema) o;
         return Objects.equals(defaults, schema.defaults)
                 && Objects.equals(keys, schema.keys)
-                && Objects.equals(cmek, schema.cmek);
+                && Objects.equals(cmek, schema.cmek)
+                && Objects.equals(passthrough, schema.passthrough);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaults, keys, cmek);
+        return Objects.hash(defaults, keys, cmek, passthrough);
     }
 
     @Override
     public String toString() {
-        return "Schema{" + "defaults=" + defaults + ", keys=" + keys + ", cmek=" + cmek + '}';
+        return "Schema{"
+                + "defaults=" + defaults
+                + ", keys=" + keys
+                + ", cmek=" + cmek
+                + ", passthrough=" + passthrough
+                + '}';
     }
 
     public static final class Builder {
         private ValueTypes defaults;
         private Map<String, ValueTypes> keys;
         private Cmek cmek;
+        private Map<String, Object> passthrough;
 
         Builder() {}
 
@@ -120,6 +135,15 @@ public final class Schema {
 
         public Builder cmek(Cmek cmek) {
             this.cmek = cmek;
+            return this;
+        }
+
+        public Builder passthrough(Map<String, Object> passthrough) {
+            if (passthrough == null) {
+                this.passthrough = null;
+                return this;
+            }
+            this.passthrough = new LinkedHashMap<String, Object>(passthrough);
             return this;
         }
 
