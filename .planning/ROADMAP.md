@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Transport & Auth Hardening** - Ensure request/auth behavior is consistent and failure modes are actionable.
 - [x] **Phase 2: API Coverage Completion** - Close remaining v2 lifecycle and record-operation parity gaps.
-- [ ] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust.
+- [x] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust. (completed 2026-03-19)
 - [ ] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions.
 - [ ] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow.
 
@@ -105,6 +105,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Transport & Auth Hardening | 3/3 | Complete | 2026-03-18 |
 | 2. API Coverage Completion | 3/3 | Complete | 2026-03-18 |
-| 3. Embeddings & ID Extensibility | 1/3 | In Progress|  |
+| 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 0/2 | Not started | - |
 | 5. Documentation & Release Readiness | 0/2 | Not started | - |

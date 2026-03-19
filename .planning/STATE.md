@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 03-01-PLAN.md"
-last_updated: "2026-03-19T09:58:00.000Z"
+status: unknown
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-03-19T10:10:32.227Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 9
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 03 (embeddings-id-extensibility) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3 (all plans complete)
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: 2 of 3
 | Phase 02-api-coverage-completion P01 | 16min | 2 tasks | 3 files |
 | Phase 02-api-coverage-completion P03 | 8min | 3 tasks | 4 files |
 | Phase 03-embeddings-id-extensibility P01 | 20min | 2 tasks | 13 files |
+| Phase 03-embeddings-id-extensibility PP03 | 28min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Recent decisions affecting current work:
 - [Phase 03-embeddings-id-extensibility P01]: ChromaException convenience constructors widened to public so embeddings.* packages can throw directly.
 - [Phase 03-embeddings-id-extensibility P01]: EF precedence: explicit runtime > configuration.embedding_function > schema.default_embedding_function.
 - [Phase 03-embeddings-id-extensibility P01]: WARNING log fires when explicit EF overrides persisted spec; FINE log fires on auto-wire from spec.
+- [Phase 03-embeddings-id-extensibility]: Sha256IdGenerator throws IllegalArgumentException when both document AND metadata are null; empty metadata map is valid
+- [Phase 03-embeddings-id-extensibility]: ChromaException is the boundary exception for all IdGenerator failures (null, blank, runtime exception) per EMB-04
+- [Phase 03-embeddings-id-extensibility]: serializeMetadata uses TreeMap (sorted keys), key=value;key=value format, package-private for testability
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T09:58:00.000Z
-Stopped at: Completed 03-01-PLAN.md
-Resume file: .planning/phases/03-embeddings-id-extensibility/03-02-PLAN.md
+Last session: 2026-03-19T10:10:32.224Z
+Stopped at: Completed 03-03-PLAN.md
+Resume file: None

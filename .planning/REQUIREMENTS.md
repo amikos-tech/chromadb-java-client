@@ -25,7 +25,7 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 - [x] **EMB-01**: User can use OpenAI, Cohere, HuggingFace, and Ollama embedding functions through one consistent embedding contract.
 - [ ] **EMB-02**: User can use the default local embedding function without external model API keys.
 - [x] **EMB-03**: User can provide a custom embedding function, and runtime/descriptor precedence is deterministic and documented.
-- [ ] **EMB-04**: User can generate deterministic or random IDs (`UUID`, `ULID`, `SHA-256`) for add/upsert flows with client-side validation.
+- [x] **EMB-04**: User can generate deterministic or random IDs (`UUID`, `ULID`, `SHA-256`) for add/upsert flows with client-side validation.
 
 ### Quality & Release
 
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMB-01 | Phase 3 | Complete |
 | EMB-02 | Phase 3 | Pending |
 | EMB-03 | Phase 3 | Complete |
-| EMB-04 | Phase 3 | Pending |
+| EMB-04 | Phase 3 | Complete |
 | QLTY-01 | Phase 4 | Pending |
 | QLTY-02 | Phase 4 | Pending |
 | QLTY-03 | Phase 5 | Pending |
