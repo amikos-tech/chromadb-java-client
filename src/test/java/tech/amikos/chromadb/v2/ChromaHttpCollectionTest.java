@@ -140,6 +140,26 @@ public class ChromaHttpCollectionTest {
                 + "}";
     }
 
+    private static String schemaWithCmekAndUnknownJson(String gcpResource, String azureResource, String schemaFlag) {
+        return "{"
+                + "\"keys\":{"
+                + "\"" + Schema.EMBEDDING_KEY + "\":{"
+                + "\"float_list\":{"
+                + "\"vector_index\":{"
+                + "\"enabled\":true,"
+                + "\"config\":{}"
+                + "}"
+                + "}"
+                + "}"
+                + "},"
+                + "\"cmek\":{"
+                + "\"gcp\":\"" + gcpResource + "\","
+                + "\"azure\":\"" + azureResource + "\""
+                + "},"
+                + "\"future_schema_flag\":\"" + schemaFlag + "\""
+                + "}";
+    }
+
     @Before
     public void setUp() {
         stubFor(post(urlEqualTo(COLLECTIONS_PATH))
@@ -978,27 +998,76 @@ public class ChromaHttpCollectionTest {
     }
 
     @Test
-    public void testQueryRejectsMixedQueryTextsAndEmbeddings() {
-        try {
-            collection.query()
-                    .queryTexts("text")
-                    .queryEmbeddings(new float[]{1.0f});
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("cannot set both queryTexts and queryEmbeddings"));
-        }
+    public void testQueryAllowsMixedTextsThenEmbeddingsEmbeddingsAuthoritative() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.25")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("0.75")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"embed-first\"]]}")));
+
+        QueryResult result = collection.query()
+                .queryTexts("text")
+                .queryEmbeddings(new float[]{0.25f, 0.75f})
+                .execute();
+
+        assertNotNull(result);
+        assertEquals("embed-first", result.getIds().get(0).get(0));
     }
 
     @Test
-    public void testQueryRejectsMixedQueryEmbeddingsAndTexts() {
-        try {
-            collection.query()
-                    .queryEmbeddings(new float[]{1.0f})
-                    .queryTexts("text");
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("cannot set both queryTexts and queryEmbeddings"));
-        }
+    public void testQueryAllowsMixedEmbeddingsThenTextsEmbeddingsAuthoritative() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][0]", equalTo("0.9")))
+                .withRequestBody(matchingJsonPath("$.query_embeddings[0][1]", equalTo("0.1")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"embed-first\"]]}")));
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{0.9f, 0.1f})
+                .queryTexts("text")
+                .execute();
+
+        assertNotNull(result);
+        assertEquals("embed-first", result.getIds().get(0).get(0));
+    }
+
+    @Test
+    public void testQuery_include_omitted_doesNotForceClientDefaults() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{1.0f})
+                .execute();
+
+        assertNotNull(result);
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .withRequestBody(notMatching("(?s).*\"include\"\\s*:.*")));
+    }
+
+    @Test
+    public void testQuery_include_exact_values_forwarded() {
+        stubFor(post(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"ids\":[[\"id1\"]]}")));
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{1.0f})
+                .include(Include.DOCUMENTS, Include.DISTANCES)
+                .execute();
+
+        assertNotNull(result);
+        verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/query"))
+                .withRequestBody(matching("(?s).*\"include\"\\s*:\\s*\\[\\s*\"documents\"\\s*,\\s*\"distances\"\\s*\\].*")));
     }
 
     @Test
@@ -1337,6 +1406,41 @@ public class ChromaHttpCollectionTest {
         } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("unknown_top"));
         }
+    }
+
+    @Test
+    public void testFromPrefersTopLevelSchemaPreservesUnknownCanonicalPassthroughPrefersTopLevelSchema() {
+        String topLevelSchema = schemaWithCmekAndUnknownJson(
+                "projects/p/locations/l/keyRings/top/cryptoKeys/top",
+                "https://vault.example/top",
+                "top-flag"
+        );
+        String configSchema = schemaWithCmekAndUnknownJson(
+                "projects/p/locations/l/keyRings/cfg/cryptoKeys/cfg",
+                "https://vault.example/cfg",
+                "cfg-flag"
+        );
+
+        stubFor(get(urlEqualTo(COLLECTIONS_PATH + "/schema_precedence_passthrough_col"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"col-id-schema-precedence\",\"name\":\"schema_precedence_passthrough_col\","
+                                + "\"schema\":" + topLevelSchema + ","
+                                + "\"configuration_json\":{\"schema\":" + configSchema + "}}")));
+
+        Collection col = client.getCollection("schema_precedence_passthrough_col");
+        assertNotNull(col.getSchema());
+
+        Map<String, Object> serialized = ChromaDtos.toSchemaMap(col.getSchema());
+        assertNotNull(serialized);
+        assertEquals("top-flag", serialized.get("future_schema_flag"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cmek = (Map<String, Object>) serialized.get("cmek");
+        assertNotNull(cmek);
+        assertEquals("projects/p/locations/l/keyRings/top/cryptoKeys/top", cmek.get("gcp"));
+        assertEquals("https://vault.example/top", cmek.get("azure"));
     }
 
     @Test

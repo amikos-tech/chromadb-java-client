@@ -138,8 +138,9 @@ public interface Collection {
 
         /**
          * Queries by raw text. Uses the same embedding-function resolution order as
-         * {@link #queryTexts(String...)}. Rejects null/empty input and cannot be mixed
-         * with {@link #queryEmbeddings(float[]...)} or {@link #queryEmbeddings(List)}.
+         * {@link #queryTexts(String...)}. Rejects null/empty input. May be combined
+         * with {@link #queryEmbeddings(float[]...)} or {@link #queryEmbeddings(List)};
+         * when both are set, explicit embeddings take precedence and texts are ignored.
          *
          * <p>For text queries, the resolved embedding function uses
          * {@code EmbeddingFunction.embedQueries(...)}. Providers may implement

@@ -1,5 +1,8 @@
 package tech.amikos.chromadb.v2;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /** Immutable collection configuration (flat HNSW/SPANN params + optional schema/embedding descriptor). */
@@ -17,6 +20,7 @@ public final class CollectionConfiguration {
     private final Integer spannEfSearch;
     private final Schema schema;
     private final EmbeddingFunctionSpec embeddingFunction;
+    private final Map<String, Object> passthrough;
 
     private CollectionConfiguration(Builder builder) {
         this.space = builder.space;
@@ -31,6 +35,9 @@ public final class CollectionConfiguration {
         this.spannEfSearch = builder.spannEfSearch;
         this.schema = builder.schema;
         this.embeddingFunction = builder.embeddingFunction;
+        this.passthrough = builder.passthrough == null
+                ? Collections.<String, Object>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(builder.passthrough));
     }
 
     public static Builder builder() {
@@ -49,6 +56,7 @@ public final class CollectionConfiguration {
     public Integer getSpannEfSearch() { return spannEfSearch; }
     public Schema getSchema() { return schema; }
     public EmbeddingFunctionSpec getEmbeddingFunction() { return embeddingFunction; }
+    public Map<String, Object> getPassthrough() { return passthrough; }
 
     @Override
     public boolean equals(Object o) {
@@ -66,7 +74,8 @@ public final class CollectionConfiguration {
                 && Objects.equals(spannSearchNprobe, that.spannSearchNprobe)
                 && Objects.equals(spannEfSearch, that.spannEfSearch)
                 && Objects.equals(schema, that.schema)
-                && Objects.equals(embeddingFunction, that.embeddingFunction);
+                && Objects.equals(embeddingFunction, that.embeddingFunction)
+                && Objects.equals(passthrough, that.passthrough);
     }
 
     @Override
@@ -83,7 +92,8 @@ public final class CollectionConfiguration {
                 spannSearchNprobe,
                 spannEfSearch,
                 schema,
-                embeddingFunction
+                embeddingFunction,
+                passthrough
         );
     }
 
@@ -102,6 +112,7 @@ public final class CollectionConfiguration {
                 + ", spannEfSearch=" + spannEfSearch
                 + ", schema=" + schema
                 + ", embeddingFunction=" + embeddingFunction
+                + ", passthrough=" + passthrough
                 + '}';
     }
 
@@ -118,6 +129,7 @@ public final class CollectionConfiguration {
         private Integer spannEfSearch;
         private Schema schema;
         private EmbeddingFunctionSpec embeddingFunction;
+        private Map<String, Object> passthrough;
 
         Builder() {}
 
@@ -146,6 +158,14 @@ public final class CollectionConfiguration {
         public Builder schema(Schema schema) { this.schema = schema; return this; }
         public Builder embeddingFunction(EmbeddingFunctionSpec embeddingFunction) {
             this.embeddingFunction = embeddingFunction;
+            return this;
+        }
+        public Builder passthrough(Map<String, Object> passthrough) {
+            if (passthrough == null) {
+                this.passthrough = null;
+                return this;
+            }
+            this.passthrough = new LinkedHashMap<String, Object>(passthrough);
             return this;
         }
 
