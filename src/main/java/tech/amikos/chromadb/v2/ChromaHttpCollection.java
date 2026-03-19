@@ -489,6 +489,9 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public void execute() {
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            if (hasExplicitIds(ids)) {
+                checkForDuplicateIds(resolvedIds);
+            }
             int idsSize = resolvedIds.size();
             String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
             validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
@@ -580,6 +583,9 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public void execute() {
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            if (hasExplicitIds(ids)) {
+                checkForDuplicateIds(resolvedIds);
+            }
             int idsSize = resolvedIds.size();
             String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
             validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
@@ -1015,13 +1021,13 @@ final class ChromaHttpCollection implements Collection {
             try {
                 generated = generator.generate(doc, meta);
             } catch (RuntimeException e) {
-                throw new IllegalArgumentException(
+                throw new ChromaException(
                         "IdGenerator threw an exception at record index " + i + ": " + e.toString(),
                         e
                 );
             }
             if (generated == null || generated.isEmpty()) {
-                throw new IllegalArgumentException(
+                throw new ChromaException(
                         "IdGenerator returned null or empty ID at index " + i
                 );
             }
@@ -1036,7 +1042,7 @@ final class ChromaHttpCollection implements Collection {
             ids.add(generated);
         }
         if (hasDuplicate) {
-            throw new IllegalArgumentException(buildDuplicateIdsMessage(indexesById));
+            throw new ChromaException(buildDuplicateIdsMessage(indexesById));
         }
         return ids;
     }
@@ -1052,6 +1058,43 @@ final class ChromaHttpCollection implements Collection {
             return "IdGenerator produced duplicate IDs in the same batch";
         }
         return "IdGenerator produced duplicate IDs in the same batch: " + String.join(", ", details);
+    }
+
+    /**
+     * Checks explicit ID lists for duplicates before sending to server.
+     *
+     * <p>Uses O(n) detection via LinkedHashMap to preserve insertion order for error messages.</p>
+     *
+     * @throws ChromaException if duplicate IDs are found, listing the duplicate values and their indexes
+     */
+    private static void checkForDuplicateIds(List<String> ids) {
+        if (ids == null || ids.size() < 2) {
+            return;
+        }
+        Map<String, List<Integer>> indexesById = new LinkedHashMap<String, List<Integer>>();
+        boolean hasDuplicate = false;
+        for (int i = 0; i < ids.size(); i++) {
+            String id = ids.get(i);
+            List<Integer> indexes = indexesById.get(id);
+            if (indexes == null) {
+                indexes = new ArrayList<Integer>();
+                indexesById.put(id, indexes);
+            } else {
+                hasDuplicate = true;
+            }
+            indexes.add(Integer.valueOf(i));
+        }
+        if (hasDuplicate) {
+            List<String> details = new ArrayList<String>();
+            for (Map.Entry<String, List<Integer>> entry : indexesById.entrySet()) {
+                if (entry.getValue().size() > 1) {
+                    details.add("'" + entry.getKey() + "' at indexes " + entry.getValue());
+                }
+            }
+            throw new ChromaException(
+                    "Duplicate IDs in add/upsert batch: " + String.join(", ", details)
+            );
+        }
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
