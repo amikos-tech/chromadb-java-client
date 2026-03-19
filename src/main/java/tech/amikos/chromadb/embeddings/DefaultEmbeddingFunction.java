@@ -175,7 +175,10 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
 
             TarArchiveEntry entry;
             while ((entry = tarIn.getNextTarEntry()) != null) {
-                Path entryPath = extractDir.resolve(entry.getName());
+                Path entryPath = extractDir.resolve(entry.getName()).normalize();
+                if (!entryPath.startsWith(extractDir)) {
+                    throw new IOException("Tar entry escapes extraction directory: " + entry.getName());
+                }
                 if (entry.isDirectory()) {
                     Files.createDirectories(entryPath);
                 } else {

@@ -68,6 +68,20 @@ public abstract class AbstractEmbeddingFunctionConformanceTest {
     }
 
     @Test
+    public void testRejectsNullQuery() throws EFException {
+        EmbeddingFunction ef = createEmbeddingFunction(baseUrl());
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException for null query");
+        } catch (ChromaException e) {
+            assertTrue(
+                "Expected message to mention null, got: " + e.getMessage(),
+                e.getMessage().toLowerCase().contains("null")
+            );
+        }
+    }
+
+    @Test
     public void testRejectsNullDocumentList() throws EFException {
         EmbeddingFunction ef = createEmbeddingFunction(baseUrl());
         try {

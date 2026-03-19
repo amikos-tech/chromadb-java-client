@@ -1009,6 +1009,14 @@ final class ChromaHttpCollection implements Collection {
         return count.intValue();
     }
 
+    /**
+     * Generates IDs for records using the provided generator, with client-side validation.
+     *
+     * <p>Throws {@link ChromaException} (not {@code IllegalArgumentException}) for all
+     * generator failures: null/blank output, runtime exceptions, and duplicate IDs.
+     * This is intentional for the v2 API — all client-side validation errors use the
+     * {@code ChromaException} hierarchy for consistency.</p>
+     */
     private static List<String> generateIds(IdGenerator generator, int count,
                                              List<String> documents,
                                              List<Map<String, Object>> metadatas) {
