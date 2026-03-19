@@ -1076,8 +1076,29 @@ final class ChromaHttpCollection implements Collection {
         return map;
     }
 
+    /**
+     * Resolves the embedding function for text embedding operations.
+     *
+     * <p><strong>Precedence (highest to lowest):</strong></p>
+     * <ol>
+     *   <li>Runtime/explicit EF -- set via {@code CreateCollectionOptions.embeddingFunction(...)}
+     *       or {@code client.getCollection(name, embeddingFunction)}. Always wins.</li>
+     *   <li>{@code configuration.embedding_function} -- persisted in collection configuration.</li>
+     *   <li>{@code schema.default_embedding_function} -- persisted in collection schema.</li>
+     * </ol>
+     *
+     * <p>When an explicit EF is provided and a persisted EF descriptor also exists,
+     * a WARNING is logged. The explicit EF is used; no error is thrown.</p>
+     *
+     * <p>Unsupported EF descriptors (unknown provider name) do not block collection
+     * construction. They fail lazily at the first embed operation.</p>
+     */
     private synchronized tech.amikos.chromadb.embeddings.EmbeddingFunction requireEmbeddingFunction() {
         if (explicitEmbeddingFunction != null) {
+            if (embeddingFunctionSpec != null) {
+                LOG.warning("Runtime embedding function overrides persisted collection EF '"
+                    + embeddingFunctionSpec.getName() + "'. Explicit EF takes precedence.");
+            }
             if (embeddingFunction != explicitEmbeddingFunction) {
                 embeddingFunction = explicitEmbeddingFunction;
             }
@@ -1094,6 +1115,8 @@ final class ChromaHttpCollection implements Collection {
                             + "set configuration.embedding_function, or use queryEmbeddings(...)."
             );
         }
+        LOG.fine("Auto-wired embedding function: " + embeddingFunctionSpec.getName()
+            + " from collection configuration");
         embeddingFunction = EmbeddingFunctionResolver.resolve(embeddingFunctionSpec);
         return embeddingFunction;
     }
