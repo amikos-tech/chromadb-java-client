@@ -105,6 +105,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Transport & Auth Hardening | 3/3 | Complete | 2026-03-18 |
 | 2. API Coverage Completion | 3/3 | Complete | 2026-03-18 |
-| 3. Embeddings & ID Extensibility | 0/3 | Not started | - |
+| 3. Embeddings & ID Extensibility | 1/3 | In Progress|  |
 | 4. Compatibility & Test Matrix | 0/2 | Not started | - |
 | 5. Documentation & Release Readiness | 0/2 | Not started | - |
