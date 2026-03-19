@@ -79,6 +79,10 @@ public class OpenAIEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new ChromaException(
+                "OpenAI embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+        }
         CreateEmbeddingRequest req = new CreateEmbeddingRequest().model(this.configParams.get(Constants.EF_PARAMS_MODEL).toString());
         req.input(new CreateEmbeddingRequest.Input(query));
         CreateEmbeddingResponse response = this.createEmbedding(req);

@@ -87,6 +87,10 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new ChromaException(
+                "HuggingFace embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+        }
         CreateEmbeddingResponse response = this.createEmbedding(new CreateEmbeddingRequest().inputs(new String[]{query}));
         return new Embedding(response.getEmbeddings().get(0));
     }
@@ -116,8 +120,7 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
-        CreateEmbeddingResponse response = this.createEmbedding(new CreateEmbeddingRequest().inputs(documents));
-        return response.getEmbeddings().stream().map(Embedding::fromList).collect(Collectors.toList());
+        return embedDocuments(Arrays.asList(documents));
     }
 
     @Override

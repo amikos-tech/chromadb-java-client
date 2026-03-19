@@ -69,6 +69,10 @@ public class OllamaEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new ChromaException(
+                "Ollama embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+        }
         CreateEmbeddingResponse response = createEmbedding(
                 new CreateEmbeddingRequest()
                         .model(this.configParams.get(Constants.EF_PARAMS_MODEL).toString())

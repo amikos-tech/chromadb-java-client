@@ -31,11 +31,12 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class DefaultEmbeddingFunction implements EmbeddingFunction {
+    private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(DefaultEmbeddingFunction.class.getName());
     public static final String MODEL_NAME = "all-MiniLM-L6-v2";
     private static final String ARCHIVE_FILENAME = "onnx.tar.gz";
 
-    /** Download URL for the ONNX model. Package-private to allow test overrides via subclass or reflection. */
-    static String modelDownloadUrl = "https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz";
+    /** Download URL for the ONNX model. Package-private to allow test overrides from the same package. */
+    static volatile String modelDownloadUrl = "https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz";
 
     private static final String MODEL_SHA256_CHECKSUM = "913d7300ceae3b2dbc2c50d1de4baacab4be7b9380491c27fab7418616a16ec3";
     public static final Path MODEL_CACHE_DIR = Paths.get(System.getProperty("user.home"), ".cache", "chroma", "onnx_models", MODEL_NAME);
@@ -87,7 +88,11 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
     }
 
     public DefaultEmbeddingFunction(int downloadTimeoutSeconds) throws EFException {
-        ensureModelDownloaded(downloadTimeoutSeconds);
+        try {
+            ensureModelDownloaded(downloadTimeoutSeconds);
+        } catch (ChromaException e) {
+            throw new EFException(e);
+        }
 
         Map<String, String> tokenizerConfig = Collections.unmodifiableMap(new HashMap<String, String>() {{
             put("padding", "MAX_LENGTH");
@@ -187,20 +192,12 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
         }
     }
 
-    /**
-     * Check if the model is present at the expected location.
-     * Stateless file-existence check -- no static boolean flag -- so tests that delete
-     * model files between runs in the same JVM continue to work correctly.
-     */
+    /** Check if the model is present at the expected location. Stateless file-existence check -- no static boolean flag. */
     private static boolean validateModel() {
         return modelFile.toFile().exists() && modelFile.toFile().isFile();
     }
 
-    /**
-     * Thread-safe lazy model download using double-checked locking with stateless
-     * file-existence gate (validateModel). This ensures correct behaviour when
-     * model files are deleted between test runs in the same JVM.
-     */
+    /** Thread-safe lazy model download using double-checked locking with stateless file-existence gate. */
     private static void ensureModelDownloaded(int timeoutSeconds) {
         if (validateModel()) {
             return;
@@ -215,7 +212,7 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
 
     /**
      * Downloads the ONNX model archive using OkHttp with a configurable read timeout.
-     * Retryable failures (timeout, connection error, HTTP 5xx) are retried once.
+     * Retryable failures (timeout, connection error, any unsuccessful HTTP status other than 403/404) are retried once.
      * Non-retryable failures (HTTP 404, 403, checksum mismatch) fail fast.
      * All download failures throw {@link ChromaException} with an actionable message.
      */
@@ -226,35 +223,40 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
             .build();
 
         try {
-            Files.createDirectories(MODEL_CACHE_DIR);
-        } catch (IOException e) {
-            throw new ChromaException(
-                "DefaultEmbeddingFunction: failed to create model cache directory "
-                + MODEL_CACHE_DIR + ": " + e.getMessage(), e);
-        }
-        Path archivePath = Paths.get(MODEL_CACHE_DIR.toString(), ARCHIVE_FILENAME);
+            try {
+                Files.createDirectories(MODEL_CACHE_DIR);
+            } catch (IOException e) {
+                throw new ChromaException(
+                    "DefaultEmbeddingFunction: failed to create model cache directory "
+                    + MODEL_CACHE_DIR + ": " + e.getMessage(), e);
+            }
+            Path archivePath = Paths.get(MODEL_CACHE_DIR.toString(), ARCHIVE_FILENAME);
 
-        // First attempt
-        try {
-            attemptDownload(downloadClient, archivePath);
-            verifyAndExtract(archivePath);
-            return;
-        } catch (RetryableDownloadException e) {
-            System.err.println("DefaultEmbeddingFunction: download attempt 1 failed (" + e.getMessage() + "), retrying...");
-        } catch (NonRetryableDownloadException e) {
-            throw new ChromaException(e.getMessage(), e);
-        }
+            // First attempt
+            try {
+                attemptDownload(downloadClient, archivePath);
+                verifyAndExtract(archivePath);
+                return;
+            } catch (RetryableDownloadException e) {
+                LOG.warning("DefaultEmbeddingFunction: download attempt 1 failed (" + e.getMessage() + "), retrying...");
+            } catch (NonRetryableDownloadException e) {
+                throw new ChromaException(e.getMessage(), e);
+            }
 
-        // Second attempt (final)
-        try {
-            attemptDownload(downloadClient, archivePath);
-            verifyAndExtract(archivePath);
-        } catch (RetryableDownloadException e) {
-            throw new ChromaException(
-                "DefaultEmbeddingFunction: model download failed after 2 attempts. "
-                + "Check network connectivity. Download URL: " + modelDownloadUrl, e);
-        } catch (NonRetryableDownloadException e) {
-            throw new ChromaException(e.getMessage(), e);
+            // Second attempt (final)
+            try {
+                attemptDownload(downloadClient, archivePath);
+                verifyAndExtract(archivePath);
+            } catch (RetryableDownloadException e) {
+                throw new ChromaException(
+                    "DefaultEmbeddingFunction: model download failed after 2 attempts. "
+                    + "Check network connectivity. Download URL: " + modelDownloadUrl, e);
+            } catch (NonRetryableDownloadException e) {
+                throw new ChromaException(e.getMessage(), e);
+            }
+        } finally {
+            downloadClient.dispatcher().executorService().shutdown();
+            downloadClient.connectionPool().evictAll();
         }
     }
 
@@ -262,7 +264,7 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
             throws RetryableDownloadException, NonRetryableDownloadException {
         Request request = new Request.Builder().url(modelDownloadUrl).get().build();
         try {
-            System.err.println("Model not found. Downloading from " + modelDownloadUrl + "...");
+            LOG.info("Model not found. Downloading from " + modelDownloadUrl + "...");
             Response response = client.newCall(request).execute();
             try {
                 int code = response.code();
@@ -274,6 +276,10 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
                 if (!response.isSuccessful()) {
                     throw new RetryableDownloadException(
                         "DefaultEmbeddingFunction: model download failed with HTTP " + code);
+                }
+                if (response.body() == null) {
+                    throw new RetryableDownloadException(
+                        "DefaultEmbeddingFunction: model download returned empty body (HTTP " + code + ")");
                 }
                 try (InputStream in = response.body().byteStream()) {
                     Files.copy(in, archivePath, StandardCopyOption.REPLACE_EXISTING);
@@ -294,14 +300,18 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
         try {
             if (!MODEL_SHA256_CHECKSUM.equals(getSHA256Checksum(archivePath.toString()))) {
                 // Delete corrupt archive
-                archivePath.toFile().delete();
+                if (!archivePath.toFile().delete()) {
+                    LOG.warning("Failed to delete corrupt archive at " + archivePath);
+                }
                 throw new NonRetryableDownloadException(
                     "DefaultEmbeddingFunction: downloaded model checksum does not match. "
                     + "Expected: " + MODEL_SHA256_CHECKSUM + ". "
                     + "Delete " + MODEL_CACHE_DIR + " and try again.");
             }
             extractTarGz(archivePath, MODEL_CACHE_DIR);
-            archivePath.toFile().delete();
+            if (!archivePath.toFile().delete()) {
+                LOG.warning("Failed to delete archive at " + archivePath);
+            }
         } catch (NonRetryableDownloadException e) {
             throw e;
         } catch (IOException | NoSuchAlgorithmException e) {
@@ -311,6 +321,9 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new ChromaException("DefaultEmbeddingFunction: query must not be null");
+        }
         try {
             return Embedding.fromList(forward(Collections.singletonList(query)).get(0));
         } catch (OrtException e) {
@@ -320,6 +333,12 @@ public class DefaultEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+        if (documents == null) {
+            throw new ChromaException("DefaultEmbeddingFunction: documents must not be null");
+        }
+        if (documents.isEmpty()) {
+            throw new ChromaException("DefaultEmbeddingFunction: documents must not be empty");
+        }
         try {
             return forward(documents).stream().map(Embedding::new).collect(Collectors.toList());
         } catch (OrtException e) {

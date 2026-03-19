@@ -2093,7 +2093,7 @@ public class ChromaHttpCollectionTest {
 
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
                 .withRequestBody(matchingJsonPath("$.ids[0]",
-                        equalTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"))));
+                        equalTo("985b1da3a3ce55c539585c04928da90f704115f3db078ec960d87532a4f2e0cf"))));
     }
 
     @Test

@@ -37,6 +37,7 @@ final class ChromaHttpCollection implements Collection {
     private final tech.amikos.chromadb.embeddings.EmbeddingFunction explicitEmbeddingFunction;
     private volatile tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction;
     private volatile EmbeddingFunctionSpec embeddingFunctionSpec;
+    private volatile boolean overrideWarningLogged = false;
 
     private ChromaHttpCollection(ChromaApiClient apiClient, String id, String name,
                                  Tenant tenant, Database database,
@@ -1138,9 +1139,10 @@ final class ChromaHttpCollection implements Collection {
      */
     private synchronized tech.amikos.chromadb.embeddings.EmbeddingFunction requireEmbeddingFunction() {
         if (explicitEmbeddingFunction != null) {
-            if (embeddingFunctionSpec != null) {
+            if (embeddingFunctionSpec != null && !overrideWarningLogged) {
                 LOG.warning("Runtime embedding function overrides persisted collection EF '"
                     + embeddingFunctionSpec.getName() + "'. Explicit EF takes precedence.");
+                overrideWarningLogged = true;
             }
             if (embeddingFunction != explicitEmbeddingFunction) {
                 embeddingFunction = explicitEmbeddingFunction;

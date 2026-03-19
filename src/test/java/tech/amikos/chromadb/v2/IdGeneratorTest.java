@@ -131,7 +131,8 @@ public class IdGeneratorTest {
     @Test
     public void testSha256KnownHash() {
         String id = Sha256IdGenerator.INSTANCE.generate("hello", null);
-        assertEquals("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", id);
+        // hash of "doc:hello"
+        assertEquals("985b1da3a3ce55c539585c04928da90f704115f3db078ec960d87532a4f2e0cf", id);
     }
 
     @Test
@@ -170,6 +171,8 @@ public class IdGeneratorTest {
     @Test
     public void testSha256AcceptsEmptyString() {
         String id = Sha256IdGenerator.INSTANCE.generate("", null);
+        // hash of "doc:"
+        assertEquals("33ebe7859165af89a08efaa1736aa0c82bf03f07c23dbb4c9cac0a426bc701bd", id);
         assertNotNull(id);
         assertEquals(64, id.length());
     }

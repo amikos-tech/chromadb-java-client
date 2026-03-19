@@ -15,6 +15,10 @@ import java.util.TreeMap;
  * single add/upsert batch, duplicate generated IDs are rejected by the client.
  * For cross-batch deduplication behavior, use {@code upsert(...)}.</p>
  *
+ * <p>Document content is prefixed with 'doc:' and metadata with 'meta:' to prevent
+ * cross-type hash collisions. An empty metadata map is equivalent to hashing 'meta:'
+ * — all such records produce the same ID.</p>
+ *
  * <p>When document is non-null, only the document is hashed and metadata is ignored.
  * When document is null and metadata is non-null, the metadata is serialized to a
  * deterministic string (sorted keys) and hashed. When both document and metadata are
@@ -38,7 +42,7 @@ public final class Sha256IdGenerator implements IdGenerator {
                     "Sha256IdGenerator requires a non-null document or metadata"
             );
         }
-        String content = document != null ? document : serializeMetadata(metadata);
+        String content = document != null ? ("doc:" + document) : ("meta:" + serializeMetadata(metadata));
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));

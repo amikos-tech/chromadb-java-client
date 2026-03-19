@@ -108,12 +108,12 @@ public class DefaultEmbeddingFunctionTest {
         }
         try {
             new DefaultEmbeddingFunction(5);
-            fail("Expected ChromaException for 404");
-        } catch (ChromaException e) {
-            assertTrue("Message should mention 404", e.getMessage().contains("404"));
-            assertTrue("Message should be non-retryable", e.getMessage().contains("non-retryable"));
+            fail("Expected EFException wrapping ChromaException for 404");
         } catch (EFException e) {
-            fail("Expected ChromaException, got EFException: " + e.getMessage());
+            assertTrue("Cause should be ChromaException", e.getCause() instanceof ChromaException);
+            String msg = e.getCause().getMessage();
+            assertTrue("Message should mention 404", msg.contains("404"));
+            assertTrue("Message should be non-retryable", msg.contains("non-retryable"));
         } finally {
             if (wasCached && backup != null) {
                 backup.toFile().renameTo(modelOnnx.toFile());
@@ -139,14 +139,14 @@ public class DefaultEmbeddingFunctionTest {
         }
         try {
             new DefaultEmbeddingFunction(5);
-            fail("Expected ChromaException for retried 503");
-        } catch (ChromaException e) {
-            assertTrue("Message should mention failed after 2 attempts",
-                e.getMessage().contains("model download failed after 2 attempts"));
-            assertTrue("Message should include download URL",
-                e.getMessage().contains(wireMock.url("/model.tar.gz")));
+            fail("Expected EFException wrapping ChromaException for retried 503");
         } catch (EFException e) {
-            fail("Expected ChromaException, got EFException: " + e.getMessage());
+            assertTrue("Cause should be ChromaException", e.getCause() instanceof ChromaException);
+            String msg = e.getCause().getMessage();
+            assertTrue("Message should mention failed after 2 attempts",
+                msg.contains("model download failed after 2 attempts"));
+            assertTrue("Message should include download URL",
+                msg.contains(wireMock.url("/model.tar.gz")));
         } finally {
             if (wasCached && backup != null) {
                 backup.toFile().renameTo(modelOnnx.toFile());
@@ -177,14 +177,14 @@ public class DefaultEmbeddingFunctionTest {
         try {
             // Use 1-second timeout to force timeout quickly
             new DefaultEmbeddingFunction(1);
-            fail("Expected ChromaException for timeout");
-        } catch (ChromaException e) {
+            fail("Expected EFException wrapping ChromaException for timeout");
+        } catch (EFException e) {
+            assertTrue("Cause should be ChromaException", e.getCause() instanceof ChromaException);
+            String msg = e.getCause().getMessage();
             // Timeout is retryable, so message should say "failed after 2 attempts"
             assertTrue("Message should mention failed after 2 attempts or timed out",
-                e.getMessage().contains("model download failed after 2 attempts")
-                || e.getMessage().contains("timed out"));
-        } catch (EFException e) {
-            fail("Expected ChromaException, got EFException: " + e.getMessage());
+                msg.contains("model download failed after 2 attempts")
+                || msg.contains("timed out"));
         } finally {
             if (wasCached && backup != null) {
                 backup.toFile().renameTo(modelOnnx.toFile());
