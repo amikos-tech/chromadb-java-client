@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 import tech.amikos.chromadb.embeddings.WithParam;
+import tech.amikos.chromadb.v2.ChromaException;
 
 import java.io.IOException;
 import java.util.*;
@@ -66,7 +67,10 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
         Request request = rb.build();
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
+                throw new ChromaException(
+                    "HuggingFace embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): "
+                    + response.code() + " " + response.message()
+                );
             }
 
             String responseData = response.body().string();
@@ -74,6 +78,8 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
             List parsedResponse = gson.fromJson(responseData, List.class);
 
             return new CreateEmbeddingResponse(parsedResponse);
+        } catch (ChromaException e) {
+            throw e;
         } catch (IOException e) {
             throw new EFException(e);
         }
@@ -87,8 +93,25 @@ public class HuggingFaceEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(@NotNull List<String> documents) throws EFException {
+        if (documents == null) {
+            throw new ChromaException(
+                "HuggingFace embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be null"
+            );
+        }
+        if (documents.isEmpty()) {
+            throw new ChromaException(
+                "HuggingFace embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be empty"
+            );
+        }
         CreateEmbeddingResponse response = this.createEmbedding(new CreateEmbeddingRequest().inputs(documents.toArray(new String[0])));
-        return response.getEmbeddings().stream().map(Embedding::fromList).collect(Collectors.toList());
+        List<Embedding> result = response.getEmbeddings().stream().map(Embedding::fromList).collect(Collectors.toList());
+        if (result.size() != documents.size()) {
+            throw new ChromaException(
+                "HuggingFace embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): "
+                + "expected " + documents.size() + " embeddings, got " + result.size()
+            );
+        }
+        return result;
     }
 
     @Override
