@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -155,9 +156,15 @@ public class IdGeneratorTest {
                 Pattern.matches("[0-9a-f]{64}", id));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testSha256ThrowsOnNullDocument() {
-        Sha256IdGenerator.INSTANCE.generate(null, null);
+        try {
+            Sha256IdGenerator.INSTANCE.generate(null, null);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue("Message should contain 'requires a non-null document or metadata'",
+                    e.getMessage().contains("requires a non-null document or metadata"));
+        }
     }
 
     @Test
@@ -179,6 +186,104 @@ public class IdGeneratorTest {
     @Test
     public void testSha256Singleton() {
         assertSame(Sha256IdGenerator.INSTANCE, Sha256IdGenerator.INSTANCE);
+    }
+
+    @Test
+    public void testSha256MetadataFallbackWhenDocumentNull() {
+        Map<String, Object> meta = new HashMap<String, Object>();
+        meta.put("key", "value");
+        String id = Sha256IdGenerator.INSTANCE.generate(null, meta);
+        assertNotNull(id);
+        assertEquals(64, id.length());
+        assertTrue("Expected hex chars, got: " + id, Pattern.matches("[0-9a-f]{64}", id));
+    }
+
+    @Test
+    public void testSha256MetadataFallbackDeterministic() {
+        Map<String, Object> meta = new HashMap<String, Object>();
+        meta.put("a", "1");
+        meta.put("b", "2");
+        String id1 = Sha256IdGenerator.INSTANCE.generate(null, meta);
+        String id2 = Sha256IdGenerator.INSTANCE.generate(null, meta);
+        assertEquals(id1, id2);
+    }
+
+    @Test
+    public void testSha256MetadataFallbackDifferentMetaDifferentIds() {
+        Map<String, Object> meta1 = new HashMap<String, Object>();
+        meta1.put("key", "value1");
+        Map<String, Object> meta2 = new HashMap<String, Object>();
+        meta2.put("key", "value2");
+        String id1 = Sha256IdGenerator.INSTANCE.generate(null, meta1);
+        String id2 = Sha256IdGenerator.INSTANCE.generate(null, meta2);
+        assertNotEquals(id1, id2);
+    }
+
+    @Test
+    public void testSha256MetadataFallbackSortOrder() {
+        // Insertion order differs, but sorted keys produce same hash
+        Map<String, Object> meta1 = new LinkedHashMap<String, Object>();
+        meta1.put("b", "2");
+        meta1.put("a", "1");
+        Map<String, Object> meta2 = new LinkedHashMap<String, Object>();
+        meta2.put("a", "1");
+        meta2.put("b", "2");
+        String id1 = Sha256IdGenerator.INSTANCE.generate(null, meta1);
+        String id2 = Sha256IdGenerator.INSTANCE.generate(null, meta2);
+        assertEquals("Sorted keys should produce identical hashes", id1, id2);
+    }
+
+    @Test
+    public void testSha256BothNullThrowsIllegalArgument() {
+        try {
+            Sha256IdGenerator.INSTANCE.generate(null, null);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue("Message should contain 'requires a non-null document or metadata'",
+                    e.getMessage().contains("requires a non-null document or metadata"));
+        }
+    }
+
+    @Test
+    public void testSha256DocumentTakesPrecedenceOverMetadata() {
+        Map<String, Object> meta = new HashMap<String, Object>();
+        meta.put("key", "value");
+        String withMeta = Sha256IdGenerator.INSTANCE.generate("doc", meta);
+        String withoutMeta = Sha256IdGenerator.INSTANCE.generate("doc", null);
+        assertEquals("Document hash should be the same regardless of metadata", withMeta, withoutMeta);
+    }
+
+    @Test
+    public void testSha256EmptyMetadataFallback() {
+        Map<String, Object> emptyMeta = new HashMap<String, Object>();
+        String id = Sha256IdGenerator.INSTANCE.generate(null, emptyMeta);
+        assertNotNull(id);
+        assertEquals(64, id.length());
+    }
+
+    @Test
+    public void testSerializeMetadataDeterministic() {
+        Map<String, Object> meta = new HashMap<String, Object>();
+        meta.put("b", "2");
+        meta.put("a", "1");
+        assertEquals("a=1;b=2", Sha256IdGenerator.serializeMetadata(meta));
+    }
+
+    @Test
+    public void testSerializeMetadataNullValues() {
+        Map<String, Object> meta = new HashMap<String, Object>();
+        meta.put("key", null);
+        assertEquals("key=null", Sha256IdGenerator.serializeMetadata(meta));
+    }
+
+    @Test
+    public void testSerializeMetadataEmpty() {
+        assertEquals("", Sha256IdGenerator.serializeMetadata(new HashMap<String, Object>()));
+    }
+
+    @Test
+    public void testSerializeMetadataNull() {
+        assertEquals("", Sha256IdGenerator.serializeMetadata(null));
     }
 
     // --- Lambda usage ---
