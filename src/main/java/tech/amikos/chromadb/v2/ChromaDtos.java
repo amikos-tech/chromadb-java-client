@@ -1125,6 +1125,10 @@ final class ChromaDtos {
         if (typedCmek == null && passthroughProviders.isEmpty()) {
             throw new IllegalArgumentException(fieldName + " must include a supported provider (gcp)");
         }
+        if (typedCmek == null) {
+            LOG.fine(fieldName + " contains only unrecognized CMEK providers: " + passthroughProviders.keySet()
+                    + "; getCmek() will return null but providers are preserved in passthrough");
+        }
         return new ParsedCmek(typedCmek, passthroughProviders);
     }
 
