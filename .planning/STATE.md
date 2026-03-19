@@ -51,6 +51,7 @@ Plan: 3 of 3 (all plans complete)
 | Phase 02-api-coverage-completion P03 | 8min | 3 tasks | 4 files |
 | Phase 03-embeddings-id-extensibility P01 | 20min | 2 tasks | 13 files |
 | Phase 03-embeddings-id-extensibility PP03 | 28min | 2 tasks | 4 files |
+| Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 03-embeddings-id-extensibility]: Sha256IdGenerator throws IllegalArgumentException when both document AND metadata are null; empty metadata map is valid
 - [Phase 03-embeddings-id-extensibility]: ChromaException is the boundary exception for all IdGenerator failures (null, blank, runtime exception) per EMB-04
 - [Phase 03-embeddings-id-extensibility]: serializeMetadata uses TreeMap (sorted keys), key=value;key=value format, package-private for testability
+- [Phase 03-embeddings-id-extensibility P02]: DefaultEmbeddingFunction download failures throw ChromaException (unchecked, v2) not EFException; validateModel() is stateless file-existence check (no static boolean flag)
+- [Phase 03-embeddings-id-extensibility P02]: modelDownloadUrl is package-private non-final static for WireMock test injection without reflection
 
 ### Pending Todos
 
@@ -83,10 +86,10 @@ None.
 
 ### Blockers/Concerns
 
-- Full `mvn test` run was interrupted after stalling on first-time ONNX model download; targeted Phase 1 regression suites passed.
+- [RESOLVED by P02] Full `mvn test` run was interrupted after stalling on first-time ONNX model download — resolved by OkHttp download with 300s timeout in DefaultEmbeddingFunction.
 
 ## Session Continuity
 
-Last session: 2026-03-19T10:10:32.224Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-03-19T10:08:41Z
+Stopped at: Completed 03-02-PLAN.md (all 3 plans in phase 03 complete)
 Resume file: None
