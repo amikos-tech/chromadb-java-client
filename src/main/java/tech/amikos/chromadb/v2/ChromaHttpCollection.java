@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 /**
  * Package-private {@link Collection} implementation backed by HTTP transport.
@@ -20,6 +21,8 @@ import java.util.Objects;
  * locally to avoid lost updates from concurrent read-modify-write sequences.</p>
  */
 final class ChromaHttpCollection implements Collection {
+
+    private static final Logger LOG = Logger.getLogger(ChromaHttpCollection.class.getName());
 
     private final ChromaApiClient apiClient;
     private final String id;
@@ -661,6 +664,10 @@ final class ChromaHttpCollection implements Collection {
             if ((resolvedEmbeddings == null || resolvedEmbeddings.isEmpty())
                     && queryTexts != null && !queryTexts.isEmpty()) {
                 resolvedEmbeddings = embedQueryTexts(queryTexts);
+            } else if (resolvedEmbeddings != null && !resolvedEmbeddings.isEmpty()
+                    && queryTexts != null && !queryTexts.isEmpty()) {
+                LOG.fine("queryTexts ignored because queryEmbeddings were also set; "
+                        + "explicit embeddings take precedence");
             }
             if (resolvedEmbeddings == null || resolvedEmbeddings.isEmpty()) {
                 throw new IllegalArgumentException("queryEmbeddings must be provided");
