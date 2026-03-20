@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-result-ergonomics-wheredocument-01-01-PLAN.md
-last_updated: "2026-03-20T19:15:11.419Z"
+stopped_at: Completed 01-result-ergonomics-wheredocument-01-03-PLAN.md
+last_updated: "2026-03-20T19:16:24.894Z"
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 01 (result-ergonomics-wheredocument) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Plan: 2 of 3
 | Phase 06-tech-debt-cleanup P01 | 5 | 2 tasks | 3 files |
 | Phase 07-readme-embedding-examples P01 | 3min | 2 tasks | 2 files |
 | Phase 01-result-ergonomics-wheredocument P01 | 2min | 1 tasks | 7 files |
+| Phase 01-result-ergonomics-wheredocument P03 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,8 @@ Recent decisions affecting current work:
 - [Phase 01-result-ergonomics-wheredocument]: ResultRow fields return null (not Optional) when Include not requested — consistent with existing GetResult/QueryResult approach
 - [Phase 01-result-ergonomics-wheredocument]: QueryResultRowImpl uses composition (wraps ResultRowImpl) to avoid code duplication without inheritance
 - [Phase 01-result-ergonomics-wheredocument]: Defensive copy applied on every getEmbedding() call, not just construction, to prevent aliasing across callers
+- [Phase 01-result-ergonomics-wheredocument]: contains/notContains reject null and blank strings; regex/notRegex reject only null (empty string is valid regex)
+- [Phase 01-result-ergonomics-wheredocument]: WhereDocument.contains() Javadoc clarifies distinction from Where.documentContains() per D-18: WhereDocument is local-compatible path, Where#documentContains is Cloud-oriented inline filter
 
 ### Roadmap Evolution
 
@@ -122,6 +125,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T19:15:11.417Z
-Stopped at: Completed 01-result-ergonomics-wheredocument-01-01-PLAN.md
+Last session: 2026-03-20T19:16:24.891Z
+Stopped at: Completed 01-result-ergonomics-wheredocument-01-03-PLAN.md
 Resume file: None
