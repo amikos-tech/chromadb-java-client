@@ -3,7 +3,6 @@ name: release
 on:
   release:
     types: [created]
-    branches: [ "main" ]
 
 jobs:
   build:
@@ -55,6 +54,8 @@ jobs:
                 -Dgpg.skip=true \
                 versions:set \
                 -DnewVersion=${{  github.ref_name }}
+      - name: Run release-check
+        run: make release-check
       - name: Publish package
         run: |
           mvn \
