@@ -22,7 +22,7 @@ import static org.junit.Assert.*;
  * - ASSUME-WIRE: assumeMinVersion() is exercised by at least one integration test
  * - INFRA-1: release.yml has no branches filter
  * - INFRA-2: release.yml has release-check step before Publish package
- * - ND4J-BUMP: nd4j-native-platform version is 1.0.0-M2.1
+ * - ND4J-BUMP: nd4j-native-platform version is 1.0.0-M2 (M2.1 requires Java 11)
  *
  * These tests read project root files and integration test sources
  * without modifying any implementation.
@@ -166,17 +166,21 @@ public class Phase06TechDebtValidationTest {
     }
 
     // -----------------------------------------------------------------------
-    // ND4J-BUMP: nd4j-native-platform version must be 1.0.0-M2.1
+    // ND4J-BUMP: nd4j-native-platform version must be 1.0.0-M2 (Java 8 compat)
     // -----------------------------------------------------------------------
 
     @Test
-    public void test_nd4j_version_is_m2_1() {
+    public void test_nd4j_version_is_m2() {
         assertTrue(
             "pom.xml must contain nd4j-native-platform dependency",
             pomXml.contains("nd4j-native-platform")
         );
         assertTrue(
-            "pom.xml nd4j-native-platform version must be 1.0.0-M2.1",
+            "pom.xml nd4j-native-platform version must be 1.0.0-M2",
+            pomXml.contains("1.0.0-M2")
+        );
+        assertFalse(
+            "pom.xml nd4j-native-platform must NOT be M2.1 (requires Java 11, breaks Java 8 compat)",
             pomXml.contains("1.0.0-M2.1")
         );
     }
