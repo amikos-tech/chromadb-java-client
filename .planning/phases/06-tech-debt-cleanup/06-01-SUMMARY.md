@@ -111,3 +111,11 @@ None - no external service configuration required.
 ---
 *Phase: 06-tech-debt-cleanup*
 *Completed: 2026-03-20*
+
+## Self-Check: PASSED
+
+- FOUND: src/test/java/tech/amikos/chromadb/Phase06TechDebtValidationTest.java
+- FOUND: .planning/phases/06-tech-debt-cleanup/06-01-SUMMARY.md
+- FOUND: commit 45a9d2d (test scaffold)
+- FOUND: commit d87263a (README fixes + assumeMinVersion wiring)
+- FOUND: commit 10e8419 (plan metadata)

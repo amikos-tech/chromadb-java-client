@@ -4,10 +4,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.Assert.*;
 
@@ -31,27 +28,8 @@ public class Phase07ReadmeEmbeddingValidationTest {
 
     @BeforeClass
     public static void loadFiles() throws IOException {
-        projectRoot = findProjectRoot();
-        readme = readFile(projectRoot.resolve("README.md"));
-    }
-
-    private static Path findProjectRoot() {
-        Path candidate = Paths.get(System.getProperty("user.dir"));
-        for (int i = 0; i < 10; i++) {
-            if (Files.exists(candidate.resolve("pom.xml"))
-                    && Files.exists(candidate.resolve("README.md"))) {
-                return candidate;
-            }
-            candidate = candidate.getParent();
-            if (candidate == null) break;
-        }
-        return Paths.get(System.getProperty("user.dir"));
-    }
-
-    private static String readFile(Path path) throws IOException {
-        assertTrue("Required file not found: " + path, Files.exists(path));
-        byte[] bytes = Files.readAllBytes(path);
-        return new String(bytes, StandardCharsets.UTF_8);
+        projectRoot = ProjectFileTestHelper.findProjectRoot();
+        readme = ProjectFileTestHelper.readFile(projectRoot.resolve("README.md"));
     }
 
     // -----------------------------------------------------------------------

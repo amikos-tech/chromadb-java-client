@@ -3,11 +3,10 @@ package tech.amikos.chromadb.v2;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import tech.amikos.chromadb.ProjectFileTestHelper;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.Assert.*;
 
@@ -32,35 +31,13 @@ public class Phase05DocumentationReleaseReadinessTest {
 
     @BeforeClass
     public static void loadFiles() throws IOException {
-        // Walk up from the test class output directory to find project root
-        projectRoot = findProjectRoot();
+        projectRoot = ProjectFileTestHelper.findProjectRoot();
 
-        readme = readFile(projectRoot.resolve("README.md"));
-        migration = readFile(projectRoot.resolve("MIGRATION.md"));
-        changelog = readFile(projectRoot.resolve("CHANGELOG.md"));
-        makefile = readFile(projectRoot.resolve("Makefile"));
-        releaseYml = readFile(projectRoot.resolve(".github/workflows/release.yml"));
-    }
-
-    private static Path findProjectRoot() {
-        // Start from CWD and look for pom.xml
-        Path candidate = Paths.get(System.getProperty("user.dir"));
-        for (int i = 0; i < 10; i++) {
-            if (Files.exists(candidate.resolve("pom.xml"))
-                    && Files.exists(candidate.resolve("README.md"))) {
-                return candidate;
-            }
-            candidate = candidate.getParent();
-            if (candidate == null) break;
-        }
-        // Fallback: assume CWD is the project root
-        return Paths.get(System.getProperty("user.dir"));
-    }
-
-    private static String readFile(Path path) throws IOException {
-        assertTrue("Required file not found: " + path, Files.exists(path));
-        byte[] bytes = Files.readAllBytes(path);
-        return new String(bytes, StandardCharsets.UTF_8);
+        readme = ProjectFileTestHelper.readFile(projectRoot.resolve("README.md"));
+        migration = ProjectFileTestHelper.readFile(projectRoot.resolve("MIGRATION.md"));
+        changelog = ProjectFileTestHelper.readFile(projectRoot.resolve("CHANGELOG.md"));
+        makefile = ProjectFileTestHelper.readFile(projectRoot.resolve("Makefile"));
+        releaseYml = ProjectFileTestHelper.readFile(projectRoot.resolve(".github/workflows/release.yml"));
     }
 
     // -----------------------------------------------------------------------
@@ -360,9 +337,15 @@ public class Phase05DocumentationReleaseReadinessTest {
     }
 
     @Test
-    public void test_release_yml_has_no_skip_tests() {
-        assertFalse("release.yml must not contain -DskipTests",
-                releaseYml.contains("DskipTests"));
+    public void test_release_yml_deploy_skips_tests_but_test_steps_exist() {
+        // Deploy step should skip tests since dedicated test steps run earlier
+        assertTrue("release.yml 'Publish package' step should use -DskipTests to avoid redundant test run",
+                releaseYml.contains("-DskipTests"));
+        // But dedicated test steps must still exist
+        assertTrue("release.yml must have 'Run unit tests' step",
+                releaseYml.contains("Run unit tests"));
+        assertTrue("release.yml must have 'Run integration tests' step",
+                releaseYml.contains("Run integration tests"));
     }
 
     @Test

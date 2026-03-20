@@ -749,7 +749,7 @@ public class Main {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
-            client.setDefaultHeaders(new HashMap<>() {{
+            client.setDefaultHeaders(new HashMap<String, String>() {{
                 put("Authorization", "Basic " + encodedString);
             }});
         } catch (Exception e) {
@@ -773,7 +773,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
-            client.setDefaultHeaders(new HashMap<>() {{
+            client.setDefaultHeaders(new HashMap<String, String>() {{
                 put("Authorization", "Bearer test-token");
             }});
         } catch (Exception e) {
@@ -797,7 +797,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
-            client.setDefaultHeaders(new HashMap<>() {{
+            client.setDefaultHeaders(new HashMap<String, String>() {{
                 put("X-Chroma-Token", "test-token");
             }});
         } catch (Exception e) {

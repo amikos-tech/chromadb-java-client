@@ -62,6 +62,7 @@ jobs:
                 --no-transfer-progress \
                 --batch-mode \
                 -Dgpg.passphrase=${GPG_PASSPHRASE} \
+                -DskipTests \
                 clean package deploy
         env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

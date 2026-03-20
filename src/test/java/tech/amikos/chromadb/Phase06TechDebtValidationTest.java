@@ -4,10 +4,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,30 +34,11 @@ public class Phase06TechDebtValidationTest {
 
     @BeforeClass
     public static void loadFiles() throws IOException {
-        projectRoot = findProjectRoot();
+        projectRoot = ProjectFileTestHelper.findProjectRoot();
 
-        readme = readFile(projectRoot.resolve("README.md"));
-        releaseYml = readFile(projectRoot.resolve(".github/workflows/release.yml"));
-        pomXml = readFile(projectRoot.resolve("pom.xml"));
-    }
-
-    private static Path findProjectRoot() {
-        Path candidate = Paths.get(System.getProperty("user.dir"));
-        for (int i = 0; i < 10; i++) {
-            if (Files.exists(candidate.resolve("pom.xml"))
-                    && Files.exists(candidate.resolve("README.md"))) {
-                return candidate;
-            }
-            candidate = candidate.getParent();
-            if (candidate == null) break;
-        }
-        return Paths.get(System.getProperty("user.dir"));
-    }
-
-    private static String readFile(Path path) throws IOException {
-        assertTrue("Required file not found: " + path, Files.exists(path));
-        byte[] bytes = Files.readAllBytes(path);
-        return new String(bytes, StandardCharsets.UTF_8);
+        readme = ProjectFileTestHelper.readFile(projectRoot.resolve("README.md"));
+        releaseYml = ProjectFileTestHelper.readFile(projectRoot.resolve(".github/workflows/release.yml"));
+        pomXml = ProjectFileTestHelper.readFile(projectRoot.resolve("pom.xml"));
     }
 
     // -----------------------------------------------------------------------
@@ -118,7 +97,7 @@ public class Phase06TechDebtValidationTest {
 
         boolean foundCaller = false;
         for (Path testFile : integrationTests) {
-            String source = readFile(testFile);
+            String source = ProjectFileTestHelper.readFile(testFile);
             if (source.contains("assumeMinVersion(")) {
                 foundCaller = true;
                 break;
