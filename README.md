@@ -305,7 +305,7 @@ collection.add()
 Rules:
 - `ids(...)` and `idGenerator(...)` are mutually exclusive (validated at `execute()` time).
 - `idGenerator(...)` requires at least one non-empty data field (`documents`, `embeddings`, `metadatas`, or `uris`) to infer record count.
-- `Sha256IdGenerator` requires non-null documents.
+- `Sha256IdGenerator` requires a non-null document or non-null metadata; throws `IllegalArgumentException` if both are null.
 - Duplicate generated IDs within the same batch are rejected client-side before sending the request.
 
 ### Embedding Functions
@@ -375,7 +375,7 @@ import tech.amikos.chromadb.v2.*;
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
 
 String apiKey = System.getenv("HF_API_KEY");
-HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
+HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey));
 
 Collection collection = client.getOrCreateCollection(
         "hf-collection",
@@ -636,7 +636,7 @@ public class Main {
         try {
             Client client = new Client("http://localhost:8000");
             String apiKey = System.getenv("HF_API_KEY");
-            EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
+            EmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey));
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{
