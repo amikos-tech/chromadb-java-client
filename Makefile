@@ -177,6 +177,45 @@ release: check-tools ## Full release (CI only - requires GPG signing)
 	@echo "$(BLUE)Performing full release...$(NC)"
 	$(MAVEN) clean deploy -P release
 
+.PHONY: release-check
+release-check: check-tools ## Validate release readiness (version, docs, artifacts if built)
+	@echo "$(BLUE)Running release checks...$(NC)"
+	@VERSION=$$($(MAVEN) help:evaluate -Dexpression=project.version -q -DforceStdout) && \
+	echo "  Version: $$VERSION" && \
+	echo "$$VERSION" | grep -qv "SNAPSHOT" || { echo "$(RED)FAIL: Version $$VERSION contains -SNAPSHOT$(NC)"; exit 1; } && \
+	echo "  $(GREEN)Version format OK$(NC)"
+	@VERSION=$$($(MAVEN) help:evaluate -Dexpression=project.version -q -DforceStdout) && \
+	grep -q "\[$$VERSION\]" CHANGELOG.md || { echo "$(RED)FAIL: No CHANGELOG.md entry for $$VERSION$(NC)"; exit 1; } && \
+	echo "  $(GREEN)CHANGELOG.md entry OK$(NC)"
+	@VERSION=$$($(MAVEN) help:evaluate -Dexpression=project.version -q -DforceStdout) && \
+	grep -q "$$VERSION" README.md || { echo "$(RED)FAIL: README.md does not reference version $$VERSION$(NC)"; exit 1; } && \
+	echo "  $(GREEN)README.md version reference OK$(NC)"
+	@grep -q "^## TODO" README.md && { echo "$(RED)FAIL: README.md contains stale TODO section$(NC)"; exit 1; } || \
+	echo "  $(GREEN)No stale TODO section OK$(NC)"
+	@ARTIFACT_ID=$$($(MAVEN) help:evaluate -Dexpression=project.artifactId -q -DforceStdout) && \
+	VERSION=$$($(MAVEN) help:evaluate -Dexpression=project.version -q -DforceStdout) && \
+	if [ -d target ]; then \
+		for f in \
+			"$${ARTIFACT_ID}-$${VERSION}.jar" \
+			"$${ARTIFACT_ID}-$${VERSION}-sources.jar" \
+			"$${ARTIFACT_ID}-$${VERSION}-javadoc.jar" \
+			"$${ARTIFACT_ID}-$${VERSION}.jar.md5" \
+			"$${ARTIFACT_ID}-$${VERSION}.jar.sha512"; do \
+			test -s "target/$$f" || { echo "$(RED)FAIL: target/$$f missing or empty$(NC)"; exit 1; }; \
+		done && \
+		echo "  $(GREEN)Artifacts OK$(NC)"; \
+	else \
+		echo "  $(YELLOW)SKIP: target/ not found (run release-dry-run for full validation)$(NC)"; \
+	fi
+	@echo "$(GREEN)release-check passed$(NC)"
+
+.PHONY: release-dry-run
+release-dry-run: check-tools ## Build release artifacts locally without signing or deploying
+	@echo "$(BLUE)Running release dry-run (no GPG, no deploy)...$(NC)"
+	$(MAVEN) --batch-mode clean verify -Dgpg.skip=true
+	@$(MAKE) release-check
+	@echo "$(GREEN)release-dry-run complete$(NC)"
+
 ##@ Docker Targets
 
 .PHONY: docker-test
