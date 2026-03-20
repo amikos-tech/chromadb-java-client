@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-20T08:15:24.970Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-20T09:03:03.589Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -53,6 +53,7 @@ Plan: 1 of 2
 | Phase 03-embeddings-id-extensibility PP03 | 28min | 2 tasks | 4 files |
 | Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
 | Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
+| Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 04]: Container startup failure throws AssertionError (fail-fast) not Assume.assumeTrue (silent skip) to make bad images visible
 - [Phase 04]: GitHub Actions include pattern (not exclude) for JDK 11/17 x 1.5.5 cells produces exactly 5 cells with no accidental combinations
 - [Phase 04]: CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5 centralized in Makefile; CI workflow maintains its own parallel matrix definition
+- [Phase 04]: animal-sniffer check goal defaults to process-test-classes (runs during mvn test, not mvn compile) — no explicit phase override added per plan instructions
+- [Phase 04]: EXPECTED_BUILDER_METHOD_COUNT=34 and EXPECTED_CLOUD_BUILDER_METHOD_COUNT=8 (getDeclaredMethods includes private methods for concrete classes; public-only counts would be 20 and 6)
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T08:15:24.968Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-20T09:03:03.586Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
