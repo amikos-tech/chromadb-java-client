@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-20T12:15:40.763Z"
+last_updated: "2026-03-20T12:24:40.289Z"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -93,6 +93,10 @@ Recent decisions affecting current work:
 - [Phase 05-documentation-release-readiness]: release-check artifact check is conditional on target/ directory presence to allow standalone doc validation
 - [Phase 05-documentation-release-readiness]: release-dry-run uses mvn clean verify (not package) to produce sources/javadoc JARs and checksums
 - [Phase 05-documentation-release-readiness]: release.yml integration test step uses Chroma 1.5.5 only as representative release gate to avoid 3x matrix overhead
+
+### Roadmap Evolution
+
+- Phase 6 added: Tech Debt Cleanup (DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, inert assumeMinVersion removal)
 
 ### Pending Todos
 

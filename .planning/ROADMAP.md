@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust. (completed 2026-03-19)
 - [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
 - [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
+- [ ] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure.
 
 ## Phase Details
 
@@ -99,7 +100,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -108,3 +109,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
 | 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
+| 6. Tech Debt Cleanup | 0/0 | Not planned | — |
+
+### Phase 6: Tech Debt Cleanup
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 6 to break down)
