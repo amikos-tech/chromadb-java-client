@@ -702,4 +702,65 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         }
     }
 
+    // --- row access: GetResult.rows() ---
+
+    @Test
+    public void testRowAccessOnGetResult() {
+        addSampleRecords(3);
+
+        GetResult result = collection.get()
+                .include(Include.DOCUMENTS, Include.METADATAS)
+                .execute();
+
+        ResultGroup<ResultRow> rows = result.rows();
+
+        assertEquals(3, rows.size());
+
+        for (ResultRow row : rows) {
+            assertNotNull(row.getId());
+            assertNotNull(row.getDocument());
+            assertNotNull(row.getMetadata());
+        }
+
+        assertNull(rows.get(0).getEmbedding());
+        assertNull(rows.get(0).getUri());
+    }
+
+    // --- row access: QueryResult.rows(int), groupCount(), stream() ---
+
+    @Test
+    public void testRowAccessOnQueryResult() {
+        addSampleRecords(5);
+
+        float[] queryEmb = new float[]{0.1f, 0.11f, 0.12f};
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(queryEmb)
+                .nResults(3)
+                .include(Include.DOCUMENTS, Include.DISTANCES)
+                .execute();
+
+        assertEquals(1, result.groupCount());
+
+        ResultGroup<QueryResultRow> group = result.rows(0);
+        assertEquals(3, group.size());
+
+        for (QueryResultRow row : group) {
+            assertNotNull(row.getId());
+            assertNotNull(row.getDistance());
+            assertNotNull(row.getDocument());
+            assertNull(row.getMetadata());
+        }
+
+        long flatCount = result.stream()
+                .flatMap(new java.util.function.Function<ResultGroup<QueryResultRow>, java.util.stream.Stream<QueryResultRow>>() {
+                    @Override
+                    public java.util.stream.Stream<QueryResultRow> apply(ResultGroup<QueryResultRow> g) {
+                        return g.stream();
+                    }
+                })
+                .count();
+        assertEquals(3L, flatCount);
+    }
+
 }
