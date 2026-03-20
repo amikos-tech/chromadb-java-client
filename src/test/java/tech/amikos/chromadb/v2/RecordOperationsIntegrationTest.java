@@ -641,6 +641,59 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         assertEquals("upserted doc", result.getDocuments().get(0));
     }
 
+    // --- whereDocument: typed WhereDocument DSL integration tests ---
+
+    @Test
+    public void testWhereDocumentContainsFilterOnGet() {
+        addSampleRecords(5);
+
+        GetResult result = collection.get()
+                .whereDocument(WhereDocument.contains("document 0"))
+                .include(Include.DOCUMENTS)
+                .execute();
+
+        assertEquals(1, result.getIds().size());
+        assertEquals("id0", result.getIds().get(0));
+        assertTrue(result.getDocuments().get(0).contains("document 0"));
+    }
+
+    @Test
+    public void testWhereDocumentNotContainsFilterOnGet() {
+        addSampleRecords(3);
+
+        GetResult result = collection.get()
+                .whereDocument(WhereDocument.notContains("document 0"))
+                .execute();
+
+        assertEquals(2, result.getIds().size());
+        assertFalse(result.getIds().contains("id0"));
+        assertTrue(result.getIds().contains("id1"));
+        assertTrue(result.getIds().contains("id2"));
+    }
+
+    @Test
+    public void testWhereDocumentOnQuery() {
+        addSampleRecords(5);
+
+        QueryResult result = collection.query()
+                .queryEmbeddings(new float[]{0.1f, 0.11f, 0.12f})
+                .nResults(5)
+                .whereDocument(WhereDocument.contains("document"))
+                .include(Include.DOCUMENTS, Include.DISTANCES)
+                .execute();
+
+        assertNotNull(result.getIds());
+        assertEquals(1, result.getIds().size());
+        // All 5 documents contain "document", so all should be returned
+        assertEquals(5, result.getIds().get(0).size());
+        for (List<String> docRow : result.getDocuments()) {
+            for (String doc : docRow) {
+                assertTrue("Expected doc to contain 'document', got: " + doc,
+                        doc.contains("document"));
+            }
+        }
+    }
+
     private static void assertLocalWhereDocumentInlineAcceptedOrRejected(Runnable action) {
         try {
             action.run();
