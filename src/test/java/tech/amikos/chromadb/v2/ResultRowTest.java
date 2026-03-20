@@ -3,11 +3,13 @@ package tech.amikos.chromadb.v2;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
@@ -344,5 +346,178 @@ public class ResultRowTest {
         assertEquals(2, group.size());
         assertEquals("q-0", group.get(0).getId());
         assertEquals(Float.valueOf(0.9f), group.get(1).getDistance());
+    }
+
+    // -----------------------------------------------------------------------
+    // GetResultImpl.rows() wiring tests
+    // -----------------------------------------------------------------------
+
+    private ChromaDtos.GetResponse buildGetResponse(int n, boolean includeDocuments,
+                                                     boolean includeMetadatas,
+                                                     boolean includeEmbeddings,
+                                                     boolean includeUris) {
+        ChromaDtos.GetResponse dto = new ChromaDtos.GetResponse();
+        dto.ids = new ArrayList<String>();
+        dto.documents = includeDocuments ? new ArrayList<String>() : null;
+        dto.metadatas = includeMetadatas ? new ArrayList<Map<String, Object>>() : null;
+        dto.embeddings = includeEmbeddings ? new ArrayList<List<Float>>() : null;
+        dto.uris = includeUris ? new ArrayList<String>() : null;
+
+        for (int i = 0; i < n; i++) {
+            dto.ids.add("id" + i);
+            if (includeDocuments) dto.documents.add("doc" + i);
+            if (includeMetadatas) {
+                Map<String, Object> m = new LinkedHashMap<String, Object>();
+                m.put("index", i);
+                dto.metadatas.add(m);
+            }
+            if (includeEmbeddings) {
+                dto.embeddings.add(Arrays.asList(Float.valueOf((i + 1) * 0.1f), Float.valueOf(0.2f), Float.valueOf(0.3f)));
+            }
+            if (includeUris) dto.uris.add("uri" + i);
+        }
+        return dto;
+    }
+
+    @Test
+    public void testGetResultRows() {
+        ChromaDtos.GetResponse dto = buildGetResponse(3, true, true, true, true);
+        GetResultImpl result = GetResultImpl.from(dto);
+
+        ResultGroup<ResultRow> rows = result.rows();
+
+        assertEquals(3, rows.size());
+        assertEquals("id0", rows.get(0).getId());
+        assertEquals("doc0", rows.get(0).getDocument());
+        assertNotNull(rows.get(0).getMetadata());
+        assertEquals(Integer.valueOf(0), rows.get(0).getMetadata().get("index"));
+        assertNotNull(rows.get(0).getEmbedding());
+        assertEquals(3, rows.get(0).getEmbedding().length);
+        assertEquals("uri0", rows.get(0).getUri());
+
+        assertEquals("id1", rows.get(1).getId());
+        assertEquals("id2", rows.get(2).getId());
+    }
+
+    @Test
+    public void testGetResultRowsNullFields() {
+        // documents, metadatas, embeddings, uris all null (not included)
+        ChromaDtos.GetResponse dto = buildGetResponse(2, false, false, false, false);
+        GetResultImpl result = GetResultImpl.from(dto);
+
+        ResultGroup<ResultRow> rows = result.rows();
+
+        assertEquals(2, rows.size());
+        assertEquals("id0", rows.get(0).getId());
+        assertNull(rows.get(0).getDocument());
+        assertNull(rows.get(0).getMetadata());
+        assertNull(rows.get(0).getEmbedding());
+        assertNull(rows.get(0).getUri());
+    }
+
+    // -----------------------------------------------------------------------
+    // QueryResultImpl.rows(int), groupCount(), stream() wiring tests
+    // -----------------------------------------------------------------------
+
+    private ChromaDtos.QueryResponse buildQueryResponse(int queryCount, int nResults,
+                                                         boolean includeDocuments,
+                                                         boolean includeMetadatas,
+                                                         boolean includeDistances) {
+        ChromaDtos.QueryResponse dto = new ChromaDtos.QueryResponse();
+        dto.ids = new ArrayList<List<String>>();
+        dto.documents = includeDocuments ? new ArrayList<List<String>>() : null;
+        dto.metadatas = includeMetadatas ? new ArrayList<List<Map<String, Object>>>() : null;
+        dto.distances = includeDistances ? new ArrayList<List<Float>>() : null;
+        dto.embeddings = null;
+        dto.uris = null;
+
+        for (int q = 0; q < queryCount; q++) {
+            List<String> innerIds = new ArrayList<String>();
+            List<String> innerDocs = includeDocuments ? new ArrayList<String>() : null;
+            List<Map<String, Object>> innerMetas = includeMetadatas ? new ArrayList<Map<String, Object>>() : null;
+            List<Float> innerDists = includeDistances ? new ArrayList<Float>() : null;
+
+            for (int i = 0; i < nResults; i++) {
+                innerIds.add("q" + q + "-id" + i);
+                if (includeDocuments) innerDocs.add("q" + q + "-doc" + i);
+                if (includeMetadatas) {
+                    Map<String, Object> m = new LinkedHashMap<String, Object>();
+                    m.put("qi", q * nResults + i);
+                    innerMetas.add(m);
+                }
+                if (includeDistances) innerDists.add(Float.valueOf(q * 0.1f + i * 0.01f));
+            }
+            dto.ids.add(innerIds);
+            if (includeDocuments) dto.documents.add(innerDocs);
+            if (includeMetadatas) dto.metadatas.add(innerMetas);
+            if (includeDistances) dto.distances.add(innerDists);
+        }
+        return dto;
+    }
+
+    @Test
+    public void testQueryResultRowsByIndex() {
+        ChromaDtos.QueryResponse dto = buildQueryResponse(2, 3, true, true, true);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        ResultGroup<QueryResultRow> group0 = result.rows(0);
+        assertEquals(3, group0.size());
+        assertEquals("q0-id0", group0.get(0).getId());
+        assertEquals("q0-doc0", group0.get(0).getDocument());
+        assertNotNull(group0.get(0).getMetadata());
+        assertNotNull(group0.get(0).getDistance());
+
+        ResultGroup<QueryResultRow> group1 = result.rows(1);
+        assertEquals(3, group1.size());
+        assertEquals("q1-id0", group1.get(0).getId());
+        assertEquals("q1-doc0", group1.get(0).getDocument());
+    }
+
+    @Test
+    public void testQueryResultGroupCount() {
+        ChromaDtos.QueryResponse dto = buildQueryResponse(3, 2, false, false, false);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        assertEquals(3, result.groupCount());
+    }
+
+    @Test
+    public void testQueryResultStreamFlatMap() {
+        // 2 query inputs, 3 results each → 6 total rows
+        ChromaDtos.QueryResponse dto = buildQueryResponse(2, 3, false, false, false);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        long totalRows = result.stream()
+                .flatMap(new java.util.function.Function<ResultGroup<QueryResultRow>, java.util.stream.Stream<QueryResultRow>>() {
+                    @Override
+                    public java.util.stream.Stream<QueryResultRow> apply(ResultGroup<QueryResultRow> g) {
+                        return g.stream();
+                    }
+                })
+                .count();
+        assertEquals(6L, totalRows);
+    }
+
+    @Test
+    public void testQueryResultRowDistance() {
+        ChromaDtos.QueryResponse dto = buildQueryResponse(1, 2, false, false, true);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        ResultGroup<QueryResultRow> group = result.rows(0);
+        assertNotNull(group.get(0).getDistance());
+        assertNotNull(group.get(1).getDistance());
+        // first distance should be 0.0f (q=0, i=0 → 0*0.1+0*0.01)
+        assertEquals(0.0f, group.get(0).getDistance(), 0.001f);
+        assertEquals(0.01f, group.get(1).getDistance(), 0.001f);
+    }
+
+    @Test
+    public void testQueryResultRowsNullDistances() {
+        ChromaDtos.QueryResponse dto = buildQueryResponse(1, 2, true, false, false);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        ResultGroup<QueryResultRow> group = result.rows(0);
+        assertNull(group.get(0).getDistance());
+        assertNull(group.get(1).getDistance());
     }
 }
