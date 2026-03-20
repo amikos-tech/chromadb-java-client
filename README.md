@@ -1,128 +1,234 @@
 # Chroma Vector Database Java Client
 
-> ![NOTE]
-> We are rewriting the Chroma Java client from scratch with the new Chroma API v2 support.
+Production-ready Java client for ChromaDB v2 API.
 
-This is a very basic/naive implementation in Java of the Chroma Vector Database API.
+This client works with Chroma Versions `>=1.0.0` | Requires Java 8+
 
-This client works with Chroma Versions `>=1.0.0`
+## Requirements
 
-## Features
+- Java 8 or higher
+- Maven or Gradle
+- A running ChromaDB instance (`>=1.0.0`) or a Chroma Cloud account
 
-### Embeddings Support
+## Installation
 
-- ✅ Default Embedding Function (all-mini-lm model)
-- ✅ OpenAI Embedding Function
-- ✅ Cohere Embedding Function
-- ✅ HuggingFace Embedding Function (Inference API)
-- ✅ Ollama Embedding Function
-- ✅ Hugging Face Text Embedding Inference (HFEI) API
-- [ ] Sentence Transformers
-- [ ] PaLM API
-- [ ] Custom Embedding Function
-- [ ] Cloudflare Workers AI
-
-### Feature Parity with ChromaDB API
-
-- [x] Reset
-- [x] Heartbeat
-- [x] List Collections
-- [x] Get Version
-- [x] Create Collection
-- [x] Delete Collection
-- [x] Collection Add
-- [x] Collection Get (partial without additional parameters)
-- [x] Collection Count
-- [x] Collection Query
-- [x] Collection Modify
-- [x] Collection Update
-- [x] Collection Upsert
-- [x] Collection Create Index
-- [x] Collection Delete - delete documents in collection
-
-## TODO
-
-- [x] Push the package to Maven
-  Central - https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
-- ⚒️ Fluent API - make it easier for users to make use of the library
-- [ ] Support for PaLM API
-- [x] Support for Sentence Transformers with Hugging Face API
-- ⚒️ Authentication ⚒️
-
-## Development
-
-This project includes a `Makefile` to simplify common development tasks. Make sure you have `make` installed on your system.
-
-### Quick Start
-
-```bash
-# Display available commands
-make help
-
-# Build the project
-make build
-
-# Run tests
-make test
-
-# Create JAR package
-make package
-```
-
-### Common Development Commands
-
-| Command | Description |
-|---------|-------------|
-| `make build` | Clean and compile the project |
-| `make test` | Run all tests |
-| `make test-unit` | Run unit tests only |
-| `make test-integration` | Run integration tests only |
-| `make test-version CHROMA_VERSION=1.5.2` | Test with specific ChromaDB version |
-| `make test-class TEST=YourTestClass` | Run specific test class |
-| `make test-method TEST=YourTestClass#yourTestMethod` | Run specific test method |
-| `make package` | Create JAR package |
-| `make install` | Install to local Maven repository |
-| `make clean` | Clean build artifacts |
-| `make deps` | Download/update dependencies |
-| `make deps-tree` | Display dependency tree |
-| `make info` | Display project information |
-
-### Environment Variables
-
-For testing with external services, set these environment variables:
-- `OPENAI_API_KEY` - Required for OpenAI embedding tests
-- `COHERE_API_KEY` - Required for Cohere embedding tests
-- `HF_API_KEY` - Required for HuggingFace embedding tests
-- `CHROMA_VERSION` - Specify ChromaDB version for integration tests (default: `1.5.2`)
-
-### Shortcuts
-
-The Makefile also provides single-letter shortcuts for common commands:
-- `make b` - Build
-- `make t` - Test
-- `make c` - Clean
-- `make i` - Install
-
-## Usage
-
-Add Maven dependency:
+**Maven:**
 
 ```xml
-
 <dependency>
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
-    <version>0.1.7</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
-Ensure you have a running instance of Chroma running. We recommend one of the two following options:
+**Gradle:**
 
-- Official documentation - https://docs.trychroma.com/usage-guide#running-chroma-in-clientserver-mode
-- If you are a fan of Kubernetes, you can use the Helm chart - https://github.com/amikos-tech/chromadb-chart (Note: You
-  will need `Docker`, `minikube` and `kubectl` installed)
+```gradle
+implementation 'io.github.amikos-tech:chromadb-java-client:0.2.0'
+```
 
-### v2 Schema/CMEK/queryTexts (new API)
+## Quick Start
+
+```java
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
+
+Client client = ChromaClient.builder()
+        .baseUrl(System.getenv("CHROMA_URL"))
+        .build();
+
+DefaultEmbeddingFunction ef = new DefaultEmbeddingFunction();
+
+Collection collection = client.getOrCreateCollection(
+        "my-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
+
+collection.add()
+        .documents("Hello, my name is John. I am a Data Scientist.",
+                   "Hello, my name is Bond. I am a Spy.")
+        .ids("id-1", "id-2")
+        .execute();
+
+QueryResult result = collection.query()
+        .queryTexts("Who is the spy?")
+        .nResults(5)
+        .include(Include.DOCUMENTS, Include.DISTANCES)
+        .execute();
+
+System.out.println(result);
+```
+
+## Usage
+
+### Authentication
+
+#### Basic Auth
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+Client client = ChromaClient.builder()
+        .baseUrl(System.getenv("CHROMA_URL"))
+        .auth(BasicAuth.of("admin", "password"))
+        .build();
+```
+
+#### Token Auth
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+Client client = ChromaClient.builder()
+        .baseUrl(System.getenv("CHROMA_URL"))
+        .auth(TokenAuth.of(System.getenv("CHROMA_TOKEN")))
+        .build();
+```
+
+#### Chroma Token Auth
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+Client client = ChromaClient.builder()
+        .baseUrl(System.getenv("CHROMA_URL"))
+        .auth(ChromaTokenAuth.of(System.getenv("CHROMA_TOKEN")))
+        .build();
+```
+
+### Cloud (Chroma Cloud)
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+Client client = ChromaClient.cloud()
+        .apiKey(System.getenv("CHROMA_API_KEY"))
+        .tenant(System.getenv("CHROMA_TENANT"))
+        .database(System.getenv("CHROMA_DATABASE"))
+        .build();
+```
+
+### Transport Options
+
+`ChromaClient.builder()` supports transport customization for production and platform integration scenarios:
+
+```java
+import okhttp3.OkHttpClient;
+import tech.amikos.chromadb.v2.ChromaClient;
+import tech.amikos.chromadb.v2.Client;
+
+import java.nio.file.Paths;
+import java.time.Duration;
+
+// Custom CA certificate + env-based tenant/database
+Client client = ChromaClient.builder()
+        .baseUrl("https://your-chroma-host")
+        .sslCert(Paths.get("/path/to/ca-cert.pem"))
+        .tenantFromEnv("CHROMA_TENANT")
+        .databaseFromEnv("CHROMA_DATABASE")
+        .connectTimeout(Duration.ofSeconds(5))
+        .readTimeout(Duration.ofSeconds(30))
+        .build();
+
+// Provide a fully configured OkHttpClient (mutually exclusive with builder timeout/TLS options)
+OkHttpClient custom = new OkHttpClient.Builder()
+        .readTimeout(Duration.ofSeconds(20))
+        .build();
+
+Client clientWithCustomHttp = ChromaClient.builder()
+        .httpClient(custom)
+        .build();
+```
+
+Notes:
+- `.insecure(true)` enables trust-all TLS (development only).
+- `.sslCert(...)` augments default JVM trust with your custom CA certificate(s).
+- `.httpClient(...)` cannot be combined with `.connectTimeout(...)`, `.readTimeout(...)`, `.writeTimeout(...)`, `.sslCert(...)`, or `.insecure(...)`.
+- `.tenantAndDatabaseFromEnv()` reads `CHROMA_TENANT` and `CHROMA_DATABASE`.
+
+### Collection Lifecycle
+
+```java
+import tech.amikos.chromadb.v2.*;
+import java.util.List;
+
+// Create a new collection (throws ChromaConflictException if already exists)
+Collection collection = client.createCollection("my-collection");
+
+// Get or create (idempotent)
+Collection collection = client.getOrCreateCollection("my-collection");
+
+// Get an existing collection
+Collection collection = client.getCollection("my-collection");
+
+// List all collections
+List<Collection> collections = client.listCollections();
+
+// Delete a collection
+client.deleteCollection("my-collection");
+
+// Count collections
+int count = client.countCollections();
+```
+
+### Adding Records
+
+```java
+import tech.amikos.chromadb.v2.*;
+import java.util.HashMap;
+import java.util.Map;
+
+// Add with documents and metadata
+Map<String, Object> meta1 = new HashMap<String, Object>();
+meta1.put("type", "scientist");
+
+Map<String, Object> meta2 = new HashMap<String, Object>();
+meta2.put("type", "spy");
+
+collection.add()
+        .documents("Hello, my name is John. I am a Data Scientist.",
+                   "Hello, my name is Bond. I am a Spy.")
+        .metadatas(meta1, meta2)
+        .ids("id-1", "id-2")
+        .execute();
+
+// Add with pre-computed embeddings
+collection.add()
+        .embeddings(new float[]{0.1f, 0.2f, 0.3f}, new float[]{0.4f, 0.5f, 0.6f})
+        .ids("embed-1", "embed-2")
+        .execute();
+```
+
+### Querying
+
+```java
+import tech.amikos.chromadb.v2.*;
+
+// Query by text
+QueryResult result = collection.query()
+        .queryTexts("Who is the spy?")
+        .nResults(5)
+        .include(Include.DOCUMENTS, Include.DISTANCES)
+        .execute();
+
+// Query with metadata filter
+QueryResult filtered = collection.query()
+        .queryTexts("scientist")
+        .nResults(5)
+        .where(Where.eq("type", "scientist"))
+        .execute();
+
+// Query by pre-computed embeddings
+QueryResult byEmbedding = collection.query()
+        .queryEmbeddings(new float[]{0.1f, 0.2f, 0.3f})
+        .nResults(3)
+        .execute();
+```
+
+### Schema and CMEK
 
 ```java
 import tech.amikos.chromadb.v2.*;
@@ -154,7 +260,7 @@ Schema schema = Schema.builder()
 Collection collection = client.getOrCreateCollection(
         "v2-schema-demo",
         CreateCollectionOptions.builder()
-                .schema(schema) // top-level schema payload
+                .schema(schema)
                 .build()
 );
 
@@ -168,10 +274,9 @@ QueryResult result = collection.query()
 Notes:
 - Runtime embedding function precedence: explicit runtime function passed during collection construction (`CreateCollectionOptions.embeddingFunction(...)` or `client.getCollection(name, embeddingFunction)`) wins.
 - Descriptor fallback order when no runtime function is provided: `configuration.embedding_function`, then top-level `schema` `#embedding` vector index embedding function, then `configuration.schema` `#embedding` vector index embedding function.
-- Unsupported providers in descriptors (for example `consistent_hash`) fail fast with `ChromaException` and guidance to use `queryEmbeddings(...)`.
-- For read paths, collection schema precedence is top-level `schema` first, then compatibility fallback `configuration.schema`.
+- Unsupported providers in descriptors fail fast with `ChromaException` and guidance to use `queryEmbeddings(...)`.
 
-### v2 ID generators (new API)
+### ID Generators
 
 You can generate IDs client-side for `add()` and `upsert()` via `.idGenerator(...)`.
 
@@ -201,87 +306,214 @@ Rules:
 - `ids(...)` and `idGenerator(...)` are mutually exclusive (validated at `execute()` time).
 - `idGenerator(...)` requires at least one non-empty data field (`documents`, `embeddings`, `metadatas`, or `uris`) to infer record count.
 - `Sha256IdGenerator` requires non-null documents.
-- Duplicate generated IDs within the same batch are rejected client-side before sending the request. For cross-batch deduplication, use `upsert()` with a deterministic generator like `Sha256IdGenerator`.
+- Duplicate generated IDs within the same batch are rejected client-side before sending the request.
 
-### v2 client builder transport options (new API)
+### Embedding Functions
 
-`ChromaClient.builder()` now supports transport customization for production and platform integration scenarios:
+#### Default (Local)
+
+The default embedding function runs locally using ONNX Runtime and requires no API key.
 
 ```java
-import okhttp3.OkHttpClient;
-import tech.amikos.chromadb.v2.ChromaClient;
-import tech.amikos.chromadb.v2.Client;
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
 
-import java.nio.file.Paths;
-import java.time.Duration;
+DefaultEmbeddingFunction ef = new DefaultEmbeddingFunction();
 
-// Example 1: Custom CA certificate + env-based tenant/database
-Client client = ChromaClient.builder()
-        .baseUrl("https://your-chroma-host")
-        .sslCert(Paths.get("/path/to/ca-cert.pem"))
-        .tenantFromEnv("CHROMA_TENANT")
-        .databaseFromEnv("CHROMA_DATABASE")
-        .connectTimeout(Duration.ofSeconds(5))
-        .readTimeout(Duration.ofSeconds(30))
-        .build();
-
-// Example 2: Provide a fully configured OkHttpClient (mutually exclusive with builder timeout/TLS options)
-OkHttpClient custom = new OkHttpClient.Builder()
-        .readTimeout(Duration.ofSeconds(20))
-        .build();
-
-Client clientWithCustomHttp = ChromaClient.builder()
-        .httpClient(custom)
-        .build();
+Collection collection = client.getOrCreateCollection(
+        "my-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
 ```
 
-Notes:
-- `.insecure(true)` enables trust-all TLS (development only).
-- `.sslCert(...)` augments default JVM trust with your custom CA certificate(s).
-- `.httpClient(...)` cannot be combined with `.connectTimeout(...)`, `.readTimeout(...)`, `.writeTimeout(...)`, `.sslCert(...)`, or `.insecure(...)`.
-- `.tenantAndDatabaseFromEnv()` reads `CHROMA_TENANT` and `CHROMA_DATABASE`.
+#### OpenAI
 
-### v2 Auth Contract (Maintainer Rule)
+Ensure `OPENAI_API_KEY` environment variable is set.
 
-This repository enforces one auth contract across all v2 builders and auth entry points.
+```java
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.openai.OpenAIEmbeddingFunction;
 
-- Use exactly one auth strategy per builder instance (`auth(...)`, `apiKey(...)`, or cloud equivalents). A second auth setter call must fail fast.
-- Convenience setters must route through the same canonical auth slot as `auth(...)`.
-- `defaultHeaders` must not include `Authorization` or `X-Chroma-Token`; users should configure credentials through `auth(...)`.
-- Auth inputs must be validated immediately at setter/factory time, with a final build-time invariant check as a safety net.
-- `preFlight()` and `getIdentity()` auth failures are strict across all v2 clients: HTTP 401 must surface as `ChromaUnauthorizedException`, HTTP 403 as `ChromaForbiddenException`, each with actionable guidance.
-- Malformed successful identity/preflight payloads must raise `ChromaDeserializationException` with endpoint + field context.
+String apiKey = System.getenv("OPENAI_API_KEY");
+OpenAIEmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey, "text-embedding-3-small");
 
-### Error Mapping-Change Governance
+Collection collection = client.getOrCreateCollection(
+        "openai-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
+```
 
-Status-to-exception mapping and transport error translation are API behavior. Any mapping-change must include both:
+#### Cohere
 
-- explicit regression tests (unit/integration as applicable), and
-- a changelog entry describing the behavior change and migration impact.
+Ensure `COHERE_API_KEY` environment variable is set.
 
-Fallback error text must remain deterministic and sanitized:
+```java
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.cohere.CohereEmbeddingFunction;
 
-- `HTTP <status>: <sanitized-truncated-body or reason>`
+String apiKey = System.getenv("COHERE_API_KEY");
+CohereEmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
 
-`error_code` is first-class exception metadata and should be preserved/test-asserted.
+Collection collection = client.getOrCreateCollection(
+        "cohere-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
+```
 
-### Phase 1 Auth Hardening Regression Commands
+#### HuggingFace
+
+Ensure `HF_API_KEY` environment variable is set.
+
+```java
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+
+String apiKey = System.getenv("HF_API_KEY");
+HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(apiKey);
+
+Collection collection = client.getOrCreateCollection(
+        "hf-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
+```
+
+For self-hosted HuggingFace Text Embeddings Inference (HFEI), start a local server first:
 
 ```bash
-# Auth validation, builder boundary, cloud auth contract
-mvn -Dtest=AuthProviderTest,ChromaClientBuilderTest,ChromaClientImplTest,ErrorHandlingIntegrationTest test
-
-# Transport error translation and exception mapping governance
-mvn -Dtest=ChromaApiClientTest,ChromaExceptionTest test
-
-# README contract anchors (documentation sanity check)
-rg -n "Auth Contract|one auth strategy|defaultHeaders|mapping-change" README.md
+docker run -d -p 8008:80 --platform linux/amd64 --name hfei \
+  ghcr.io/huggingface/text-embeddings-inference:cpu-1.8.3 \
+  --model-id sentence-transformers/all-MiniLM-L6-v2
 ```
 
-### Default Embedding Function
+Then use the HFEI API type:
 
-Since version `0.1.6` the library also offers a built-in default embedding function which does not rely on any external
-API to generate embeddings and works in the same way it works in core Chroma Python package.
+```java
+import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+
+HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(
+        WithParam.baseAPI("http://localhost:8008"),
+        new HuggingFaceEmbeddingFunction.WithAPIType(HuggingFaceEmbeddingFunction.APIType.HFEI_API));
+```
+
+#### Ollama
+
+```java
+import tech.amikos.chromadb.v2.*;
+import tech.amikos.chromadb.embeddings.ollama.OllamaEmbeddingFunction;
+
+OllamaEmbeddingFunction ef = new OllamaEmbeddingFunction();
+
+Collection collection = client.getOrCreateCollection(
+        "ollama-collection",
+        CreateCollectionOptions.builder()
+                .embeddingFunction(ef)
+                .build()
+);
+```
+
+## Status
+
+**Supported:**
+- v2 API (collections, records, queries, tenants, databases)
+- Authentication: Basic Auth, Token (Bearer), Chroma Token, Chroma Cloud
+- Embedding functions: Default/local (ONNX, no API key), OpenAI, Cohere, HuggingFace Inference API, HuggingFace Text Embeddings Inference (HFEI), Ollama
+- ID generators: UUID, ULID, SHA-256
+- Schema and CMEK (GCP KMS)
+- Transport options: SSL certificates, custom timeouts, custom OkHttpClient
+- Java 8+
+- Chroma 1.0.0+
+
+**Planned:**
+- Async/reactive API
+- Cloudflare Workers AI embeddings
+- Gemini embeddings
+- Observability hooks
+- Spring integration
+
+## Development
+
+This project includes a `Makefile` to simplify common development tasks.
+
+### Quick Start
+
+```bash
+# Display available commands
+make help
+
+# Build the project
+make build
+
+# Run tests
+make test
+
+# Create JAR package
+make package
+```
+
+### Common Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Clean and compile the project |
+| `make test` | Run all tests |
+| `make test-unit` | Run unit tests only |
+| `make test-integration` | Run integration tests only |
+| `make test-version CHROMA_VERSION=1.5.5` | Test with specific ChromaDB version |
+| `make test-class TEST=YourTestClass` | Run specific test class |
+| `make test-method TEST=YourTestClass#yourTestMethod` | Run specific test method |
+| `make package` | Create JAR package |
+| `make install` | Install to local Maven repository |
+| `make clean` | Clean build artifacts |
+| `make deps` | Download/update dependencies |
+| `make deps-tree` | Display dependency tree |
+| `make info` | Display project information |
+
+### Environment Variables
+
+For testing with external services, set these environment variables:
+- `OPENAI_API_KEY` - Required for OpenAI embedding tests
+- `COHERE_API_KEY` - Required for Cohere embedding tests
+- `HF_API_KEY` - Required for HuggingFace embedding tests
+- `CHROMA_VERSION` - Specify ChromaDB version for integration tests (default: `1.5.5`)
+
+### Shortcuts
+
+The Makefile also provides single-letter shortcuts for common commands:
+- `make b` - Build
+- `make t` - Test
+- `make c` - Clean
+- `make i` - Install
+
+## Contributing
+
+Pull requests are welcome.
+
+## Upgrading from 0.1.x
+
+Version 0.2.0 removes the v1 API classes and introduces a new builder-based v2 API. See [MIGRATION.md](MIGRATION.md) for breaking changes, a v1-to-v2 mapping table, and migration examples.
+
+## References
+
+- https://docs.trychroma.com/ - Official Chroma documentation
+- https://github.com/amikos-tech/chromadb-chart - Chroma Helm chart for cloud-native deployments
+- https://github.com/openai/openai-openapi - OpenAI OpenAPI specification
+
+## Appendix: v1 API Examples (Legacy)
+
+<details>
+<summary>Expand v1 examples (deprecated)</summary>
+
+> These examples use the removed v1 API. See [Quick Start](#quick-start) above for current v2 usage.
+
+### Default Embedding Function (v1)
 
 ```java
 package tech.amikos;
@@ -316,12 +548,7 @@ public class Main {
 }
 ```
 
-### Example OpenAI Embedding Function
-
-In this example we rely on `tech.amikos.chromadb.embeddings.openai.OpenAIEmbeddingFunction` to generate embeddings for
-our documents.
-
-| **Important**: Ensure you have `OPENAI_API_KEY` environment variable set
+### OpenAI Embedding Function (v1)
 
 ```java
 package tech.amikos;
@@ -352,48 +579,12 @@ public class Main {
             System.out.println(qr);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println(e);
         }
     }
 }
 ```
 
-The above should output:
-
-```bash
-{"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.28461432,0.50961685]]}
-```
-
-#### Custom OpenAI Endpoint
-
-For endpoints compatible with OpenAI Embeddings API (e.g. [ollama](https://github.com/ollama/ollama)), you can use the
-following:
-
-> Note: We have added a builder to help with the configuration of the OpenAIEmbeddingFunction
-
-```java
-EmbeddingFunction ef = OpenAIEmbeddingFunction.Instance()
-        .withOpenAIAPIKey(apiKey)
-        .withModelName("llama2")
-        .withApiEndpoint("http://localhost:11434/api/embedding") // not really custom, but just to test the method
-        .build();
-```
-
-Quick Start Guide with Ollama:
-
-```bash
-docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-docker exec -it ollama ollama run llama2 # press Ctrl+D to exit after model downloads successfully
-# test it
-curl http://localhost:11434/api/embeddings -d '{\n  "model": "llama2",\n  "prompt": "Here is an article about llamas..."\n}'
-```
-
-### Example Cohere Embedding Function
-
-In this example we rely on `tech.amikos.chromadb.embeddings.cohere.CohereEmbeddingFunction` to generate embeddings for
-our documents.
-
-| **Important**: Ensure you have `COHERE_API_KEY` environment variable set
+### Cohere Embedding Function (v1)
 
 ```java
 package tech.amikos;
@@ -424,26 +615,12 @@ public class Main {
             System.out.println(qr);
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println(e);
         }
     }
 }
 ```
 
-The above should output:
-
-```bash
-{"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[5112.614,10974.804]]}
-```
-
-### Example Hugging Face Sentence Transformers Embedding Function
-
-#### Hugging Face Inference API
-
-In this example we rely on `tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction` to generate embeddings for
-our documents using HuggingFace cloud-based inference API.
-
-| **Important**: Ensure you have `HF_API_KEY` environment variable set
+### HuggingFace Embedding Function (v1)
 
 ```java
 package tech.amikos;
@@ -478,28 +655,7 @@ public class Main {
 }
 ```
 
-The above should output:
-
-```bash
-{"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.9073759,1.6440368]]}
-```
-
-#### Hugging Face Text Embedding Inference (HFEI) API
-
-In this example we'll use a local Docker based server to generate the embeddings with
-`Snowflake/snowflake-arctic-embed-s` mode.
-
-First let's start the HFEI server:
-
-```bash
-docker run -d -p 8008:80 --platform linux/amd64 --name hfei ghcr.io/huggingface/text-embeddings-inference:cpu-1.8.3 --model-id sentence-transformers/all-MiniLM-L6-v2
-```
-
-> Note: Check the official documentation for more details - https://github.com/huggingface/text-embeddings-inference
-
-Then we can use the following code to generate embeddings. Note the use of
-`new HuggingFaceEmbeddingFunction.WithAPIType(HuggingFaceEmbeddingFunction.APIType.HFEI_API));` to define the API type,
-this will ensure the client uses the correct endpoint.
+### HuggingFace Text Embeddings Inference API (v1)
 
 ```java
 package tech.amikos;
@@ -535,16 +691,7 @@ public class Main {
 }
 ```
 
-The above should similar to the following output:
-
-```bash
-{"documents":[["Hello, my name is Bond. I am a Spy.","Hello, my name is John. I am a Data Scientist."]],"ids":[["2","1"]],"metadatas":[[{"type":"spy"},{"type":"scientist"}]],"distances":[[0.19665092,0.42433012]]}
-```
-
-### Ollama Embedding Function
-
-In this example we rely on `tech.amikos.chromadb.embeddings.ollama.OllamaEmbeddingFunction` to generate embeddings for
-our documents.
+### Ollama Embedding Function (v1)
 
 ```java
 package tech.amikos;
@@ -579,11 +726,7 @@ public class Main {
 }
 ```
 
-### Example Auth
-
-> Note: This is a workaround until the client overhaul is completed
-
-**Basic Auth**:
+### Basic Auth (v1)
 
 ```java
 package tech.amikos;
@@ -601,7 +744,6 @@ public class Main {
             client.setDefaultHeaders(new HashMap<>() {{
                 put("Authorization", "Basic " + encodedString);
             }});
-            // your code here
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -609,7 +751,7 @@ public class Main {
 }
 ```
 
-**Static Auth - Authorization**:
+### Token Auth (v1)
 
 ```java
 package tech.amikos;
@@ -623,11 +765,9 @@ public class Main {
     public static void main(String[] args) {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
-            String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
             client.setDefaultHeaders(new HashMap<>() {{
                 put("Authorization", "Bearer test-token");
             }});
-            // your code here
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -635,7 +775,7 @@ public class Main {
 }
 ```
 
-**Static Auth - X-Chroma-Token**:
+### X-Chroma-Token Auth (v1)
 
 ```java
 package tech.amikos;
@@ -649,11 +789,9 @@ public class Main {
     public static void main(String[] args) {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
-            String encodedString = Base64.getEncoder().encodeToString("admin:admin".getBytes());
             client.setDefaultHeaders(new HashMap<>() {{
                 put("X-Chroma-Token", "test-token");
             }});
-            // your code here
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -661,19 +799,4 @@ public class Main {
 }
 ```
 
-## Development Notes
-
-We have made some minor changes on top of the ChromaDB API (`src/main/resources/openapi/api.yaml`) so that the API can
-work with Java and Swagger Codegen. The reason is that statically type languages like Java don't like the `anyOf`
-and `oneOf` keywords (This also is the reason why we don't use the generated java client for OpenAI API).
-
-## Contributing
-
-Pull requests are welcome.
-
-## References
-
-- https://docs.trychroma.com/ - Official Chroma documentation
-- https://github.com/amikos-tech/chromadb-chart - Chroma Helm chart for cloud-native deployments
-- https://github.com/openai/openai-openapi - OpenAI OpenAPI specification (While we don't use it to generate a client
-  for Java, it helps us understand the API better)
+</details>
