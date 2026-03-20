@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust. (completed 2026-03-19)
 - [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
 - [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
-- [ ] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure.
+- [x] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure. (completed 2026-03-20)
 
 ## Phase Details
 
@@ -109,14 +109,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
 | 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
-| 6. Tech Debt Cleanup | 0/2 | Planned | — |
+| 6. Tech Debt Cleanup | 2/2 | Complete   | 2026-03-20 |
 
 ### Phase 6: Tech Debt Cleanup
 
 **Goal:** Fix documentation inaccuracies, CI workflow issues, bump nd4j patch version, and wire inert assumeMinVersion() helper.
 **Requirements**: [DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, ASSUME-WIRE, ND4J-BUMP]
 **Depends on:** Phase 5
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 06-01-PLAN.md — Fix README doc bugs (HF constructor, Sha256 description, v1 examples) and wire assumeMinVersion

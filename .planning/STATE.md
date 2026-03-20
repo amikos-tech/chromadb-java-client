@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-20T12:24:40.289Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-20T15:01:44.223Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 15
+  completed_plans: 15
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 05 — documentation-release-readiness
+**Current focus:** Phase 06 — tech-debt-cleanup
 
 ## Current Position
 
-Phase: 05 (documentation-release-readiness) — EXECUTING
-Plan: 1 of 2
+Phase: 06 (tech-debt-cleanup) — COMPLETE
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -56,6 +56,8 @@ Plan: 1 of 2
 | Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
 | Phase 05-documentation-release-readiness P01 | 5 | 2 tasks | 3 files |
 | Phase 05-documentation-release-readiness P02 | 2 | 2 tasks | 2 files |
+| Phase 06 P02 | 4 | 2 tasks | 2 files |
+| Phase 06-tech-debt-cleanup P01 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -93,6 +95,11 @@ Recent decisions affecting current work:
 - [Phase 05-documentation-release-readiness]: release-check artifact check is conditional on target/ directory presence to allow standalone doc validation
 - [Phase 05-documentation-release-readiness]: release-dry-run uses mvn clean verify (not package) to produce sources/javadoc JARs and checksums
 - [Phase 05-documentation-release-readiness]: release.yml integration test step uses Chroma 1.5.5 only as representative release gate to avoid 3x matrix overhead
+- [Phase 06]: branches filter removed from release trigger: GitHub Actions ignores branches on release events
+- [Phase 06]: release-check step inserted after Version bump, before Publish package to validate non-SNAPSHOT version
+- [Phase 06]: nd4j-native-platform bumped from 1.0.0-M2 to 1.0.0-M2.1 (latest patch, no transitive conflicts)
+- [Phase 06-tech-debt-cleanup]: v1 legacy HuggingFace example updated to WithParam.apiKey() because the bare-String constructor no longer exists — even legacy examples must reference the available constructor signature
+- [Phase 06-tech-debt-cleanup]: testAssumeMinVersionSmokeTest uses assumeMinVersion(1.0.0) which always passes on all matrix versions, making it a safe non-inert wiring proof
 
 ### Roadmap Evolution
 
@@ -108,6 +115,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T12:15:40.761Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-03-20T15:01:44.220Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
