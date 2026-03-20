@@ -22,7 +22,7 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 
 ### Embeddings & ID Generation
 
-- [ ] **EMB-01**: User can use OpenAI, Cohere, HuggingFace, and Ollama embedding functions through one consistent embedding contract.
+- [x] **EMB-01**: User can use OpenAI, Cohere, HuggingFace, and Ollama embedding functions through one consistent embedding contract.
 - [x] **EMB-02**: User can use the default local embedding function without external model API keys.
 - [x] **EMB-03**: User can provide a custom embedding function, and runtime/descriptor precedence is deterministic and documented.
 - [x] **EMB-04**: User can generate deterministic or random IDs (`UUID`, `ULID`, `SHA-256`) for add/upsert flows with client-side validation.
@@ -31,7 +31,7 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 
 - [x] **QLTY-01**: Maintainer can run unit + integration tests against supported Chroma versions with reproducible pass/fail behavior.
 - [x] **QLTY-02**: Maintainer is protected from Java 8 and public interface compatibility regressions before release.
-- [ ] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
+- [x] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
 - [x] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
 
 ## Future Milestones (Post-0.2.0)
@@ -77,13 +77,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Complete |
 | API-03 | Phase 2 | Complete |
-| EMB-01 | Phase 7 | Pending |
+| EMB-01 | Phase 7 | Complete |
 | EMB-02 | Phase 3 | Complete |
 | EMB-03 | Phase 3 | Complete |
 | EMB-04 | Phase 3 | Complete |
 | QLTY-01 | Phase 4 | Complete |
 | QLTY-02 | Phase 4 | Complete |
-| QLTY-03 | Phase 7 | Pending |
+| QLTY-03 | Phase 7 | Complete |
 | QLTY-04 | Phase 5 | Complete |
 
 **Coverage:**

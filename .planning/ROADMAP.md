@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
 - [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
 - [x] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure. (completed 2026-03-20)
-- [ ] **Phase 7: Fix README OpenAI/Cohere Embedding Examples** - Fix non-compiling README embedding examples for OpenAI and Cohere providers.
+- [x] **Phase 7: Fix README OpenAI/Cohere Embedding Examples** - Fix non-compiling README embedding examples for OpenAI and Cohere providers. (completed 2026-03-20)
 
 ## Phase Details
 
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
 | 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
 | 6. Tech Debt Cleanup | 2/2 | Complete   | 2026-03-20 |
-| 7. Fix README OpenAI/Cohere Embedding Examples | 0/1 | Pending | — |
+| 7. Fix README OpenAI/Cohere Embedding Examples | 1/1 | Complete   | 2026-03-20 |
 
 ### Phase 6: Tech Debt Cleanup
 
@@ -130,7 +130,7 @@ Plans:
 **Requirements**: [EMB-01, QLTY-03]
 **Depends on:** Phase 6
 **Gap Closure:** Closes gaps from v1.0 milestone audit
-**Plans:** 0/1 plans complete
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md — Fix OpenAI and Cohere constructor examples in README.md (4 locations)
