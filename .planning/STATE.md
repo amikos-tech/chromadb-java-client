@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-20T11:24:40.894Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-20T12:10:37.204Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 04 — compatibility-test-matrix
+**Current focus:** Phase 05 — documentation-release-readiness
 
 ## Current Position
 
-Phase: 04 (compatibility-test-matrix) — EXECUTING
+Phase: 05 (documentation-release-readiness) — EXECUTING
 Plan: 1 of 2
 
 ## Performance Metrics
@@ -54,6 +54,7 @@ Plan: 1 of 2
 | Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
 | Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
 | Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
+| Phase 05-documentation-release-readiness P01 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 04]: CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5 centralized in Makefile; CI workflow maintains its own parallel matrix definition
 - [Phase 04]: animal-sniffer check goal defaults to process-test-classes (runs during mvn test, not mvn compile) — no explicit phase override added per plan instructions
 - [Phase 04]: EXPECTED_BUILDER_METHOD_COUNT=34 and EXPECTED_CLOUD_BUILDER_METHOD_COUNT=8 (getDeclaredMethods includes private methods for concrete classes; public-only counts would be 20 and 6)
+- [Phase 05-documentation-release-readiness]: Auth provider examples use factory methods (BasicAuth.of(), TokenAuth.of(), ChromaTokenAuth.of()) - constructors are private
+- [Phase 05-documentation-release-readiness]: CHANGELOG.md starts fresh at 0.2.0 - no backfill of 0.1.x history
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T11:24:40.892Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-documentation-release-readiness/05-CONTEXT.md
+Last session: 2026-03-20T12:10:37.202Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

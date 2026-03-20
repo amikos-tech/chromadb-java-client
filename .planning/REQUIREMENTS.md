@@ -31,7 +31,7 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 
 - [x] **QLTY-01**: Maintainer can run unit + integration tests against supported Chroma versions with reproducible pass/fail behavior.
 - [x] **QLTY-02**: Maintainer is protected from Java 8 and public interface compatibility regressions before release.
-- [ ] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
+- [x] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
 - [ ] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
 
 ## Future Milestones (Post-0.2.0)
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMB-04 | Phase 3 | Complete |
 | QLTY-01 | Phase 4 | Complete |
 | QLTY-02 | Phase 4 | Complete |
-| QLTY-03 | Phase 5 | Pending |
+| QLTY-03 | Phase 5 | Complete |
 | QLTY-04 | Phase 5 | Pending |
 
 **Coverage:**

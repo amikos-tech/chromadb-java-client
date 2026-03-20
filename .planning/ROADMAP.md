@@ -107,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. API Coverage Completion | 3/3 | Complete | 2026-03-18 |
 | 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
-| 5. Documentation & Release Readiness | 0/2 | Not started | - |
+| 5. Documentation & Release Readiness | 1/2 | In Progress|  |
