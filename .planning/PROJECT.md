@@ -21,9 +21,9 @@ Java developers can integrate Chroma quickly and safely with a predictable, stro
 ### Active (Milestone 0.3.0)
 
 - [ ] Search API with ranking expressions, field projection, groupBy, read levels (#105, #126)
-- [ ] Row-based result access pattern across get/query/search results (#104)
+- [x] Row-based result access pattern across get/query/search results (#104) — Validated in Phase 1: Result Ergonomics & WhereDocument
 - [ ] Collection.fork and Collection.indexingStatus cloud APIs (#99, #100, #131)
-- [ ] WhereDocument contains/notContains end-to-end implementation (#128)
+- [x] WhereDocument contains/notContains end-to-end implementation (#128) — Validated in Phase 1: Result Ergonomics & WhereDocument
 - [ ] Sparse and multimodal embedding function interfaces (#106)
 - [ ] Reranking function interface and providers (#107)
 - [ ] Additional embedding providers — Gemini, Bedrock, Voyage, Mistral, Jina, Together, Nomic (#108)
@@ -61,4 +61,4 @@ The repository already contains substantial v2 implementation under `src/main/ja
 | Keep Java 8 + synchronous API as hard constraints for this milestone | Minimizes adoption friction and migration risk | — Pending |
 
 ---
-*Last updated: 2026-03-20 — Milestone 0.2.0 complete (all 15 requirements closed). Starting milestone 0.3.0 (Go parity & cloud).*
+*Last updated: 2026-03-20 — Phase 1 complete (ERGO-01, ERGO-02). Row-based result access and WhereDocument DSL shipped. Next: Phase 2 (Collection API Extensions).*
