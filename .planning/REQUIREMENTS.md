@@ -1,96 +1,84 @@
-# Requirements: ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
+# Requirements: ChromaDB Java Client (Milestone 0.3.0 — Go Parity & Cloud)
 
-**Defined:** 2026-03-17
-**Core Value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
+**Defined:** 2026-03-20
+**Core Value:** Java developers get Go-client-level API parity with advanced search, embedding ecosystem, and cloud integration testing.
 
-## Milestone 0.2.0 Requirements
+## Milestone 0.3.0 Requirements
 
-Requirements for the current stabilization release. Each maps to roadmap phases.
+Requirements for the current milestone. Each maps to roadmap phases.
 
-### API Parity
+### Result Ergonomics
 
-- [x] **API-01**: User can manage tenants and databases through v2 client methods (create, get, list, delete) with typed results.
-- [x] **API-02**: User can manage collections with schema/config/CMEK options without lossy serialization.
-- [x] **API-03**: User can execute add/get/query/update/upsert/delete with full filter/include/queryTexts behavior expected by Chroma v2.
-- [x] **API-04**: User receives typed `ChromaException` subclasses mapped from HTTP status and server error details.
+- [ ] **ERGO-01**: User can iterate query/get results row-by-row via `ResultRow`, `rows()`, and `at(index)` instead of column-oriented access only.
+- [ ] **ERGO-02**: User can use typed `WhereDocument.contains()` and `WhereDocument.notContains()` helpers in get/query builders with correct serialization.
 
-### Authentication
+### Collection API Extensions
 
-- [x] **AUTH-01**: User can configure `BasicAuth`, `TokenAuth`, or `ChromaTokenAuth` once and have auth applied consistently across all API requests.
-- [x] **AUTH-02**: User can use cloud token auth flows and retrieve preflight identity context when required.
-- [x] **AUTH-03**: User gets actionable validation errors when auth inputs are missing or malformed.
+- [ ] **COLL-01**: User can fork (copy) a collection via `collection.fork("newName")` and receive a new Collection reference.
+- [ ] **COLL-02**: User can check indexing progress via `collection.indexingStatus()` returning `IndexingStatus` with progress metrics (Chroma >= 1.4.1).
+- [ ] **COLL-03**: Cloud feature parity status for fork and indexing is explicitly audited, tested, and documented.
 
-### Embeddings & ID Generation
+### Search API
 
-- [x] **EMB-01**: User can use OpenAI, Cohere, HuggingFace, and Ollama embedding functions through one consistent embedding contract.
-- [x] **EMB-02**: User can use the default local embedding function without external model API keys.
-- [x] **EMB-03**: User can provide a custom embedding function, and runtime/descriptor precedence is deterministic and documented.
-- [x] **EMB-04**: User can generate deterministic or random IDs (`UUID`, `ULID`, `SHA-256`) for add/upsert flows with client-side validation.
+- [ ] **SEARCH-01**: User can execute `collection.search()` with KNN ranking (queryText, queryVector, querySparseVector) and get typed `SearchResult`.
+- [ ] **SEARCH-02**: User can compose RRF (Reciprocal Rank Fusion) from multiple weighted rank expressions with arithmetic combinators.
+- [ ] **SEARCH-03**: User can project specific fields (`#id`, `#document`, `#embedding`, `#score`, `#metadata`, custom keys) in search results.
+- [ ] **SEARCH-04**: User can group search results by metadata key with min/max K controls, and specify read level (INDEX_AND_WAL vs INDEX_ONLY).
 
-### Quality & Release
+### Embedding Ecosystem
 
-- [x] **QLTY-01**: Maintainer can run unit + integration tests against supported Chroma versions with reproducible pass/fail behavior.
-- [x] **QLTY-02**: Maintainer is protected from Java 8 and public interface compatibility regressions before release.
-- [x] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
-- [x] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
+- [ ] **EMB-05**: User can use sparse embedding functions (BM25, Chroma Cloud Splade) through a `SparseEmbeddingFunction` interface.
+- [ ] **EMB-06**: User can use multimodal embedding functions (image+text) through a `MultimodalEmbeddingFunction` interface.
+- [ ] **EMB-07**: User can use at least 3 additional dense embedding providers (Gemini, Bedrock, Voyage prioritized) through the existing `EmbeddingFunction` contract.
+- [ ] **EMB-08**: User can rely on an `EmbeddingFunctionRegistry` to auto-wire embedding functions from server-side collection configuration.
+- [ ] **RERANK-01**: User can rerank query results using a `RerankingFunction` interface with at least one provider (Cohere or Jina).
 
-## Future Milestones (Post-0.2.0)
+### Cloud Integration Testing
 
-Deferred to future milestones. Tracked but not in the current roadmap.
+- [ ] **CLOUD-01**: Cloud search parity tests cover pagination, IDIn/IDNotIn, document filters, metadata projection, and combined filter scenarios.
+- [ ] **CLOUD-02**: Cloud schema/index tests cover distance space variants, HNSW/SPANN config paths, invalid transitions, and schema round-trip assertions.
+- [ ] **CLOUD-03**: Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, and contains/not_contains filter behavior.
 
-### Extended API Surface
+## Future Milestones (Post-0.3.0)
 
+Deferred to future milestones.
+
+### Advanced
+
+- **LOCAL-01**: User can run Chroma in-process without a separate server (local/embedded mode via JNI/JNA). (#111)
 - **ASYNC-01**: User can call non-blocking/reactive client APIs for high-concurrency workflows.
-
-### Provider Expansion
-
-- **EMB-05**: User can use Cloudflare Workers AI as an embedding provider.
-- **EMB-06**: User can use Gemini/PaLM-family embedding provider integration when stable APIs are confirmed.
 
 ### Platform Integrations
 
 - **OBS-01**: User can plug in metrics/tracing hooks for observability tooling.
-- **DX-01**: User can bootstrap quickly with optional framework integration helpers (for example Spring-first starter patterns).
-
-## Out of Scope
-
-Explicitly excluded for this milestone.
-
-| Feature | Reason |
-|---------|--------|
-| Chroma server feature development | This repository is client SDK only |
-| Chroma v1 API support or compatibility wrappers | Milestone `0.2.0` is explicitly scoped to v2 only |
-| Breaking Java 8 compatibility | Violates compatibility constraint for target users |
-| Full reactive API redesign | High scope and architectural shift; defer until v2 stabilization is complete |
-| Android/mobile-specific optimizations | Not required for current release goals |
+- **DX-01**: User can bootstrap quickly with optional framework integration helpers (e.g. Spring starter).
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Complete |
-| AUTH-02 | Phase 1 | Complete |
-| AUTH-03 | Phase 1 | Complete |
-| API-04 | Phase 1 | Complete |
-| API-01 | Phase 2 | Complete |
-| API-02 | Phase 2 | Complete |
-| API-03 | Phase 2 | Complete |
-| EMB-01 | Phase 7 | Complete |
-| EMB-02 | Phase 3 | Complete |
-| EMB-03 | Phase 3 | Complete |
-| EMB-04 | Phase 3 | Complete |
-| QLTY-01 | Phase 4 | Complete |
-| QLTY-02 | Phase 4 | Complete |
-| QLTY-03 | Phase 7 | Complete |
-| QLTY-04 | Phase 5 | Complete |
+| ERGO-01 | Phase 1 | Pending |
+| ERGO-02 | Phase 1 | Pending |
+| COLL-01 | Phase 2 | Pending |
+| COLL-02 | Phase 2 | Pending |
+| COLL-03 | Phase 2 | Pending |
+| SEARCH-01 | Phase 3 | Pending |
+| SEARCH-02 | Phase 3 | Pending |
+| SEARCH-03 | Phase 3 | Pending |
+| SEARCH-04 | Phase 3 | Pending |
+| EMB-05 | Phase 4 | Pending |
+| EMB-06 | Phase 4 | Pending |
+| EMB-07 | Phase 4 | Pending |
+| EMB-08 | Phase 4 | Pending |
+| RERANK-01 | Phase 4 | Pending |
+| CLOUD-01 | Phase 5 | Pending |
+| CLOUD-02 | Phase 5 | Pending |
+| CLOUD-03 | Phase 5 | Pending |
 
 **Coverage:**
-- 0.2.0 requirements: 15 total
-- Mapped to phases: 15
+- 0.3.0 requirements: 17 total
+- Mapped to phases: 17
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-17*
-*Last updated: 2026-03-20 after v1.0 milestone audit gap closure planning*
+*Requirements defined: 2026-03-20*
