@@ -335,9 +335,10 @@ Ensure `OPENAI_API_KEY` environment variable is set.
 ```java
 import tech.amikos.chromadb.v2.*;
 import tech.amikos.chromadb.embeddings.openai.OpenAIEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 String apiKey = System.getenv("OPENAI_API_KEY");
-OpenAIEmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey, "text-embedding-3-small");
+OpenAIEmbeddingFunction ef = new OpenAIEmbeddingFunction(WithParam.apiKey(apiKey), WithParam.model("text-embedding-3-small"));
 
 Collection collection = client.getOrCreateCollection(
         "openai-collection",
@@ -354,9 +355,10 @@ Ensure `COHERE_API_KEY` environment variable is set.
 ```java
 import tech.amikos.chromadb.v2.*;
 import tech.amikos.chromadb.embeddings.cohere.CohereEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 String apiKey = System.getenv("COHERE_API_KEY");
-CohereEmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
+CohereEmbeddingFunction ef = new CohereEmbeddingFunction(WithParam.apiKey(apiKey), WithParam.model("embed-english-v2.0"));
 
 Collection collection = client.getOrCreateCollection(
         "cohere-collection",
@@ -373,6 +375,7 @@ Ensure `HF_API_KEY` environment variable is set.
 ```java
 import tech.amikos.chromadb.v2.*;
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 String apiKey = System.getenv("HF_API_KEY");
 HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(WithParam.apiKey(apiKey));
@@ -397,6 +400,7 @@ Then use the HFEI API type:
 
 ```java
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 HuggingFaceEmbeddingFunction ef = new HuggingFaceEmbeddingFunction(
         WithParam.baseAPI("http://localhost:8008"),
@@ -557,6 +561,7 @@ import tech.amikos.chromadb.Client;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.EmbeddingFunction;
 import tech.amikos.chromadb.embeddings.openai.OpenAIEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.*;
 
@@ -565,7 +570,7 @@ public class Main {
         try {
             Client client = new Client(System.getenv("CHROMA_URL"));
             String apiKey = System.getenv("OPENAI_API_KEY");
-            EmbeddingFunction ef = new OpenAIEmbeddingFunction(apiKey, "text-embedding-3-small");
+            EmbeddingFunction ef = new OpenAIEmbeddingFunction(WithParam.apiKey(apiKey), WithParam.model("text-embedding-3-small"));
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{
@@ -592,6 +597,7 @@ package tech.amikos;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.embeddings.cohere.CohereEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.*;
 
@@ -601,7 +607,7 @@ public class Main {
             Client client = new Client(System.getenv("CHROMA_URL"));
             client.reset();
             String apiKey = System.getenv("COHERE_API_KEY");
-            EmbeddingFunction ef = new CohereEmbeddingFunction(apiKey);
+            EmbeddingFunction ef = new CohereEmbeddingFunction(WithParam.apiKey(apiKey));
             Collection collection = client.createCollection("test-collection", null, true, ef);
             List<Map<String, String>> metadata = new ArrayList<>();
             metadata.add(new HashMap<String, String>() {{
@@ -628,6 +634,7 @@ package tech.amikos;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.*;
 
@@ -663,6 +670,7 @@ package tech.amikos;
 import tech.amikos.chromadb.*;
 import tech.amikos.chromadb.Collection;
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
+import tech.amikos.chromadb.embeddings.WithParam;
 
 import java.util.*;
 
