@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-20T07:37:47.988Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-20T08:15:24.970Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 03 — embeddings-id-extensibility
+**Current focus:** Phase 04 — compatibility-test-matrix
 
 ## Current Position
 
-Phase: 03 (embeddings-id-extensibility) — EXECUTING
-Plan: 3 of 3 (all plans complete)
+Phase: 04 (compatibility-test-matrix) — EXECUTING
+Plan: 1 of 2
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 3 of 3 (all plans complete)
 | Phase 03-embeddings-id-extensibility P01 | 20min | 2 tasks | 13 files |
 | Phase 03-embeddings-id-extensibility PP03 | 28min | 2 tasks | 4 files |
 | Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
+| Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase 03-embeddings-id-extensibility]: serializeMetadata uses TreeMap (sorted keys), key=value;key=value format, package-private for testability
 - [Phase 03-embeddings-id-extensibility P02]: DefaultEmbeddingFunction download failures throw ChromaException (unchecked, v2) not EFException; validateModel() is stateless file-existence check (no static boolean flag)
 - [Phase 03-embeddings-id-extensibility P02]: modelDownloadUrl is package-private non-final static for WireMock test injection without reflection
+- [Phase 04]: Container startup failure throws AssertionError (fail-fast) not Assume.assumeTrue (silent skip) to make bad images visible
+- [Phase 04]: GitHub Actions include pattern (not exclude) for JDK 11/17 x 1.5.5 cells produces exactly 5 cells with no accidental combinations
+- [Phase 04]: CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5 centralized in Makefile; CI workflow maintains its own parallel matrix definition
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T07:37:47.986Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-compatibility-test-matrix/04-CONTEXT.md
+Last session: 2026-03-20T08:15:24.968Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
