@@ -31,8 +31,8 @@ Requirements for the current stabilization release. Each maps to roadmap phases.
 
 - [x] **QLTY-01**: Maintainer can run unit + integration tests against supported Chroma versions with reproducible pass/fail behavior.
 - [x] **QLTY-02**: Maintainer is protected from Java 8 and public interface compatibility regressions before release.
-- [ ] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
-- [ ] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
+- [x] **QLTY-03**: User can follow README examples for v2 auth, schema, collection lifecycle, and query workflows end-to-end.
+- [x] **QLTY-04**: Maintainer can produce Maven Central-ready artifacts (signed, checksummed, documented) through a repeatable release flow.
 
 ## Future Milestones (Post-0.2.0)
 
@@ -77,14 +77,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-01 | Phase 2 | Complete |
 | API-02 | Phase 2 | Complete |
 | API-03 | Phase 2 | Complete |
-| EMB-01 | Phase 3 | Complete |
+| EMB-01 | Phase 7 | Complete |
 | EMB-02 | Phase 3 | Complete |
 | EMB-03 | Phase 3 | Complete |
 | EMB-04 | Phase 3 | Complete |
 | QLTY-01 | Phase 4 | Complete |
 | QLTY-02 | Phase 4 | Complete |
-| QLTY-03 | Phase 5 | Pending |
-| QLTY-04 | Phase 5 | Pending |
+| QLTY-03 | Phase 7 | Complete |
+| QLTY-04 | Phase 5 | Complete |
 
 **Coverage:**
 - 0.2.0 requirements: 15 total
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-17*
-*Last updated: 2026-03-18 after Phase 1 verification pass*
+*Last updated: 2026-03-20 after v1.0 milestone audit gap closure planning*

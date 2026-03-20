@@ -82,4 +82,16 @@ public class ClientLifecycleIntegrationTest extends AbstractChromaIntegrationTes
         client.close(); // should not throw
     }
 
+    // --- assumeMinVersion smoke test ---
+
+    @Test
+    public void testAssumeMinVersionSmokeTest() {
+        // Validates that the assumeMinVersion() helper is exercised.
+        // All matrix versions (1.0.0, 1.3.7, 1.5.5) are >= 1.0.0,
+        // so this test always runs; it serves as a wiring proof.
+        assumeMinVersion("1.0.0");
+        String version = client.version();
+        assertNotNull("version should not be null after assumeMinVersion passes", version);
+    }
+
 }

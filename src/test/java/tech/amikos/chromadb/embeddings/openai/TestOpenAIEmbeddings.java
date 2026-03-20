@@ -1,5 +1,6 @@
 package tech.amikos.chromadb.embeddings.openai;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import tech.amikos.chromadb.EFException;
@@ -59,6 +60,7 @@ public class TestOpenAIEmbeddings {
     @Test
     public void testEmbedDocuments() throws EFException {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        Assume.assumeTrue("OPENAI_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         List<Embedding> embeddings = new OpenAIEmbeddingFunction(
                 WithParam.apiKey(apiKey),
                 WithParam.model("text-embedding-3-small"))
@@ -70,6 +72,7 @@ public class TestOpenAIEmbeddings {
     @Test
     public void testEFBuilderWithCustomURL() throws EFException {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        Assume.assumeTrue("OPENAI_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         List<Embedding> embeddings = new OpenAIEmbeddingFunction(
                 WithParam.apiKey(apiKey),
                 WithParam.model("text-embedding-3-small"),
@@ -83,6 +86,7 @@ public class TestOpenAIEmbeddings {
     @Test
     public void testEmbedQuery() throws EFException {
         String apiKey = Utils.getEnvOrProperty("OPENAI_API_KEY");
+        Assume.assumeTrue("OPENAI_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         CreateEmbeddingRequest req = new CreateEmbeddingRequest().model("text-embedding-3-small");
         OpenAIEmbeddingFunction ef = new OpenAIEmbeddingFunction(WithParam.apiKey(apiKey));
         Embedding embeddings = ef.embedQuery("Hello, my name is John. I am a Data Scientist.");

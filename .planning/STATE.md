@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-20T09:03:03.589Z"
+stopped_at: Completed 07-readme-embedding-examples-07-01-PLAN.md
+last_updated: "2026-03-20T17:03:08.545Z"
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 04 — compatibility-test-matrix
+**Current focus:** Phase 07 — readme-embedding-examples
 
 ## Current Position
 
-Phase: 04 (compatibility-test-matrix) — EXECUTING
-Plan: 1 of 2
+Phase: 07 (readme-embedding-examples) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Plan: 1 of 2
 | Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
 | Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
 | Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
+| Phase 05-documentation-release-readiness P01 | 5 | 2 tasks | 3 files |
+| Phase 05-documentation-release-readiness P02 | 2 | 2 tasks | 2 files |
+| Phase 06 P02 | 4 | 2 tasks | 2 files |
+| Phase 06-tech-debt-cleanup P01 | 5 | 2 tasks | 3 files |
+| Phase 07-readme-embedding-examples P01 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +91,22 @@ Recent decisions affecting current work:
 - [Phase 04]: CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5 centralized in Makefile; CI workflow maintains its own parallel matrix definition
 - [Phase 04]: animal-sniffer check goal defaults to process-test-classes (runs during mvn test, not mvn compile) — no explicit phase override added per plan instructions
 - [Phase 04]: EXPECTED_BUILDER_METHOD_COUNT=34 and EXPECTED_CLOUD_BUILDER_METHOD_COUNT=8 (getDeclaredMethods includes private methods for concrete classes; public-only counts would be 20 and 6)
+- [Phase 05-documentation-release-readiness]: Auth provider examples use factory methods (BasicAuth.of(), TokenAuth.of(), ChromaTokenAuth.of()) - constructors are private
+- [Phase 05-documentation-release-readiness]: CHANGELOG.md starts fresh at 0.2.0 - no backfill of 0.1.x history
+- [Phase 05-documentation-release-readiness]: release-check artifact check is conditional on target/ directory presence to allow standalone doc validation
+- [Phase 05-documentation-release-readiness]: release-dry-run uses mvn clean verify (not package) to produce sources/javadoc JARs and checksums
+- [Phase 05-documentation-release-readiness]: release.yml integration test step uses Chroma 1.5.5 only as representative release gate to avoid 3x matrix overhead
+- [Phase 06]: branches filter removed from release trigger: GitHub Actions ignores branches on release events
+- [Phase 06]: release-check step inserted after Version bump, before Publish package to validate non-SNAPSHOT version
+- [Phase 06]: nd4j-native-platform bumped from 1.0.0-M2 to 1.0.0-M2.1 (latest patch, no transitive conflicts)
+- [Phase 06-tech-debt-cleanup]: v1 legacy HuggingFace example updated to WithParam.apiKey() because the bare-String constructor no longer exists — even legacy examples must reference the available constructor signature
+- [Phase 06-tech-debt-cleanup]: testAssumeMinVersionSmokeTest uses assumeMinVersion(1.0.0) which always passes on all matrix versions, making it a safe non-inert wiring proof
+- [Phase 07-readme-embedding-examples]: v1 Cohere stays minimal — apiKey only (WithParam.apiKey(apiKey)), no model param per locked Phase 07 context decision
+- [Phase 07-readme-embedding-examples]: 8 WithParam import threshold (4 v2 + 4 v1) asserted in test to prevent future import drift
+
+### Roadmap Evolution
+
+- Phase 6 added: Tech Debt Cleanup (DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, inert assumeMinVersion removal)
 
 ### Pending Todos
 
@@ -97,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T09:03:03.586Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-20T16:41:11.137Z
+Stopped at: Completed 07-readme-embedding-examples-07-01-PLAN.md
 Resume file: None
