@@ -108,3 +108,13 @@ None - all WhereDocument operator stubs have been replaced with real implementat
 ---
 *Phase: 01-result-ergonomics-wheredocument*
 *Completed: 2026-03-20*
+
+## Self-Check: PASSED
+
+- FOUND: src/main/java/tech/amikos/chromadb/v2/WhereDocument.java
+- FOUND: src/test/java/tech/amikos/chromadb/v2/WhereDocumentTest.java
+- FOUND: src/test/java/tech/amikos/chromadb/v2/RecordOperationsIntegrationTest.java
+- FOUND: .planning/phases/01-result-ergonomics-wheredocument/01-03-SUMMARY.md
+- FOUND commit: 1ccaad1 (test: RED phase)
+- FOUND commit: 6a57a26 (feat: GREEN phase implementation)
+- FOUND commit: c9b52c1 (feat: integration tests)
