@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-03-19T10:10:32.227Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-20T09:03:03.589Z"
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  completed_phases: 4
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 03 — embeddings-id-extensibility
+**Current focus:** Phase 04 — compatibility-test-matrix
 
 ## Current Position
 
-Phase: 03 (embeddings-id-extensibility) — EXECUTING
-Plan: 3 of 3 (all plans complete)
+Phase: 04 (compatibility-test-matrix) — EXECUTING
+Plan: 1 of 2
 
 ## Performance Metrics
 
@@ -52,6 +52,8 @@ Plan: 3 of 3 (all plans complete)
 | Phase 03-embeddings-id-extensibility P01 | 20min | 2 tasks | 13 files |
 | Phase 03-embeddings-id-extensibility PP03 | 28min | 2 tasks | 4 files |
 | Phase 03-embeddings-id-extensibility P02 | 5min | 2 tasks | 2 files |
+| Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
+| Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -79,6 +81,11 @@ Recent decisions affecting current work:
 - [Phase 03-embeddings-id-extensibility]: serializeMetadata uses TreeMap (sorted keys), key=value;key=value format, package-private for testability
 - [Phase 03-embeddings-id-extensibility P02]: DefaultEmbeddingFunction download failures throw ChromaException (unchecked, v2) not EFException; validateModel() is stateless file-existence check (no static boolean flag)
 - [Phase 03-embeddings-id-extensibility P02]: modelDownloadUrl is package-private non-final static for WireMock test injection without reflection
+- [Phase 04]: Container startup failure throws AssertionError (fail-fast) not Assume.assumeTrue (silent skip) to make bad images visible
+- [Phase 04]: GitHub Actions include pattern (not exclude) for JDK 11/17 x 1.5.5 cells produces exactly 5 cells with no accidental combinations
+- [Phase 04]: CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5 centralized in Makefile; CI workflow maintains its own parallel matrix definition
+- [Phase 04]: animal-sniffer check goal defaults to process-test-classes (runs during mvn test, not mvn compile) — no explicit phase override added per plan instructions
+- [Phase 04]: EXPECTED_BUILDER_METHOD_COUNT=34 and EXPECTED_CLOUD_BUILDER_METHOD_COUNT=8 (getDeclaredMethods includes private methods for concrete classes; public-only counts would be 20 and 6)
 
 ### Pending Todos
 
@@ -90,6 +97,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-19T10:08:41Z
-Stopped at: Completed 03-02-PLAN.md (all 3 plans in phase 03 complete)
+Last session: 2026-03-20T09:03:03.586Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
