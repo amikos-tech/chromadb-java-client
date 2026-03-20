@@ -1,136 +1,96 @@
-# Roadmap: ChromaDB Java Client (Milestone 0.2.0 - v2 Only)
+# Roadmap: ChromaDB Java Client (Milestone 0.3.0 — Go Parity & Cloud)
 
 ## Overview
 
-This roadmap defines milestone `0.2.0` for a v2-only Java client release. It takes the existing v2 Java client from strong baseline to stable release readiness by first hardening transport/auth behavior, then closing API parity, then finalizing embedding determinism, and finally locking compatibility and release quality gates. Chroma v1 API support is explicitly out of scope.
+This roadmap defines milestone `0.3.0` which extends the stable v2 Java client (shipped in 0.2.0) with Go-client API parity, advanced Search API support, embedding ecosystem expansion, and cloud integration testing. The goal is to make the Java client a first-class citizen alongside the Go client for both self-hosted and Chroma Cloud deployments.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
+- Integer phases (1, 2, 3...): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Transport & Auth Hardening** - Ensure request/auth behavior is consistent and failure modes are actionable.
-- [x] **Phase 2: API Coverage Completion** - Close remaining v2 lifecycle and record-operation parity gaps.
-- [x] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust. (completed 2026-03-19)
-- [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
-- [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
-- [x] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure. (completed 2026-03-20)
-- [x] **Phase 7: Fix README OpenAI/Cohere Embedding Examples** - Fix non-compiling README embedding examples for OpenAI and Cohere providers. (completed 2026-03-20)
+- [ ] **Phase 1: Result Ergonomics & WhereDocument** — Add row-based result access and complete WhereDocument typed helpers.
+- [ ] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
+- [ ] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels.
+- [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
+- [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata.
 
 ## Phase Details
 
-### Phase 1: Transport & Auth Hardening
-**Goal**: Deliver endpoint-wide auth consistency and reliable exception semantics.
-**Depends on**: Nothing (first phase)
-**Requirements**: [AUTH-01, AUTH-02, AUTH-03, API-04]
+### Phase 1: Result Ergonomics & WhereDocument
+**Goal:** Give users row-based iteration on query/get results and complete the WhereDocument typed filter helpers, improving daily-use ergonomics.
+**Depends on:** Nothing (first phase)
+**Requirements:** [ERGO-01, ERGO-02]
+**Issues:** #104, #128
 **Success Criteria** (what must be TRUE):
-  1. User can configure any supported auth provider and all client endpoints honor it.
-  2. Cloud/preflight identity flows return expected typed results or explicit typed exceptions.
-  3. Auth misconfiguration yields actionable validation or client errors without silent fallback.
-  4. HTTP error responses are translated consistently into the correct `ChromaException` subclasses.
-**Plans**: 3 plans
+  1. User can iterate query/get results row-by-row via `ResultRow`, `rows()`, and `at(index)`.
+  2. User can use `WhereDocument.contains()` and `WhereDocument.notContains()` in get/query builders with correct serialization.
+  3. Unit and integration tests validate both features end-to-end.
+**Plans:** TBD
 
-Plans:
-- [x] 01-01: Audit and unify auth application across transport paths
-- [x] 01-02: Harden error translation and auth-validation scenarios
-- [x] 01-03: Expand auth-focused unit/integration coverage
-
-### Phase 2: API Coverage Completion
-**Goal**: Achieve complete and predictable v2 endpoint/operation parity required by current requirements.
-**Depends on**: Phase 1
-**Requirements**: [API-01, API-02, API-03]
+### Phase 2: Collection API Extensions
+**Goal:** Add cloud-relevant collection operations (fork, indexing status) and audit cloud feature parity for these capabilities.
+**Depends on:** Phase 1
+**Requirements:** [COLL-01, COLL-02, COLL-03]
+**Issues:** #99, #100, #131
 **Success Criteria** (what must be TRUE):
-  1. User can perform tenant/database lifecycle operations with typed request/response contracts.
-  2. User can create and manage collections with schema/config/CMEK data preserved round-trip.
-  3. User can execute add/get/query/update/upsert/delete with full filter/include/queryTexts behavior.
-  4. Contract tests prove response mapping for the covered API surface.
-**Plans**: 3 plans
+  1. User can fork a collection via `collection.fork("newName")`.
+  2. User can check indexing progress via `collection.indexingStatus()` returning progress metrics.
+  3. Cloud feature parity status for fork and indexing is explicitly documented (supported, partial, or unsupported).
+**Plans:** TBD
 
-Plans:
-- [x] 02-01-PLAN.md — Lifecycle create fallback parity for tenant/database operations
-- [x] 02-02-PLAN.md — Non-lossy schema/config/CMEK mapping and precedence hardening
-- [x] 02-03-PLAN.md — Record query/include parity and two-version verification gate
-
-### Phase 3: Embeddings & ID Extensibility
-**Goal**: Ensure embedding and ID workflows are deterministic, extensible, and safe for production ingestion/query paths.
-**Depends on**: Phase 2
-**Requirements**: [EMB-01, EMB-02, EMB-03, EMB-04]
+### Phase 3: Search API
+**Goal:** Implement the Chroma Search endpoint (v1.5+) with full ranking expression DSL, field projection, groupBy, and read levels — matching Go client capabilities.
+**Depends on:** Phase 1 (ResultRow used in SearchResult)
+**Requirements:** [SEARCH-01, SEARCH-02, SEARCH-03, SEARCH-04]
+**Issues:** #105, #126
 **Success Criteria** (what must be TRUE):
-  1. User can use all supported embedding providers through one consistent contract.
-  2. Default local embedding works reliably without external API credentials.
-  3. Runtime and descriptor embedding precedence is deterministic and documented.
-  4. UUID/ULID/SHA-256 generators work correctly with clear validation failures for invalid inputs.
-**Plans**: 3 plans
+  1. User can execute `collection.search()` with KNN ranking expressions and get typed results.
+  2. User can compose RRF (Reciprocal Rank Fusion) from multiple weighted rank expressions.
+  3. User can project specific fields (id, document, embedding, score, metadata keys) in search results.
+  4. User can group results by metadata key with min/max K controls.
+  5. User can specify read level (INDEX_AND_WAL vs INDEX_ONLY).
+  6. Integration tests validate search against Chroma >= 1.5.
+**Plans:** TBD
 
-Plans:
-- [ ] 03-01-PLAN.md — Provider error normalization, conformance tests, and EF precedence documentation
-- [ ] 03-02-PLAN.md — DefaultEmbeddingFunction download reliability (timeout, retry, thread safety)
-- [ ] 03-03-PLAN.md — ID generator validation edges (SHA-256 metadata fallback, duplicate ID detection)
-
-### Phase 4: Compatibility & Test Matrix
-**Goal**: Reduce regression risk by enforcing Java baseline and Chroma-version compatibility expectations.
-**Depends on**: Phase 3
-**Requirements**: [QLTY-01, QLTY-02]
+### Phase 4: Embedding Ecosystem
+**Goal:** Expand the embedding ecosystem with sparse/multimodal interfaces, reranking functions, additional providers, and an auto-wiring registry.
+**Depends on:** Nothing (independent of Phases 1-3)
+**Requirements:** [EMB-05, EMB-06, EMB-07, EMB-08, RERANK-01]
+**Issues:** #106, #107, #108, #109
 **Success Criteria** (what must be TRUE):
-  1. Maintainer can run a reproducible matrix of unit/integration tests across supported Chroma versions.
-  2. Java 8 compatibility checks prevent incompatible API/language usage from reaching release branches.
-  3. Public interface compatibility tests detect breaking API changes before publication.
-**Plans**: 2 plans
+  1. SparseEmbeddingFunction and MultimodalEmbeddingFunction interfaces exist with at least one provider each.
+  2. RerankingFunction interface exists with at least one provider (Cohere or Jina).
+  3. At least 3 new dense embedding providers implemented (prioritize Gemini, Bedrock, Voyage).
+  4. EmbeddingFunctionRegistry supports registering and auto-wiring providers from server-side collection config.
+  5. All providers have unit tests; integration tests where API keys are available.
+**Plans:** TBD
 
-Plans:
-- [ ] 04-01-PLAN.md — Version-matrix test infrastructure (assumeMinVersion helper, fail-fast startup, Makefile test-matrix, CI matrix workflow)
-- [ ] 04-02-PLAN.md — Compatibility guardrails (animal-sniffer Java 8 enforcement, expanded PublicInterfaceCompatibilityTest)
-
-### Phase 5: Documentation & Release Readiness
-**Goal**: Ship a polished, repeatable release experience for users and maintainers.
-**Depends on**: Phase 4
-**Requirements**: [QLTY-03, QLTY-04]
+### Phase 5: Cloud Integration Testing
+**Goal:** Build deterministic cloud parity test suites that validate search, schema/index, and array metadata behavior against Chroma Cloud.
+**Depends on:** Phases 2, 3 (cloud APIs and search must be implemented first)
+**Requirements:** [CLOUD-01, CLOUD-02, CLOUD-03]
+**Issues:** #127, #129, #130
 **Success Criteria** (what must be TRUE):
-  1. User can onboard using README v2 examples for auth, schema, lifecycle, and query flows.
-  2. Maintainer can run release flow to produce signed, checksummed, publish-ready artifacts.
-  3. Release checklist catches documentation and packaging gaps before publish.
-**Plans**: 2 plans
-
-Plans:
-- [ ] 05-01-PLAN.md — Restructure README v2-first, create MIGRATION.md and CHANGELOG.md
-- [ ] 05-02-PLAN.md — Add release-check/release-dry-run Makefile targets, fix release.yml test gating
+  1. Cloud search parity tests cover pagination, IDIn/IDNotIn, document filters, metadata projection, combined filters.
+  2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
+  3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
+  4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
+**Plans:** TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phase 4 can execute in parallel with Phases 1-3 (independent).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Transport & Auth Hardening | 3/3 | Complete | 2026-03-18 |
-| 2. API Coverage Completion | 3/3 | Complete | 2026-03-18 |
-| 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
-| 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
-| 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
-| 6. Tech Debt Cleanup | 2/2 | Complete   | 2026-03-20 |
-| 7. Fix README OpenAI/Cohere Embedding Examples | 1/1 | Complete   | 2026-03-20 |
-
-### Phase 6: Tech Debt Cleanup
-
-**Goal:** Fix documentation inaccuracies, CI workflow issues, bump nd4j patch version, and wire inert assumeMinVersion() helper.
-**Requirements**: [DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, ASSUME-WIRE, ND4J-BUMP]
-**Depends on:** Phase 5
-**Plans:** 2/2 plans complete
-
-Plans:
-- [ ] 06-01-PLAN.md — Fix README doc bugs (HF constructor, Sha256 description, v1 examples) and wire assumeMinVersion
-- [ ] 06-02-PLAN.md — Fix release.yml (remove branches filter, add release-check step) and bump nd4j to M2.1
-
-### Phase 7: Fix README OpenAI/Cohere Embedding Examples
-
-**Goal:** Fix README embedding function examples for OpenAI and Cohere to use the correct `WithParam` constructor pattern, closing the last 2 partial requirements.
-**Requirements**: [EMB-01, QLTY-03]
-**Depends on:** Phase 6
-**Gap Closure:** Closes gaps from v1.0 milestone audit
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] 07-01-PLAN.md — Fix OpenAI and Cohere constructor examples in README.md (4 locations)
+| 1. Result Ergonomics & WhereDocument | 0/TBD | Pending | — |
+| 2. Collection API Extensions | 0/TBD | Pending | — |
+| 3. Search API | 0/TBD | Pending | — |
+| 4. Embedding Ecosystem | 0/TBD | Pending | — |
+| 5. Cloud Integration Testing | 0/TBD | Pending | — |
