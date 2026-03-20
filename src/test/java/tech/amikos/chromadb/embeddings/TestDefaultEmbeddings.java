@@ -1,6 +1,8 @@
 package tech.amikos.chromadb.embeddings;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import tech.amikos.chromadb.Embedding;
 
@@ -10,6 +12,15 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class TestDefaultEmbeddings {
+    @BeforeClass
+    public static void checkNd4jAvailable() {
+        try {
+            Class.forName("org.nd4j.linalg.factory.Nd4j");
+            org.nd4j.linalg.factory.Nd4j.scalar(1.0);
+        } catch (Throwable t) {
+            Assume.assumeNoException("ND4J native libraries not available on this platform", t);
+        }
+    }
     // this represents the output of sentence-transformers/all-MiniLM-L6-v2 for "Hello, my name is John. I am a Data Scientist.", "Hello, I am Jane and I am an ML researcher."
     private static float[][] groundThruth = {{-0.09585458785295486f,
             0.00948028638958931f,

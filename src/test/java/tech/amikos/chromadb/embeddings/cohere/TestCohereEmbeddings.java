@@ -1,5 +1,6 @@
 package tech.amikos.chromadb.embeddings.cohere;
 
+import org.junit.Assume;
 import org.junit.Test;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
@@ -18,6 +19,7 @@ public class TestCohereEmbeddings {
     public void testEmbedDocuments() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("COHERE_API_KEY");
+        Assume.assumeTrue("COHERE_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         CohereEmbeddingFunction ef = new CohereEmbeddingFunction(WithParam.apiKey(apiKey));
         List<Embedding> results = ef.embedDocuments(new String[]{"Hello world", "How are you?"});
         assertNotNull(results);
@@ -29,6 +31,7 @@ public class TestCohereEmbeddings {
     public void testEmbedQuery() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("COHERE_API_KEY");
+        Assume.assumeTrue("COHERE_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         CohereEmbeddingFunction ef = new CohereEmbeddingFunction(WithParam.apiKey(apiKey));
         Embedding results = ef.embedQuery("How are you?");
         assertNotNull(results);
@@ -39,6 +42,7 @@ public class TestCohereEmbeddings {
     public void testWithModel() throws EFException {
         Utils.loadEnvFile(".env");
         String apiKey = Utils.getEnvOrProperty("COHERE_API_KEY");
+        Assume.assumeTrue("COHERE_API_KEY not set (set via .env or environment)", apiKey != null && !apiKey.isEmpty());
         CohereEmbeddingFunction ef = new CohereEmbeddingFunction(WithParam.apiKey(apiKey), WithParam.model("embed-english-light-v3.0"));
         Embedding results = ef.embedQuery("How are you?");
         assertNotNull(results);
