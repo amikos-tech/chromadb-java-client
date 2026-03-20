@@ -79,8 +79,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Expand and stabilize version-matrix test execution
-- [ ] 04-02: Add/strengthen compatibility guardrails in CI and local workflows
+- [ ] 04-01-PLAN.md — Version-matrix test infrastructure (assumeMinVersion helper, fail-fast startup, Makefile test-matrix, CI matrix workflow)
+- [ ] 04-02-PLAN.md — Compatibility guardrails (animal-sniffer Java 8 enforcement, expanded PublicInterfaceCompatibilityTest)
 
 ### Phase 5: Documentation & Release Readiness
 **Goal**: Ship a polished, repeatable release experience for users and maintainers.
