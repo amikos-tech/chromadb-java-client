@@ -4,7 +4,7 @@
 # Variables
 MAVEN := mvn
 JAVA := java
-CHROMA_VERSIONS :=
+CHROMA_MATRIX_VERSIONS := 1.0.0 1.3.7 1.5.5
 
 # Color output
 RED := \033[0;31m
@@ -62,6 +62,18 @@ test-integration: check-tools ## Run integration tests only
 	@echo "$(BLUE)Running integration tests...$(NC)"
 	$(MAVEN) -Pintegration test
 
+.PHONY: test-matrix
+test-matrix: check-tools ## Run full unit + integration test matrix across all pinned Chroma versions
+	@echo "$(BLUE)Running unit tests...$(NC)"
+	$(MAVEN) --batch-mode test
+	@echo "$(BLUE)Running integration tests across Chroma versions: $(CHROMA_MATRIX_VERSIONS)$(NC)"
+	@set -e; for v in $(CHROMA_MATRIX_VERSIONS); do \
+	  echo "$(BLUE)  Testing with Chroma $$v...$(NC)"; \
+	  CHROMA_VERSION=$$v $(MAVEN) --batch-mode -Pintegration test || exit $$?; \
+	done
+	@echo "$(GREEN)test-matrix complete$(NC)"
+
+# NOTE: test-matrix is the canonical version-matrix target. test-phase-02-parity is kept for backward compatibility.
 .PHONY: test-phase-02-parity
 test-phase-02-parity: check-tools ## Run Phase 2 parity matrix for locked Chroma versions
 	mvn -q -Dtest=ChromaClientImplTest,ChromaHttpCollectionTest,ChromaDtosContractTest test
