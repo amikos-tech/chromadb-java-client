@@ -93,8 +93,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Refresh v2 documentation, examples, and migration guidance
-- [ ] 05-02: Automate and verify release checklist and artifact validation
+- [ ] 05-01-PLAN.md — Restructure README v2-first, create MIGRATION.md and CHANGELOG.md
+- [ ] 05-02-PLAN.md — Add release-check/release-dry-run Makefile targets, fix release.yml test gating
 
 ## Progress
 
