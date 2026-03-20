@@ -621,6 +621,75 @@ public class ChromaHttpCollectionTest {
                 .execute();
     }
 
+    // --- add/upsert: duplicate ID detection and ChromaException for generator failures ---
+
+    @Test
+    public void testAddWithDuplicateExplicitIdsFails() {
+        try {
+            collection.add()
+                    .ids("id1", "id2", "id1")
+                    .documents("doc1", "doc2", "doc3")
+                    .execute();
+            fail("Expected ChromaException for duplicate IDs");
+        } catch (ChromaException e) {
+            assertTrue("Message should contain duplicate ID", e.getMessage().contains("id1"));
+            assertTrue("Message should mention duplicate", e.getMessage().contains("Duplicate"));
+        }
+    }
+
+    @Test
+    public void testUpsertWithDuplicateExplicitIdsFails() {
+        try {
+            collection.upsert()
+                    .ids("x", "y", "x")
+                    .documents("d1", "d2", "d3")
+                    .execute();
+            fail("Expected ChromaException for duplicate IDs");
+        } catch (ChromaException e) {
+            assertTrue("Message should contain duplicate ID", e.getMessage().contains("x"));
+            assertTrue("Message should mention duplicate", e.getMessage().contains("Duplicate"));
+        }
+    }
+
+    @Test
+    public void testAddWithNullGeneratorOutputFailsWithChromaException() {
+        IdGenerator nullGen = new IdGenerator() {
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                return null;
+            }
+        };
+        try {
+            collection.add()
+                    .idGenerator(nullGen)
+                    .documents("doc1")
+                    .execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue("Message should contain index", e.getMessage().contains("index 0"));
+        }
+    }
+
+    @Test
+    public void testAddWithGeneratorExceptionFailsWithChromaException() {
+        IdGenerator failGen = new IdGenerator() {
+            @Override
+            public String generate(String document, Map<String, Object> metadata) {
+                throw new RuntimeException("generator failed");
+            }
+        };
+        try {
+            collection.add()
+                    .idGenerator(failGen)
+                    .documents("doc1")
+                    .execute();
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue("Message should contain index", e.getMessage().contains("index 0"));
+            assertTrue("Message should contain cause", e.getMessage().contains("generator failed"));
+        }
+    }
+
     // --- update ---
 
     @Test
@@ -2024,7 +2093,7 @@ public class ChromaHttpCollectionTest {
 
         verify(postRequestedFor(urlEqualTo(COLLECTIONS_PATH + "/col-id-1/add"))
                 .withRequestBody(matchingJsonPath("$.ids[0]",
-                        equalTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"))));
+                        equalTo("985b1da3a3ce55c539585c04928da90f704115f3db078ec960d87532a4f2e0cf"))));
     }
 
     @Test
@@ -2131,8 +2200,8 @@ public class ChromaHttpCollectionTest {
                     .documents("same", "same")
                     .embeddings(new float[]{1.0f}, new float[]{2.0f})
                     .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("duplicate IDs"));
             assertTrue(e.getMessage().contains("'dup'"));
             assertTrue(e.getMessage().contains("[0, 1]"));
@@ -2159,8 +2228,8 @@ public class ChromaHttpCollectionTest {
                     .idGenerator(failingGenerator)
                     .documents("doc1", "doc2")
                     .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("record index 1"));
             assertTrue(e.getMessage().contains("boom"));
             assertNotNull(e.getCause());
@@ -2182,8 +2251,8 @@ public class ChromaHttpCollectionTest {
                     .idGenerator(nullGenerator)
                     .documents("doc1")
                     .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("null or empty ID at index 0"));
         }
     }
@@ -2202,8 +2271,8 @@ public class ChromaHttpCollectionTest {
                     .idGenerator(emptyGenerator)
                     .documents("doc1")
                     .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("null or empty ID at index 0"));
         }
     }
@@ -2231,9 +2300,9 @@ public class ChromaHttpCollectionTest {
                     .idGenerator(Sha256IdGenerator.INSTANCE)
                     .embeddings(new float[]{1.0f, 2.0f})
                     .execute();
-            fail("Expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertTrue(e.getMessage().contains("requires a non-null document"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("requires a non-null document or metadata"));
         }
     }
 

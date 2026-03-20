@@ -15,11 +15,11 @@ public class ChromaException extends RuntimeException {
     private final int statusCode;
     private final String errorCode;
 
-    protected ChromaException(String message) {
+    public ChromaException(String message) {
         this(message, STATUS_CODE_UNAVAILABLE, null, null);
     }
 
-    protected ChromaException(String message, Throwable cause) {
+    public ChromaException(String message, Throwable cause) {
         this(message, STATUS_CODE_UNAVAILABLE, null, cause);
     }
 

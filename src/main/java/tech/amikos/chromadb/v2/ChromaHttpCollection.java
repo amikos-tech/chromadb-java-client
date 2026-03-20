@@ -37,6 +37,7 @@ final class ChromaHttpCollection implements Collection {
     private final tech.amikos.chromadb.embeddings.EmbeddingFunction explicitEmbeddingFunction;
     private volatile tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction;
     private volatile EmbeddingFunctionSpec embeddingFunctionSpec;
+    private volatile boolean overrideWarningLogged = false;
 
     private ChromaHttpCollection(ChromaApiClient apiClient, String id, String name,
                                  Tenant tenant, Database database,
@@ -489,6 +490,9 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public void execute() {
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            if (hasExplicitIds(ids)) {
+                checkForDuplicateIds(resolvedIds);
+            }
             int idsSize = resolvedIds.size();
             String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
             validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
@@ -580,6 +584,9 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public void execute() {
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
+            if (hasExplicitIds(ids)) {
+                checkForDuplicateIds(resolvedIds);
+            }
             int idsSize = resolvedIds.size();
             String countLabel = hasExplicitIds(ids) ? "ids size" : "record count";
             validateSizeMatchesCount("embeddings", embeddings, idsSize, countLabel);
@@ -1002,6 +1009,14 @@ final class ChromaHttpCollection implements Collection {
         return count.intValue();
     }
 
+    /**
+     * Generates IDs for records using the provided generator, with client-side validation.
+     *
+     * <p>Throws {@link ChromaException} (not {@code IllegalArgumentException}) for all
+     * generator failures: null/blank output, runtime exceptions, and duplicate IDs.
+     * This is intentional for the v2 API — all client-side validation errors use the
+     * {@code ChromaException} hierarchy for consistency.</p>
+     */
     private static List<String> generateIds(IdGenerator generator, int count,
                                              List<String> documents,
                                              List<Map<String, Object>> metadatas) {
@@ -1015,13 +1030,13 @@ final class ChromaHttpCollection implements Collection {
             try {
                 generated = generator.generate(doc, meta);
             } catch (RuntimeException e) {
-                throw new IllegalArgumentException(
+                throw new ChromaException(
                         "IdGenerator threw an exception at record index " + i + ": " + e.toString(),
                         e
                 );
             }
             if (generated == null || generated.isEmpty()) {
-                throw new IllegalArgumentException(
+                throw new ChromaException(
                         "IdGenerator returned null or empty ID at index " + i
                 );
             }
@@ -1036,7 +1051,7 @@ final class ChromaHttpCollection implements Collection {
             ids.add(generated);
         }
         if (hasDuplicate) {
-            throw new IllegalArgumentException(buildDuplicateIdsMessage(indexesById));
+            throw new ChromaException(buildDuplicateIdsMessage(indexesById));
         }
         return ids;
     }
@@ -1052,6 +1067,43 @@ final class ChromaHttpCollection implements Collection {
             return "IdGenerator produced duplicate IDs in the same batch";
         }
         return "IdGenerator produced duplicate IDs in the same batch: " + String.join(", ", details);
+    }
+
+    /**
+     * Checks explicit ID lists for duplicates before sending to server.
+     *
+     * <p>Uses O(n) detection via LinkedHashMap to preserve insertion order for error messages.</p>
+     *
+     * @throws ChromaException if duplicate IDs are found, listing the duplicate values and their indexes
+     */
+    private static void checkForDuplicateIds(List<String> ids) {
+        if (ids == null || ids.size() < 2) {
+            return;
+        }
+        Map<String, List<Integer>> indexesById = new LinkedHashMap<String, List<Integer>>();
+        boolean hasDuplicate = false;
+        for (int i = 0; i < ids.size(); i++) {
+            String id = ids.get(i);
+            List<Integer> indexes = indexesById.get(id);
+            if (indexes == null) {
+                indexes = new ArrayList<Integer>();
+                indexesById.put(id, indexes);
+            } else {
+                hasDuplicate = true;
+            }
+            indexes.add(Integer.valueOf(i));
+        }
+        if (hasDuplicate) {
+            List<String> details = new ArrayList<String>();
+            for (Map.Entry<String, List<Integer>> entry : indexesById.entrySet()) {
+                if (entry.getValue().size() > 1) {
+                    details.add("'" + entry.getKey() + "' at indexes " + entry.getValue());
+                }
+            }
+            throw new ChromaException(
+                    "Duplicate IDs in add/upsert batch: " + String.join(", ", details)
+            );
+        }
     }
 
     private static Map<String, Object> requireNonNullMap(Where where, String fieldName) {
@@ -1076,8 +1128,30 @@ final class ChromaHttpCollection implements Collection {
         return map;
     }
 
+    /**
+     * Resolves the embedding function for text embedding operations.
+     *
+     * <p><strong>Precedence (highest to lowest):</strong></p>
+     * <ol>
+     *   <li>Runtime/explicit EF -- set via {@code CreateCollectionOptions.embeddingFunction(...)}
+     *       or {@code client.getCollection(name, embeddingFunction)}. Always wins.</li>
+     *   <li>{@code configuration.embedding_function} -- persisted in collection configuration.</li>
+     *   <li>{@code schema.default_embedding_function} -- persisted in collection schema.</li>
+     * </ol>
+     *
+     * <p>When an explicit EF is provided and a persisted EF descriptor also exists,
+     * a WARNING is logged. The explicit EF is used; no error is thrown.</p>
+     *
+     * <p>Unsupported EF descriptors (unknown provider name) do not block collection
+     * construction. They fail lazily at the first embed operation.</p>
+     */
     private synchronized tech.amikos.chromadb.embeddings.EmbeddingFunction requireEmbeddingFunction() {
         if (explicitEmbeddingFunction != null) {
+            if (embeddingFunctionSpec != null && !overrideWarningLogged) {
+                LOG.warning("Runtime embedding function overrides persisted collection EF '"
+                    + embeddingFunctionSpec.getName() + "'. Explicit EF takes precedence.");
+                overrideWarningLogged = true;
+            }
             if (embeddingFunction != explicitEmbeddingFunction) {
                 embeddingFunction = explicitEmbeddingFunction;
             }
@@ -1094,6 +1168,8 @@ final class ChromaHttpCollection implements Collection {
                             + "set configuration.embedding_function, or use queryEmbeddings(...)."
             );
         }
+        LOG.fine("Auto-wired embedding function: " + embeddingFunctionSpec.getName()
+            + " from collection configuration");
         embeddingFunction = EmbeddingFunctionResolver.resolve(embeddingFunctionSpec);
         return embeddingFunction;
     }

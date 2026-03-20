@@ -22,6 +22,27 @@ import java.util.Map;
  * }</pre>
  *
  * <p>All record operations may throw unchecked exceptions from the {@link ChromaException} hierarchy.</p>
+ *
+ * <h3>Embedding Function Precedence</h3>
+ *
+ * <p>When a record operation requires text embedding, the embedding function is resolved
+ * using the following precedence (highest to lowest):</p>
+ * <ol>
+ *   <li><strong>Runtime/explicit EF</strong> -- set via
+ *       {@code CreateCollectionOptions.embeddingFunction(...)} or
+ *       {@code client.getCollection(name, embeddingFunction)}. Always wins.</li>
+ *   <li><strong>{@code configuration.embedding_function}</strong> -- persisted in
+ *       collection configuration descriptor.</li>
+ *   <li><strong>{@code schema.default_embedding_function}</strong> -- persisted in
+ *       collection schema descriptor.</li>
+ * </ol>
+ *
+ * <p>When an explicit EF is provided and a persisted EF descriptor also exists,
+ * a WARNING is logged. The explicit EF is used; no error is thrown.</p>
+ *
+ * <p>Unsupported EF descriptors (unknown provider name) do not block collection
+ * construction. They fail lazily at the first embed operation, allowing non-embedding
+ * operations (get by ID, delete) to proceed.</p>
  */
 public interface Collection {
 
