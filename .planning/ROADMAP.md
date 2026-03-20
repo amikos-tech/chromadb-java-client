@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: API Coverage Completion** - Close remaining v2 lifecycle and record-operation parity gaps.
 - [x] **Phase 3: Embeddings & ID Extensibility** - Make embedding resolution and ID generation deterministic and robust. (completed 2026-03-19)
 - [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
-- [ ] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow.
+- [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
 
 ## Phase Details
 
@@ -107,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. API Coverage Completion | 3/3 | Complete | 2026-03-18 |
 | 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
-| 5. Documentation & Release Readiness | 1/2 | In Progress|  |
+| 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |

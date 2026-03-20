@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-20T12:10:37.204Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-20T12:15:40.763Z"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -55,6 +55,7 @@ Plan: 1 of 2
 | Phase 04-compatibility-test-matrix PP01 | 15min | 3 tasks | 3 files |
 | Phase 04-compatibility-test-matrix PP02 | 15 | 2 tasks | 2 files |
 | Phase 05-documentation-release-readiness P01 | 5 | 2 tasks | 3 files |
+| Phase 05-documentation-release-readiness P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,9 @@ Recent decisions affecting current work:
 - [Phase 04]: EXPECTED_BUILDER_METHOD_COUNT=34 and EXPECTED_CLOUD_BUILDER_METHOD_COUNT=8 (getDeclaredMethods includes private methods for concrete classes; public-only counts would be 20 and 6)
 - [Phase 05-documentation-release-readiness]: Auth provider examples use factory methods (BasicAuth.of(), TokenAuth.of(), ChromaTokenAuth.of()) - constructors are private
 - [Phase 05-documentation-release-readiness]: CHANGELOG.md starts fresh at 0.2.0 - no backfill of 0.1.x history
+- [Phase 05-documentation-release-readiness]: release-check artifact check is conditional on target/ directory presence to allow standalone doc validation
+- [Phase 05-documentation-release-readiness]: release-dry-run uses mvn clean verify (not package) to produce sources/javadoc JARs and checksums
+- [Phase 05-documentation-release-readiness]: release.yml integration test step uses Chroma 1.5.5 only as representative release gate to avoid 3x matrix overhead
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T12:10:37.202Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-20T12:15:40.761Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
