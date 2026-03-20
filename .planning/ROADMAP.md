@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Compatibility & Test Matrix** - Strengthen regression protection across Java and Chroma versions. (completed 2026-03-20)
 - [x] **Phase 5: Documentation & Release Readiness** - Finish onboarding docs and repeatable Maven Central release flow. (completed 2026-03-20)
 - [x] **Phase 6: Tech Debt Cleanup** - Fix README doc bugs, CI workflow issues, and remove inert test infrastructure. (completed 2026-03-20)
+- [ ] **Phase 7: Fix README OpenAI/Cohere Embedding Examples** - Fix non-compiling README embedding examples for OpenAI and Cohere providers.
 
 ## Phase Details
 
@@ -100,7 +101,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -110,6 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
 | 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
 | 6. Tech Debt Cleanup | 2/2 | Complete   | 2026-03-20 |
+| 7. Fix README OpenAI/Cohere Embedding Examples | 0/1 | Pending | — |
 
 ### Phase 6: Tech Debt Cleanup
 
@@ -121,3 +123,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 Plans:
 - [ ] 06-01-PLAN.md — Fix README doc bugs (HF constructor, Sha256 description, v1 examples) and wire assumeMinVersion
 - [ ] 06-02-PLAN.md — Fix release.yml (remove branches filter, add release-check step) and bump nd4j to M2.1
+
+### Phase 7: Fix README OpenAI/Cohere Embedding Examples
+
+**Goal:** Fix README embedding function examples for OpenAI and Cohere to use the correct `WithParam` constructor pattern, closing the last 2 partial requirements.
+**Requirements**: [EMB-01, QLTY-03]
+**Depends on:** Phase 6
+**Gap Closure:** Closes gaps from v1.0 milestone audit
+**Plans:** 0/1 plans complete
+
+Plans:
+- [ ] 07-01-PLAN.md — Fix OpenAI and Cohere constructor examples in README.md (4 locations)
