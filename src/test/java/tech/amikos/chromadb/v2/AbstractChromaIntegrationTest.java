@@ -107,6 +107,18 @@ public abstract class AbstractChromaIntegrationTest {
     }
 
     /**
+     * Skips the current test if running against a local (non-Cloud) Chroma instance.
+     * Cloud-only features like Schema and server-configured embedding functions
+     * are not available on local/Testcontainer instances.
+     */
+    protected static void assumeCloudChroma() {
+        Assume.assumeTrue(
+            "Skipping: this test requires Chroma Cloud (schema/configured EF not available locally)",
+            System.getenv("CHROMA_API_KEY") != null
+        );
+    }
+
+    /**
      * Skips the current test if the configured Chroma version is below {@code minVersion}.
      * Uses JUnit 4 {@link Assume#assumeTrue} so the test is marked as "skipped", not "failed".
      *

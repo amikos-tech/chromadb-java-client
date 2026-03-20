@@ -63,6 +63,7 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
 
     @Test
     public void testCreateCollectionWithTopLevelSchemaRoundTrip() {
+        assumeCloudChroma();
         String templateName = uniqueCollectionName("schema_template_");
         Collection template = client.createCollection(templateName);
         assertNotNull(template.getSchema());
@@ -80,6 +81,7 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
 
     @Test
     public void testCreateCollectionWithConfigurationSchemaCompatibilityRoundTrip() {
+        assumeCloudChroma();
         String templateName = uniqueCollectionName("schema_cfg_template_");
         Collection template = client.createCollection(templateName);
         assertNotNull(template.getSchema());
@@ -101,6 +103,7 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
 
     @Test
     public void testConfigurationSchemaRoundTripPreservesEmptyDefaultsObject() {
+        assumeCloudChroma();
         String templateName = uniqueCollectionName("schema_cfg_defaults_template_");
         Collection template = client.createCollection(templateName);
         assertNotNull(template.getSchema());
@@ -182,6 +185,7 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
 
     @Test
     public void testQueryTextsFromConfiguredProviderWithoutCredentialsFailsPredictably() {
+        assumeCloudChroma();
         String name = uniqueCollectionName("query_texts_openai_cfg_");
         EmbeddingFunctionSpec spec = EmbeddingFunctionSpec.builder()
                 .type("known")
@@ -218,6 +222,7 @@ public class SchemaAndQueryTextsIntegrationTest extends AbstractChromaIntegratio
 
     @Test
     public void testModifyConfigurationRejectsSpannUpdateWhenSchemaUsesHnsw() {
+        assumeCloudChroma();
         Collection template = client.createCollection(uniqueCollectionName("schema_conflict_template_"));
         assertNotNull(template.getSchema());
         Schema schema = template.getSchema();
