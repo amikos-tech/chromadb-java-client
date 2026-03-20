@@ -109,14 +109,15 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Embeddings & ID Extensibility | 3/3 | Complete   | 2026-03-19 |
 | 4. Compatibility & Test Matrix | 2/2 | Complete   | 2026-03-20 |
 | 5. Documentation & Release Readiness | 2/2 | Complete   | 2026-03-20 |
-| 6. Tech Debt Cleanup | 0/0 | Not planned | — |
+| 6. Tech Debt Cleanup | 0/2 | Planned | — |
 
 ### Phase 6: Tech Debt Cleanup
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Fix documentation inaccuracies, CI workflow issues, bump nd4j patch version, and wire inert assumeMinVersion() helper.
+**Requirements**: [DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, ASSUME-WIRE, ND4J-BUMP]
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — Fix README doc bugs (HF constructor, Sha256 description, v1 examples) and wire assumeMinVersion
+- [ ] 06-02-PLAN.md — Fix release.yml (remove branches filter, add release-check step) and bump nd4j to M2.1
