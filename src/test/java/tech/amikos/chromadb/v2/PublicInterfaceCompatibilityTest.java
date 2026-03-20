@@ -2,21 +2,325 @@ package tech.amikos.chromadb.v2;
 
 import org.junit.Test;
 import okhttp3.OkHttpClient;
+import tech.amikos.chromadb.embeddings.EmbeddingFunction;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class PublicInterfaceCompatibilityTest {
 
+    // Expected declared method counts — update these when intentionally adding/removing public methods
+    private static final int EXPECTED_CLIENT_METHOD_COUNT = 26;
+    private static final int EXPECTED_COLLECTION_METHOD_COUNT = 18;
+    private static final int EXPECTED_ADD_BUILDER_METHOD_COUNT = 11;
+    private static final int EXPECTED_QUERY_BUILDER_METHOD_COUNT = 9;
+    private static final int EXPECTED_GET_BUILDER_METHOD_COUNT = 8;
+    private static final int EXPECTED_UPDATE_BUILDER_METHOD_COUNT = 8;
+    private static final int EXPECTED_UPSERT_BUILDER_METHOD_COUNT = 11;
+    private static final int EXPECTED_DELETE_BUILDER_METHOD_COUNT = 5;
+    private static final int EXPECTED_BUILDER_METHOD_COUNT = 34;
+    private static final int EXPECTED_CLOUD_BUILDER_METHOD_COUNT = 8;
+
+    // === Method count assertions ===
+
+    @Test
+    public void testClientInterfaceMethodCount() {
+        assertEquals(
+                "Client public method count changed — update EXPECTED_CLIENT_METHOD_COUNT if intentional",
+                EXPECTED_CLIENT_METHOD_COUNT,
+                Client.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testCollectionInterfaceMethodCount() {
+        assertEquals(
+                "Collection public method count changed — update EXPECTED_COLLECTION_METHOD_COUNT if intentional",
+                EXPECTED_COLLECTION_METHOD_COUNT,
+                Collection.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testAddBuilderMethodCount() {
+        assertEquals(
+                "Collection.AddBuilder public method count changed — update EXPECTED_ADD_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_ADD_BUILDER_METHOD_COUNT,
+                Collection.AddBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testQueryBuilderMethodCount() {
+        assertEquals(
+                "Collection.QueryBuilder public method count changed — update EXPECTED_QUERY_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_QUERY_BUILDER_METHOD_COUNT,
+                Collection.QueryBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testGetBuilderMethodCount() {
+        assertEquals(
+                "Collection.GetBuilder public method count changed — update EXPECTED_GET_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_GET_BUILDER_METHOD_COUNT,
+                Collection.GetBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testUpdateBuilderMethodCount() {
+        assertEquals(
+                "Collection.UpdateBuilder public method count changed — update EXPECTED_UPDATE_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_UPDATE_BUILDER_METHOD_COUNT,
+                Collection.UpdateBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testUpsertBuilderMethodCount() {
+        assertEquals(
+                "Collection.UpsertBuilder public method count changed — update EXPECTED_UPSERT_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_UPSERT_BUILDER_METHOD_COUNT,
+                Collection.UpsertBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testDeleteBuilderMethodCount() {
+        assertEquals(
+                "Collection.DeleteBuilder public method count changed — update EXPECTED_DELETE_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_DELETE_BUILDER_METHOD_COUNT,
+                Collection.DeleteBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testChromaClientBuilderMethodCount() {
+        assertEquals(
+                "ChromaClient.Builder public method count changed — update EXPECTED_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_BUILDER_METHOD_COUNT,
+                ChromaClient.Builder.class.getDeclaredMethods().length
+        );
+    }
+
+    @Test
+    public void testChromaClientCloudBuilderMethodCount() {
+        assertEquals(
+                "ChromaClient.CloudBuilder public method count changed — update EXPECTED_CLOUD_BUILDER_METHOD_COUNT if intentional",
+                EXPECTED_CLOUD_BUILDER_METHOD_COUNT,
+                ChromaClient.CloudBuilder.class.getDeclaredMethods().length
+        );
+    }
+
+    // === Client interface method existence ===
+
+    @Test
+    public void testClientHeartbeatMethod() throws Exception {
+        Method method = Client.class.getMethod("heartbeat");
+        assertEquals(String.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientVersionMethod() throws Exception {
+        Method method = Client.class.getMethod("version");
+        assertEquals(String.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientPreFlightMethod() throws Exception {
+        Method method = Client.class.getMethod("preFlight");
+        assertEquals(PreFlightInfo.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientGetIdentityMethod() throws Exception {
+        Method method = Client.class.getMethod("getIdentity");
+        assertEquals(Identity.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientResetMethod() throws Exception {
+        Method method = Client.class.getMethod("reset");
+        assertEquals(void.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientCreateTenantMethod() throws Exception {
+        Method method = Client.class.getMethod("createTenant", String.class);
+        assertEquals(Tenant.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientGetTenantMethod() throws Exception {
+        Method method = Client.class.getMethod("getTenant", String.class);
+        assertEquals(Tenant.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientCreateCollectionMethod() throws Exception {
+        Method method = Client.class.getMethod("createCollection", String.class);
+        assertEquals(Collection.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientGetCollectionMethod() throws Exception {
+        Method method = Client.class.getMethod("getCollection", String.class);
+        assertEquals(Collection.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientListCollectionsMethod() throws Exception {
+        Method method = Client.class.getMethod("listCollections");
+        assertEquals(List.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientDeleteCollectionMethod() throws Exception {
+        Method method = Client.class.getMethod("deleteCollection", String.class);
+        assertEquals(void.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientCountCollectionsMethod() throws Exception {
+        Method method = Client.class.getMethod("countCollections");
+        assertEquals(int.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientCreateDatabaseMethod() throws Exception {
+        Method method = Client.class.getMethod("createDatabase", String.class);
+        assertEquals(Database.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientGetDatabaseMethod() throws Exception {
+        Method method = Client.class.getMethod("getDatabase", String.class);
+        assertEquals(Database.class, method.getReturnType());
+    }
+
+    @Test
+    public void testClientListDatabasesMethod() throws Exception {
+        Method method = Client.class.getMethod("listDatabases");
+        assertEquals(List.class, method.getReturnType());
+    }
+
+    // === Collection interface method existence ===
+
+    @Test
+    public void testCollectionAddMethod() throws Exception {
+        Method method = Collection.class.getMethod("add");
+        assertEquals(Collection.AddBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionQueryMethod() throws Exception {
+        Method method = Collection.class.getMethod("query");
+        assertEquals(Collection.QueryBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionGetMethod() throws Exception {
+        Method method = Collection.class.getMethod("get");
+        assertEquals(Collection.GetBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionUpdateMethod() throws Exception {
+        Method method = Collection.class.getMethod("update");
+        assertEquals(Collection.UpdateBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionUpsertMethod() throws Exception {
+        Method method = Collection.class.getMethod("upsert");
+        assertEquals(Collection.UpsertBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionDeleteMethod() throws Exception {
+        Method method = Collection.class.getMethod("delete");
+        assertEquals(Collection.DeleteBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionCountMethod() throws Exception {
+        Method method = Collection.class.getMethod("count");
+        assertEquals(int.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionModifyNameMethod() throws Exception {
+        Method method = Collection.class.getMethod("modifyName", String.class);
+        assertEquals(void.class, method.getReturnType());
+    }
+
+    // === Builder method existence ===
+
+    @Test
+    public void testBuilderBaseUrlMethod() throws Exception {
+        Method method = ChromaClient.Builder.class.getMethod("baseUrl", String.class);
+        assertEquals(ChromaClient.Builder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testBuilderAuthMethod() throws Exception {
+        Method method = ChromaClient.Builder.class.getMethod("auth", AuthProvider.class);
+        assertEquals(ChromaClient.Builder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testBuilderTimeoutMethod() throws Exception {
+        Method method = ChromaClient.Builder.class.getMethod("timeout", Duration.class);
+        assertEquals(ChromaClient.Builder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testBuilderBuildMethod() throws Exception {
+        Method method = ChromaClient.Builder.class.getMethod("build");
+        assertEquals(Client.class, method.getReturnType());
+    }
+
+    // === CloudBuilder method existence ===
+
+    @Test
+    public void testCloudBuilderApiKeyMethod() throws Exception {
+        Method method = ChromaClient.CloudBuilder.class.getMethod("apiKey", String.class);
+        assertEquals(ChromaClient.CloudBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCloudBuilderTenantMethod() throws Exception {
+        Method method = ChromaClient.CloudBuilder.class.getMethod("tenant", String.class);
+        assertEquals(ChromaClient.CloudBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCloudBuilderDatabaseMethod() throws Exception {
+        Method method = ChromaClient.CloudBuilder.class.getMethod("database", String.class);
+        assertEquals(ChromaClient.CloudBuilder.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCloudBuilderBuildMethod() throws Exception {
+        Method method = ChromaClient.CloudBuilder.class.getMethod("build");
+        assertEquals(Client.class, method.getReturnType());
+    }
+
+    // === Default method status (existing) ===
+
     @Test
     public void testClientGetCollectionWithEmbeddingFunctionIsDefaultMethod() throws Exception {
         Method method = Client.class.getMethod(
                 "getCollection",
                 String.class,
-                tech.amikos.chromadb.embeddings.EmbeddingFunction.class
+                EmbeddingFunction.class
         );
         assertTrue(method.isDefault());
     }
@@ -26,6 +330,8 @@ public class PublicInterfaceCompatibilityTest {
         Method method = Collection.class.getMethod("getSchema");
         assertTrue(method.isDefault());
     }
+
+    // === Builder-specific methods (existing) ===
 
     @Test
     public void testAddBuilderHasIdGeneratorMethod() throws Exception {
