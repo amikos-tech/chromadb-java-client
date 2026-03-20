@@ -24,4 +24,11 @@ public interface GetResult {
 
     /** Present when {@link Include#URIS} is requested; otherwise may be {@code null}. */
     List<String> getUris();
+
+    /**
+     * Returns all results as a row-oriented group.
+     *
+     * @return group of rows, one per matching record
+     */
+    ResultGroup<ResultRow> rows();
 }

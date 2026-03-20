@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 final class QueryResultImpl implements QueryResult {
 
@@ -80,6 +83,38 @@ final class QueryResultImpl implements QueryResult {
     @Override
     public List<List<String>> getUris() {
         return uris;
+    }
+
+    @Override
+    public ResultGroup<QueryResultRow> rows(int queryIndex) {
+        List<String> colIds = ids.get(queryIndex); // throws IOOBE if bad index
+        List<QueryResultRow> result = new ArrayList<QueryResultRow>(colIds.size());
+        for (int i = 0; i < colIds.size(); i++) {
+            result.add(new QueryResultRowImpl(
+                    colIds.get(i),
+                    documents  == null ? null : documents.get(queryIndex).get(i),
+                    metadatas  == null ? null : metadatas.get(queryIndex).get(i),
+                    embeddings == null ? null : embeddings.get(queryIndex).get(i),
+                    uris       == null ? null : uris.get(queryIndex).get(i),
+                    distances  == null ? null : distances.get(queryIndex).get(i)
+            ));
+        }
+        return new ResultGroupImpl<QueryResultRow>(result);
+    }
+
+    @Override
+    public int groupCount() {
+        return ids.size();
+    }
+
+    @Override
+    public Stream<ResultGroup<QueryResultRow>> stream() {
+        return IntStream.range(0, ids.size()).mapToObj(new IntFunction<ResultGroup<QueryResultRow>>() {
+            @Override
+            public ResultGroup<QueryResultRow> apply(int i) {
+                return rows(i);
+            }
+        });
     }
 
     private static <T> List<List<T>> immutableNestedList(List<List<T>> source) {

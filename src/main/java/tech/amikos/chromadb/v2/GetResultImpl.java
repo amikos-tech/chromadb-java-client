@@ -66,6 +66,21 @@ final class GetResultImpl implements GetResult {
         return uris;
     }
 
+    @Override
+    public ResultGroup<ResultRow> rows() {
+        List<ResultRow> result = new ArrayList<ResultRow>(ids.size());
+        for (int i = 0; i < ids.size(); i++) {
+            result.add(new ResultRowImpl(
+                    ids.get(i),
+                    documents  == null ? null : documents.get(i),
+                    metadatas  == null ? null : metadatas.get(i),
+                    embeddings == null ? null : embeddings.get(i),
+                    uris       == null ? null : uris.get(i)
+            ));
+        }
+        return new ResultGroupImpl<ResultRow>(result);
+    }
+
     private static <T> List<T> immutableList(List<T> list) {
         if (list == null) {
             return null;

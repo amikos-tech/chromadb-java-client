@@ -2,6 +2,7 @@ package tech.amikos.chromadb.v2;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Result from a query operation.
@@ -28,4 +29,19 @@ public interface QueryResult {
 
     /** Present when {@link Include#URIS} is requested; otherwise may be {@code null}. */
     List<List<String>> getUris();
+
+    /**
+     * Returns the results for the specified query input as a row-oriented group.
+     *
+     * @param queryIndex zero-based index of the query input
+     * @return group of rows for that query input
+     * @throws IndexOutOfBoundsException if queryIndex is out of range
+     */
+    ResultGroup<QueryResultRow> rows(int queryIndex);
+
+    /** Returns the number of query inputs (outer list size of ids). */
+    int groupCount();
+
+    /** Returns a stream over all query groups, enabling flatMap patterns. */
+    Stream<ResultGroup<QueryResultRow>> stream();
 }
