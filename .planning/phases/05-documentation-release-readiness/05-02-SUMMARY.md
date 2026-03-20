@@ -74,7 +74,7 @@ Each task was committed atomically:
 1. **Task 1: Add release-check and release-dry-run Makefile targets** - `87cd07b` (feat)
 2. **Task 2: Fix release.yml to run tests and upgrade action versions** - `8f74b62` (fix)
 
-**Plan metadata:** TBD (docs: complete plan)
+**Plan metadata:** `0982177` (docs: complete plan)
 
 ## Files Created/Modified
 - `Makefile` - Added release-check and release-dry-run targets under Release Targets section
@@ -100,6 +100,15 @@ None - no external service configuration required.
 - Phase 05 (documentation-release-readiness) is now complete with all 2 plans executed
 - Release gate is operational: `make release-check` and `make release-dry-run` are ready for maintainer use before tagging
 - `release.yml` is test-gated and uses current action versions
+
+## Self-Check: PASSED
+
+- Makefile: FOUND
+- .github/workflows/release.yml: FOUND
+- 05-02-SUMMARY.md: FOUND
+- Commit 87cd07b (Task 1): FOUND
+- Commit 8f74b62 (Task 2): FOUND
+- Commit 0982177 (metadata): FOUND
 
 ---
 *Phase: 05-documentation-release-readiness*
