@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Create ResultRow, QueryResultRow, ResultGroup type hierarchy with impls and unit tests
+- [x] 01-01-PLAN.md — Create ResultRow, QueryResultRow, ResultGroup type hierarchy with impls and unit tests
 - [ ] 01-02-PLAN.md — Wire row access into QueryResult/GetResult and add integration tests
 - [ ] 01-03-PLAN.md — Implement WhereDocument typed operators and replace stubs with real tests
 

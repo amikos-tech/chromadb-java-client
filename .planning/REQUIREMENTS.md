@@ -9,7 +9,7 @@ Requirements for the current milestone. Each maps to roadmap phases.
 
 ### Result Ergonomics
 
-- [ ] **ERGO-01**: User can iterate query/get results row-by-row via `ResultRow`, `rows()`, and `at(index)` instead of column-oriented access only.
+- [x] **ERGO-01**: User can iterate query/get results row-by-row via `ResultRow`, `rows()`, and `at(index)` instead of column-oriented access only.
 - [ ] **ERGO-02**: User can use typed `WhereDocument.contains()` and `WhereDocument.notContains()` helpers in get/query builders with correct serialization.
 
 ### Collection API Extensions
@@ -57,7 +57,7 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ERGO-01 | Phase 1 | Pending |
+| ERGO-01 | Phase 1 | Complete |
 | ERGO-02 | Phase 1 | Pending |
 | COLL-01 | Phase 2 | Pending |
 | COLL-02 | Phase 2 | Pending |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 07-readme-embedding-examples-07-01-PLAN.md
-last_updated: "2026-03-20T17:44:55.534Z"
+stopped_at: Completed 01-result-ergonomics-wheredocument-01-01-PLAN.md
+last_updated: "2026-03-20T19:15:11.419Z"
 progress:
-  total_phases: 5
+  total_phases: 10
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 16
+  completed_plans: 14
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 07 — readme-embedding-examples
+**Current focus:** Phase 01 — result-ergonomics-wheredocument
 
 ## Current Position
 
-Phase: 07 (readme-embedding-examples) — EXECUTING
-Plan: 1 of 1
+Phase: 01 (result-ergonomics-wheredocument) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: 1 of 1
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-tech-debt-cleanup P01 | 5 | 2 tasks | 3 files |
 | Phase 07-readme-embedding-examples P01 | 3min | 2 tasks | 2 files |
+| Phase 01-result-ergonomics-wheredocument P01 | 2min | 1 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase 06-tech-debt-cleanup]: testAssumeMinVersionSmokeTest uses assumeMinVersion(1.0.0) which always passes on all matrix versions, making it a safe non-inert wiring proof
 - [Phase 07-readme-embedding-examples]: v1 Cohere stays minimal — apiKey only (WithParam.apiKey(apiKey)), no model param per locked Phase 07 context decision
 - [Phase 07-readme-embedding-examples]: 8 WithParam import threshold (4 v2 + 4 v1) asserted in test to prevent future import drift
+- [Phase 01-result-ergonomics-wheredocument]: ResultRow fields return null (not Optional) when Include not requested — consistent with existing GetResult/QueryResult approach
+- [Phase 01-result-ergonomics-wheredocument]: QueryResultRowImpl uses composition (wraps ResultRowImpl) to avoid code duplication without inheritance
+- [Phase 01-result-ergonomics-wheredocument]: Defensive copy applied on every getEmbedding() call, not just construction, to prevent aliasing across callers
 
 ### Roadmap Evolution
 
@@ -118,6 +122,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:41:11.137Z
-Stopped at: Completed 07-readme-embedding-examples-07-01-PLAN.md
+Last session: 2026-03-20T19:15:11.417Z
+Stopped at: Completed 01-result-ergonomics-wheredocument-01-01-PLAN.md
 Resume file: None
