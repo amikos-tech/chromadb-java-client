@@ -2,6 +2,7 @@ package tech.amikos.chromadb.v2;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Result from a get operation. Flat lists of matching records.
@@ -31,4 +32,11 @@ public interface GetResult {
      * @return group of rows, one per matching record
      */
     ResultGroup<ResultRow> rows();
+
+    /**
+     * Returns a sequential {@link Stream} of the result rows.
+     *
+     * <p>Equivalent to {@code rows().stream()}.
+     */
+    Stream<ResultRow> stream();
 }

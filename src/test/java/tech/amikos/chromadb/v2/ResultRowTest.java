@@ -488,12 +488,7 @@ public class ResultRowTest {
         QueryResultImpl result = QueryResultImpl.from(dto);
 
         long totalRows = result.stream()
-                .flatMap(new java.util.function.Function<ResultGroup<QueryResultRow>, java.util.stream.Stream<QueryResultRow>>() {
-                    @Override
-                    public java.util.stream.Stream<QueryResultRow> apply(ResultGroup<QueryResultRow> g) {
-                        return g.stream();
-                    }
-                })
+                .flatMap(ResultGroup::stream)
                 .count();
         assertEquals(6L, totalRows);
     }
@@ -519,5 +514,156 @@ public class ResultRowTest {
         ResultGroup<QueryResultRow> group = result.rows(0);
         assertNull(group.get(0).getDistance());
         assertNull(group.get(1).getDistance());
+    }
+
+    // -----------------------------------------------------------------------
+    // Caching: rows() returns same reference on repeated calls
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testGetResultRowsCachesResult() {
+        ChromaDtos.GetResponse dto = buildGetResponse(3, true, true, true, true);
+        GetResultImpl result = GetResultImpl.from(dto);
+
+        ResultGroup<ResultRow> first = result.rows();
+        ResultGroup<ResultRow> second = result.rows();
+        assertSame(first, second);
+    }
+
+    @Test
+    public void testQueryResultRowsCachesPerIndex() {
+        ChromaDtos.QueryResponse dto = buildQueryResponse(2, 3, true, false, true);
+        QueryResultImpl result = QueryResultImpl.from(dto);
+
+        ResultGroup<QueryResultRow> first0 = result.rows(0);
+        ResultGroup<QueryResultRow> second0 = result.rows(0);
+        assertSame(first0, second0);
+
+        ResultGroup<QueryResultRow> first1 = result.rows(1);
+        ResultGroup<QueryResultRow> second1 = result.rows(1);
+        assertSame(first1, second1);
+
+        assertNotSame(first0, first1);
+    }
+
+    // -----------------------------------------------------------------------
+    // GetResult.stream()
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testGetResultStream() {
+        ChromaDtos.GetResponse dto = buildGetResponse(3, true, false, false, false);
+        GetResultImpl result = GetResultImpl.from(dto);
+
+        List<String> ids = result.stream()
+                .map(ResultRow::getId)
+                .collect(Collectors.toList());
+        assertEquals(Arrays.asList("id0", "id1", "id2"), ids);
+    }
+
+    // -----------------------------------------------------------------------
+    // ResultRowImpl: equals / hashCode / toString
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testResultRowEqualsAndHashCode() {
+        Map<String, Object> meta = new LinkedHashMap<String, Object>();
+        meta.put("key", "value");
+        float[] emb = new float[]{0.1f, 0.2f};
+
+        ResultRowImpl a = new ResultRowImpl("id-1", "doc", meta, emb, "uri");
+        ResultRowImpl b = new ResultRowImpl("id-1", "doc", meta, emb, "uri");
+
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void testResultRowNotEqualsDifferentId() {
+        ResultRowImpl a = new ResultRowImpl("id-1", null, null, null, null);
+        ResultRowImpl b = new ResultRowImpl("id-2", null, null, null, null);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testResultRowNotEqualsDifferentEmbedding() {
+        ResultRowImpl a = new ResultRowImpl("id-1", null, null, new float[]{1.0f}, null);
+        ResultRowImpl b = new ResultRowImpl("id-1", null, null, new float[]{2.0f}, null);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testResultRowEqualsNull() {
+        ResultRowImpl a = new ResultRowImpl("id-1", null, null, null, null);
+        assertNotEquals(a, null);
+    }
+
+    @Test
+    public void testResultRowToString() {
+        ResultRowImpl row = new ResultRowImpl("id-1", "doc", null, null, null);
+        String str = row.toString();
+        assertTrue(str.contains("id-1"));
+        assertTrue(str.contains("doc"));
+        assertTrue(str.startsWith("ResultRow{"));
+    }
+
+    // -----------------------------------------------------------------------
+    // QueryResultRowImpl: equals / hashCode / toString
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testQueryResultRowEqualsAndHashCode() {
+        QueryResultRowImpl a = new QueryResultRowImpl("id-1", "doc", null, null, null, 0.5f);
+        QueryResultRowImpl b = new QueryResultRowImpl("id-1", "doc", null, null, null, 0.5f);
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void testQueryResultRowNotEqualsDifferentDistance() {
+        QueryResultRowImpl a = new QueryResultRowImpl("id-1", "doc", null, null, null, 0.5f);
+        QueryResultRowImpl b = new QueryResultRowImpl("id-1", "doc", null, null, null, 0.9f);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testQueryResultRowToString() {
+        QueryResultRowImpl row = new QueryResultRowImpl("id-1", "doc", null, null, null, 0.42f);
+        String str = row.toString();
+        assertTrue(str.contains("id-1"));
+        assertTrue(str.contains("0.42"));
+        assertTrue(str.startsWith("QueryResultRow{"));
+    }
+
+    // -----------------------------------------------------------------------
+    // ResultGroupImpl: equals / hashCode / toString
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void testResultGroupEqualsAndHashCode() {
+        ResultRowImpl row = new ResultRowImpl("id-0", "doc", null, null, null);
+        ResultGroupImpl<ResultRow> a = new ResultGroupImpl<ResultRow>(Arrays.<ResultRow>asList(row));
+        ResultGroupImpl<ResultRow> b = new ResultGroupImpl<ResultRow>(Arrays.<ResultRow>asList(row));
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void testResultGroupNotEquals() {
+        ResultRowImpl row0 = new ResultRowImpl("id-0", null, null, null, null);
+        ResultRowImpl row1 = new ResultRowImpl("id-1", null, null, null, null);
+        ResultGroupImpl<ResultRow> a = new ResultGroupImpl<ResultRow>(Arrays.<ResultRow>asList(row0));
+        ResultGroupImpl<ResultRow> b = new ResultGroupImpl<ResultRow>(Arrays.<ResultRow>asList(row1));
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void testResultGroupToString() {
+        ResultRowImpl row = new ResultRowImpl("id-0", null, null, null, null);
+        ResultGroupImpl<ResultRow> group = new ResultGroupImpl<ResultRow>(
+                Arrays.<ResultRow>asList(row));
+        String str = group.toString();
+        assertTrue(str.startsWith("ResultGroup["));
+        assertTrue(str.contains("id-0"));
     }
 }

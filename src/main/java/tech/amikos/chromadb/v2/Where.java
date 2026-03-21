@@ -204,12 +204,9 @@ public abstract class Where {
     /**
      * Logical conjunction of child clauses.
      *
-     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
-     * Some Chroma deployments may require two or more clauses.</p>
-     *
-     * @param conditions one or more non-null where clauses
+     * @param conditions two or more non-null where clauses
      * @return where clause equivalent to {@code {"$and":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where and(Where... conditions) { return logicalCondition(OP_AND, conditions); }
@@ -217,12 +214,9 @@ public abstract class Where {
     /**
      * Logical disjunction of child clauses.
      *
-     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
-     * Some Chroma deployments may require two or more clauses.</p>
-     *
-     * @param conditions one or more non-null where clauses
+     * @param conditions two or more non-null where clauses
      * @return where clause equivalent to {@code {"$or":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where or(Where... conditions) { return logicalCondition(OP_OR, conditions); }
@@ -381,8 +375,8 @@ public abstract class Where {
 
     private static Where logicalCondition(String operator, Where... conditions) {
         requireNonNullArgument(conditions, "conditions");
-        if (conditions.length == 0) {
-            throw new IllegalArgumentException("conditions must contain at least 1 clause");
+        if (conditions.length < 2) {
+            throw new IllegalArgumentException("conditions must contain at least 2 clauses");
         }
 
         List<Map<String, Object>> clauses = new ArrayList<Map<String, Object>>(conditions.length);

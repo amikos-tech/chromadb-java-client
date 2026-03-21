@@ -100,9 +100,9 @@ public abstract class WhereDocument {
     /**
      * Logical conjunction of child document filter clauses.
      *
-     * @param conditions one or more non-null where_document clauses
+     * @param conditions two or more non-null where_document clauses
      * @return where_document clause equivalent to {@code {"$and":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  or contains null entries
      */
     public static WhereDocument and(WhereDocument... conditions) {
@@ -112,9 +112,9 @@ public abstract class WhereDocument {
     /**
      * Logical disjunction of child document filter clauses.
      *
-     * @param conditions one or more non-null where_document clauses
+     * @param conditions two or more non-null where_document clauses
      * @return where_document clause equivalent to {@code {"$or":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  or contains null entries
      */
     public static WhereDocument or(WhereDocument... conditions) {
@@ -141,15 +141,14 @@ public abstract class WhereDocument {
     // --- Private helpers ---
 
     private static WhereDocument leafCondition(String operator, String value) {
-        Map<String, Object> map = new LinkedHashMap<String, Object>();
-        map.put(operator, value);
-        return new MapWhereDocument(Collections.<String, Object>unmodifiableMap(map));
+        return new MapWhereDocument(
+                Collections.<String, Object>singletonMap(operator, value), null);
     }
 
     private static WhereDocument logicalCondition(String operator, WhereDocument... conditions) {
         requireNonNull(conditions, "conditions");
-        if (conditions.length == 0) {
-            throw new IllegalArgumentException("conditions must contain at least 1 clause");
+        if (conditions.length < 2) {
+            throw new IllegalArgumentException("conditions must contain at least 2 clauses");
         }
         List<Map<String, Object>> clauses = new ArrayList<Map<String, Object>>(conditions.length);
         for (int i = 0; i < conditions.length; i++) {
@@ -163,9 +162,10 @@ public abstract class WhereDocument {
             }
             clauses.add(m);
         }
-        Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
-        conditionMap.put(operator, Collections.<Map<String, Object>>unmodifiableList(clauses));
-        return new MapWhereDocument(conditionMap);
+        return new MapWhereDocument(
+                Collections.<String, Object>singletonMap(
+                        operator, Collections.<Map<String, Object>>unmodifiableList(clauses)),
+                null);
     }
 
     private static void requireNonNull(Object value, String fieldName) {
@@ -180,7 +180,7 @@ public abstract class WhereDocument {
         if (trimmed.isEmpty()) {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
-        return trimmed;
+        return value;
     }
 
     private static Map<String, Object> immutableMapCopy(Map<?, ?> source) {
@@ -216,8 +216,14 @@ public abstract class WhereDocument {
     private static final class MapWhereDocument extends WhereDocument {
         private final Map<String, Object> map;
 
+        /** Validates and deep-copies an untrusted map (used by {@link #fromMap}). */
         private MapWhereDocument(Map<?, ?> map) {
             this.map = immutableMapCopy(map);
+        }
+
+        /** Trusted constructor for internally-built immutable maps (skips redundant copy). */
+        private MapWhereDocument(Map<String, Object> validatedMap, Void unused) {
+            this.map = validatedMap;
         }
 
         @Override

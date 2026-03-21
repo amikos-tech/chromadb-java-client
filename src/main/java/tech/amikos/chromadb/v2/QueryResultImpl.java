@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -19,6 +18,10 @@ final class QueryResultImpl implements QueryResult {
     private final List<List<Float>> distances;
     private final List<List<String>> uris;
 
+    @SuppressWarnings("unchecked")
+    private final ResultGroup<QueryResultRow>[] cachedRows;
+
+    @SuppressWarnings("unchecked")
     private QueryResultImpl(List<List<String>> ids, List<List<String>> documents,
                             List<List<Map<String, Object>>> metadatas,
                             List<List<float[]>> embeddings, List<List<Float>> distances,
@@ -29,6 +32,7 @@ final class QueryResultImpl implements QueryResult {
         this.embeddings = immutableNestedEmbeddings(embeddings);
         this.distances = immutableNestedList(distances);
         this.uris = immutableNestedList(uris);
+        this.cachedRows = new ResultGroup[this.ids.size()];
     }
 
     static QueryResultImpl from(ChromaDtos.QueryResponse dto) {
@@ -87,19 +91,24 @@ final class QueryResultImpl implements QueryResult {
 
     @Override
     public ResultGroup<QueryResultRow> rows(int queryIndex) {
-        List<String> colIds = ids.get(queryIndex); // throws IOOBE if bad index
-        List<QueryResultRow> result = new ArrayList<QueryResultRow>(colIds.size());
-        for (int i = 0; i < colIds.size(); i++) {
-            result.add(new QueryResultRowImpl(
-                    colIds.get(i),
-                    documents  == null ? null : documents.get(queryIndex).get(i),
-                    metadatas  == null ? null : metadatas.get(queryIndex).get(i),
-                    embeddings == null ? null : embeddings.get(queryIndex).get(i),
-                    uris       == null ? null : uris.get(queryIndex).get(i),
-                    distances  == null ? null : distances.get(queryIndex).get(i)
-            ));
+        ResultGroup<QueryResultRow> r = cachedRows[queryIndex]; // throws AIOOBE if bad index
+        if (r == null) {
+            List<String> colIds = ids.get(queryIndex);
+            List<QueryResultRow> result = new ArrayList<QueryResultRow>(colIds.size());
+            for (int i = 0; i < colIds.size(); i++) {
+                result.add(new QueryResultRowImpl(
+                        colIds.get(i),
+                        documents  == null ? null : documents.get(queryIndex).get(i),
+                        metadatas  == null ? null : metadatas.get(queryIndex).get(i),
+                        embeddings == null ? null : embeddings.get(queryIndex).get(i),
+                        uris       == null ? null : uris.get(queryIndex).get(i),
+                        distances  == null ? null : distances.get(queryIndex).get(i)
+                ));
+            }
+            r = new ResultGroupImpl<QueryResultRow>(result);
+            cachedRows[queryIndex] = r;
         }
-        return new ResultGroupImpl<QueryResultRow>(result);
+        return r;
     }
 
     @Override
@@ -109,12 +118,7 @@ final class QueryResultImpl implements QueryResult {
 
     @Override
     public Stream<ResultGroup<QueryResultRow>> stream() {
-        return IntStream.range(0, ids.size()).mapToObj(new IntFunction<ResultGroup<QueryResultRow>>() {
-            @Override
-            public ResultGroup<QueryResultRow> apply(int i) {
-                return rows(i);
-            }
-        });
+        return IntStream.range(0, ids.size()).mapToObj(this::rows);
     }
 
     private static <T> List<List<T>> immutableNestedList(List<List<T>> source) {

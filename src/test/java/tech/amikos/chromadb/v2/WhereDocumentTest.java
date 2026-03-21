@@ -155,6 +155,20 @@ public class WhereDocumentTest {
     }
 
     @Test
+    public void testContainsPreservesWhitespace() {
+        Map<String, Object> expected = new LinkedHashMap<String, Object>();
+        expected.put("$contains", "  hello  ");
+        assertEquals(expected, WhereDocument.contains("  hello  ").toMap());
+    }
+
+    @Test
+    public void testNotContainsPreservesWhitespace() {
+        Map<String, Object> expected = new LinkedHashMap<String, Object>();
+        expected.put("$not_contains", "  bye  ");
+        assertEquals(expected, WhereDocument.notContains("  bye  ").toMap());
+    }
+
+    @Test
     public void testNotContainsRejectsNull() {
         try { WhereDocument.notContains(null); fail("Expected IAE"); }
         catch (IllegalArgumentException e) { /* expected */ }
@@ -182,6 +196,18 @@ public class WhereDocumentTest {
     @Test
     public void testAndRejectsEmptyVarargs() {
         try { WhereDocument.and(); fail("Expected IAE"); }
+        catch (IllegalArgumentException e) { /* expected */ }
+    }
+
+    @Test
+    public void testAndRejectsSingleClause() {
+        try { WhereDocument.and(new WhereDocument[]{WhereDocument.contains("a")}); fail("Expected IAE"); }
+        catch (IllegalArgumentException e) { /* expected */ }
+    }
+
+    @Test
+    public void testOrRejectsSingleClause() {
+        try { WhereDocument.or(new WhereDocument[]{WhereDocument.contains("a")}); fail("Expected IAE"); }
         catch (IllegalArgumentException e) { /* expected */ }
     }
 

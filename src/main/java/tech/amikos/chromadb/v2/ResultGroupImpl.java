@@ -51,4 +51,22 @@ final class ResultGroupImpl<R extends ResultRow> implements ResultGroup<R> {
     public List<R> toList() {
         return rows;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ResultGroupImpl)) return false;
+        ResultGroupImpl<?> other = (ResultGroupImpl<?>) obj;
+        return rows.equals(other.rows);
+    }
+
+    @Override
+    public int hashCode() {
+        return rows.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "ResultGroup" + rows.toString();
+    }
 }

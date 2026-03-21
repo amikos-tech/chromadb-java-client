@@ -694,6 +694,40 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         }
     }
 
+    @Test
+    public void testWhereDocumentAndLogicalCombinator() {
+        addSampleRecords(5);
+
+        // $and with 2 clauses: must contain "document" AND must not contain "document 0"
+        GetResult result = collection.get()
+                .whereDocument(WhereDocument.and(
+                        WhereDocument.contains("document"),
+                        WhereDocument.notContains("document 0")
+                ))
+                .execute();
+
+        assertEquals(4, result.getIds().size());
+        assertFalse(result.getIds().contains("id0"));
+    }
+
+    @Test
+    public void testWhereDocumentOrLogicalCombinator() {
+        addSampleRecords(5);
+
+        // $or with 2 clauses: contains "document 0" OR contains "document 1"
+        GetResult result = collection.get()
+                .whereDocument(WhereDocument.or(
+                        WhereDocument.contains("document 0"),
+                        WhereDocument.contains("document 1")
+                ))
+                .include(Include.DOCUMENTS)
+                .execute();
+
+        assertEquals(2, result.getIds().size());
+        assertTrue(result.getIds().contains("id0"));
+        assertTrue(result.getIds().contains("id1"));
+    }
+
     private static void assertLocalWhereDocumentInlineAcceptedOrRejected(Runnable action) {
         try {
             action.run();

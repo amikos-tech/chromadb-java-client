@@ -354,11 +354,9 @@ public class WhereTest {
     }
 
     @Test
-    public void testLogicalCombinatorsAcceptSingleClause() {
-        assertEquals(singletonMap("$and", Arrays.asList(Where.idIn("id1").toMap())),
-                Where.and(new Where[]{Where.idIn("id1")}).toMap());
-        assertEquals(singletonMap("$or", Arrays.asList(Where.idIn("id1").toMap())),
-                Where.or(new Where[]{Where.idIn("id1")}).toMap());
+    public void testLogicalCombinatorsRejectSingleClause() {
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.and(new Where[]{Where.idIn("id1")}); } });
+        assertIllegalArgument(new Runnable() { @Override public void run() { Where.or(new Where[]{Where.idIn("id1")}); } });
     }
 
     @Test

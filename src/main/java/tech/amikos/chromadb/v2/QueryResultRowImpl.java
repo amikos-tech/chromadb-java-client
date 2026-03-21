@@ -1,6 +1,8 @@
 package tech.amikos.chromadb.v2;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Package-private immutable implementation of {@link QueryResultRow}.
@@ -47,5 +49,28 @@ final class QueryResultRowImpl implements QueryResultRow {
     @Override
     public Float getDistance() {
         return distance;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof QueryResultRowImpl)) return false;
+        QueryResultRowImpl other = (QueryResultRowImpl) obj;
+        return base.equals(other.base) && Objects.equals(distance, other.distance);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * base.hashCode() + Objects.hashCode(distance);
+    }
+
+    @Override
+    public String toString() {
+        return "QueryResultRow{id=" + getId()
+                + ", document=" + getDocument()
+                + ", metadata=" + getMetadata()
+                + ", embedding=" + Arrays.toString(getEmbedding())
+                + ", uri=" + getUri()
+                + ", distance=" + distance + "}";
     }
 }
