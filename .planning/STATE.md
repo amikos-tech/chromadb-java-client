@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-collection-api-extensions-02-01-PLAN.md
-last_updated: "2026-03-21T13:36:59.297Z"
+stopped_at: Completed 02-collection-api-extensions-02-02-PLAN.md
+last_updated: "2026-03-21T13:44:30.110Z"
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 02 (api-coverage-completion) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Plan: 2 of 3
 | Phase 01-result-ergonomics-wheredocument P03 | 5 | 2 tasks | 3 files |
 | Phase 01-result-ergonomics-wheredocument P02 | 2 | 2 tasks | 6 files |
 | Phase 02-collection-api-extensions P01 | 3 | 2 tasks | 7 files |
+| Phase 02-collection-api-extensions P02 | 4 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,8 @@ Recent decisions affecting current work:
 - [Phase 02-collection-api-extensions]: fork() passes explicitEmbeddingFunction to from() for EF inheritance in forked collections (not null)
 - [Phase 02-collection-api-extensions]: Cloud-only methods (fork, forkCount, indexingStatus) propagate ChromaNotFoundException naturally on 404 without special handling
 - [Phase 02-collection-api-extensions]: IndexingStatus uses long fields (not int) for op counts matching Chroma API spec; no convenience isComplete() per D-11
+- [Phase 02-collection-api-extensions]: TestContainers tests catch both ChromaNotFoundException and ChromaServerException for skip-on-unavailable — self-hosted returns 5xx for fork/indexingStatus not 404
+- [Phase 02-collection-api-extensions]: Cloud fork test gated by CHROMA_RUN_FORK_TESTS=true to avoid per-call cloud cost in CI
 
 ### Roadmap Evolution
 
@@ -134,6 +137,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T13:36:59.295Z
-Stopped at: Completed 02-collection-api-extensions-02-01-PLAN.md
+Last session: 2026-03-21T13:44:30.107Z
+Stopped at: Completed 02-collection-api-extensions-02-02-PLAN.md
 Resume file: None

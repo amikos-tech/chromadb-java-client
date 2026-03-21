@@ -16,7 +16,7 @@ Requirements for the current milestone. Each maps to roadmap phases.
 
 - [x] **COLL-01**: User can fork (copy) a collection via `collection.fork("newName")` and receive a new Collection reference.
 - [x] **COLL-02**: User can check indexing progress via `collection.indexingStatus()` returning `IndexingStatus` with progress metrics (Chroma >= 1.4.1).
-- [ ] **COLL-03**: Cloud feature parity status for fork and indexing is explicitly audited, tested, and documented.
+- [x] **COLL-03**: Cloud feature parity status for fork and indexing is explicitly audited, tested, and documented.
 
 ### Search API
 
@@ -61,7 +61,7 @@ Deferred to future milestones.
 | ERGO-02 | Phase 1 | Complete |
 | COLL-01 | Phase 2 | Complete |
 | COLL-02 | Phase 2 | Complete |
-| COLL-03 | Phase 2 | Pending |
+| COLL-03 | Phase 2 | Complete |
 | SEARCH-01 | Phase 3 | Pending |
 | SEARCH-02 | Phase 3 | Pending |
 | SEARCH-03 | Phase 3 | Pending |
