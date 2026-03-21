@@ -27,10 +27,11 @@ public interface Client extends AutoCloseable {
     // --- Health & info ---
 
     /**
-     * Returns a heartbeat timestamp confirming the server is reachable.
+     * Returns a nanosecond heartbeat value from the server, confirming it is reachable.
      *
      * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
+     * @return server heartbeat value as a string (nanosecond precision)
      * @throws ChromaConnectionException if the server is unreachable
      */
     String heartbeat();
@@ -269,6 +270,8 @@ public interface Client extends AutoCloseable {
      *
      * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
+     * @param limit  maximum number of collections to return
+     * @param offset number of collections to skip
      * @throws ChromaServerException on server errors
      */
     List<Collection> listCollections(int limit, int offset);

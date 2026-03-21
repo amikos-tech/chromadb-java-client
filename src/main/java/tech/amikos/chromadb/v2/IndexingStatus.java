@@ -1,7 +1,5 @@
 package tech.amikos.chromadb.v2;
 
-import java.util.Objects;
-
 /**
  * Immutable snapshot of collection indexing progress.
  *
@@ -10,6 +8,8 @@ import java.util.Objects;
  * from the four primitive values.</p>
  */
 public final class IndexingStatus {
+
+    private static final double PROGRESS_EPSILON = 1e-6;
 
     private final long numIndexedOps;
     private final long numUnindexedOps;
@@ -26,13 +26,26 @@ public final class IndexingStatus {
     /**
      * Creates an {@code IndexingStatus} snapshot.
      *
-     * @param numIndexedOps      number of operations that have been indexed
-     * @param numUnindexedOps    number of operations not yet indexed
-     * @param totalOps           total number of operations
+     * @param numIndexedOps      number of operations that have been indexed; must not be negative
+     * @param numUnindexedOps    number of operations not yet indexed; must not be negative
+     * @param totalOps           total number of operations; must not be negative
      * @param opIndexingProgress fraction of operations indexed (0.0–1.0)
      * @return new immutable snapshot
+     * @throws IllegalArgumentException if any count is negative or progress is outside [0.0, 1.0]
      */
     public static IndexingStatus of(long numIndexedOps, long numUnindexedOps, long totalOps, double opIndexingProgress) {
+        if (numIndexedOps < 0) {
+            throw new IllegalArgumentException("numIndexedOps must not be negative: " + numIndexedOps);
+        }
+        if (numUnindexedOps < 0) {
+            throw new IllegalArgumentException("numUnindexedOps must not be negative: " + numUnindexedOps);
+        }
+        if (totalOps < 0) {
+            throw new IllegalArgumentException("totalOps must not be negative: " + totalOps);
+        }
+        if (Double.isNaN(opIndexingProgress) || opIndexingProgress < 0.0 || opIndexingProgress > 1.0 + PROGRESS_EPSILON) {
+            throw new IllegalArgumentException("opIndexingProgress must be in [0.0, 1.0]: " + opIndexingProgress);
+        }
         return new IndexingStatus(numIndexedOps, numUnindexedOps, totalOps, opIndexingProgress);
     }
 
@@ -69,7 +82,11 @@ public final class IndexingStatus {
 
     @Override
     public int hashCode() {
-        return Objects.hash(numIndexedOps, numUnindexedOps, totalOps, Double.doubleToLongBits(opIndexingProgress));
+        int result = Long.hashCode(numIndexedOps);
+        result = 31 * result + Long.hashCode(numUnindexedOps);
+        result = 31 * result + Long.hashCode(totalOps);
+        result = 31 * result + Long.hashCode(Double.doubleToLongBits(opIndexingProgress));
+        return result;
     }
 
     @Override

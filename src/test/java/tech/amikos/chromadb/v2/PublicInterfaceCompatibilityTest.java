@@ -269,6 +269,24 @@ public class PublicInterfaceCompatibilityTest {
         assertEquals(void.class, method.getReturnType());
     }
 
+    @Test
+    public void testCollectionForkMethod() throws Exception {
+        Method method = Collection.class.getMethod("fork", String.class);
+        assertEquals(Collection.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionForkCountMethod() throws Exception {
+        Method method = Collection.class.getMethod("forkCount");
+        assertEquals(int.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionIndexingStatusMethod() throws Exception {
+        Method method = Collection.class.getMethod("indexingStatus");
+        assertEquals(IndexingStatus.class, method.getReturnType());
+    }
+
     // === Builder method existence ===
 
     @Test

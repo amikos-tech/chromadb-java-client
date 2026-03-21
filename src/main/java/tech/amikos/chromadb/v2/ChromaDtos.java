@@ -1669,17 +1669,17 @@ final class ChromaDtos {
     }
 
     static final class ForkCountResponse {
-        int count;
+        Integer count;
     }
 
     static final class IndexingStatusResponse {
         @SerializedName("num_indexed_ops")
-        long numIndexedOps;
+        Long numIndexedOps;
         @SerializedName("num_unindexed_ops")
-        long numUnindexedOps;
+        Long numUnindexedOps;
         @SerializedName("total_ops")
-        long totalOps;
+        Long totalOps;
         @SerializedName("op_indexing_progress")
-        double opIndexingProgress;
+        Double opIndexingProgress;
     }
 }

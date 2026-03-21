@@ -168,6 +168,9 @@ public interface Collection {
      *
      * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
+     * @param newName new name for the collection; must not be blank
+     * @throws NullPointerException if {@code newName} is null
+     * @throws IllegalArgumentException if {@code newName} is blank
      * @throws ChromaNotFoundException if the collection no longer exists
      */
     void modifyName(String newName);
@@ -207,15 +210,17 @@ public interface Collection {
      * <p>Fork is copy-on-write on the server: data blocks are shared instantly regardless
      * of collection size. A fork tree has a 256-edge limit; exceeding it returns a quota error.</p>
      *
-     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma returns
-     * {@link ChromaNotFoundException} (404); this exception propagates naturally and will
-     * auto-resolve if the server adds self-hosted fork support.</p>
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma typically returns
+     * {@link ChromaNotFoundException} (404) or {@link ChromaServerException} (5xx); these
+     * exceptions propagate naturally and will auto-resolve if the server adds self-hosted
+     * fork support.</p>
      *
      * @param newName name for the forked collection; must not be blank
      * @return a new {@link Collection} reference for the forked collection
      * @throws NullPointerException if {@code newName} is null
      * @throws IllegalArgumentException if {@code newName} is blank
      * @throws ChromaNotFoundException  on self-hosted Chroma (fork not supported)
+     * @throws ChromaServerException    on self-hosted Chroma (5xx for unsupported operations)
      * @throws ChromaException          on other server errors
      */
     Collection fork(String newName);
@@ -223,11 +228,12 @@ public interface Collection {
     /**
      * Returns the number of forks originating from this collection.
      *
-     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma returns
-     * {@link ChromaNotFoundException} (404).</p>
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma typically returns
+     * {@link ChromaNotFoundException} (404) or {@link ChromaServerException} (5xx).</p>
      *
      * @return number of forks (0 if never forked)
      * @throws ChromaNotFoundException on self-hosted Chroma (fork_count not supported)
+     * @throws ChromaServerException   on self-hosted Chroma (5xx for unsupported operations)
      */
     int forkCount();
 
@@ -235,10 +241,12 @@ public interface Collection {
      * Returns the current indexing progress for this collection.
      *
      * <p><strong>Availability:</strong> Chroma Cloud only (requires Chroma &gt;= 1.4.1).
-     * Self-hosted Chroma returns {@link ChromaNotFoundException} (404).</p>
+     * Self-hosted Chroma typically returns {@link ChromaNotFoundException} (404) or
+     * {@link ChromaServerException} (5xx).</p>
      *
      * @return current {@link IndexingStatus} snapshot
      * @throws ChromaNotFoundException on self-hosted Chroma or Chroma &lt; 1.4.1
+     * @throws ChromaServerException   on self-hosted Chroma (5xx for unsupported operations)
      */
     IndexingStatus indexingStatus();
 
