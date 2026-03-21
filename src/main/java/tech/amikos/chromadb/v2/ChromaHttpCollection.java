@@ -170,6 +170,32 @@ final class ChromaHttpCollection implements Collection {
     }
 
     @Override
+    public Collection fork(String newName) {
+        String normalizedName = requireNonBlankArgument("newName", newName);
+        String path = ChromaApiPaths.collectionFork(tenant.getName(), database.getName(), id);
+        ChromaDtos.CollectionResponse resp = apiClient.post(
+                path,
+                new ChromaDtos.ForkCollectionRequest(normalizedName),
+                ChromaDtos.CollectionResponse.class
+        );
+        return ChromaHttpCollection.from(resp, apiClient, tenant, database, explicitEmbeddingFunction);
+    }
+
+    @Override
+    public int forkCount() {
+        String path = ChromaApiPaths.collectionForkCount(tenant.getName(), database.getName(), id);
+        ChromaDtos.ForkCountResponse resp = apiClient.get(path, ChromaDtos.ForkCountResponse.class);
+        return resp.count;
+    }
+
+    @Override
+    public IndexingStatus indexingStatus() {
+        String path = ChromaApiPaths.collectionIndexingStatus(tenant.getName(), database.getName(), id);
+        ChromaDtos.IndexingStatusResponse resp = apiClient.get(path, ChromaDtos.IndexingStatusResponse.class);
+        return IndexingStatus.of(resp.numIndexedOps, resp.numUnindexedOps, resp.totalOps, resp.opIndexingProgress);
+    }
+
+    @Override
     public void modifyName(String newName) {
         String normalizedName = requireNonBlankArgument("newName", newName);
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);
