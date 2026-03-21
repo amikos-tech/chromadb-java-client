@@ -48,8 +48,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Implement fork/forkCount/indexingStatus core (interfaces, DTOs, paths, HTTP impl, WireMock tests)
-- [ ] 02-02-PLAN.md — Cloud/integration tests, Javadoc Availability tags, README parity table, CHANGELOG
+- [x] 02-01-PLAN.md — Implement fork/forkCount/indexingStatus core (interfaces, DTOs, paths, HTTP impl, WireMock tests)
+- [x] 02-02-PLAN.md — Cloud/integration tests, Javadoc Availability tags, README parity table, CHANGELOG
 
 ### Phase 3: Search API
 **Goal:** Implement the Chroma Search endpoint (v1.5+) with full ranking expression DSL, field projection, groupBy, and read levels — matching Go client capabilities.
