@@ -787,12 +787,7 @@ public class RecordOperationsIntegrationTest extends AbstractChromaIntegrationTe
         }
 
         long flatCount = result.stream()
-                .flatMap(new java.util.function.Function<ResultGroup<QueryResultRow>, java.util.stream.Stream<QueryResultRow>>() {
-                    @Override
-                    public java.util.stream.Stream<QueryResultRow> apply(ResultGroup<QueryResultRow> g) {
-                        return g.stream();
-                    }
-                })
+                .flatMap(ResultGroup::stream)
                 .count();
         assertEquals(3L, flatCount);
     }

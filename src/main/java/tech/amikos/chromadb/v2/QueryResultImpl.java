@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -18,10 +19,8 @@ final class QueryResultImpl implements QueryResult {
     private final List<List<Float>> distances;
     private final List<List<String>> uris;
 
-    @SuppressWarnings("unchecked")
-    private final ResultGroup<QueryResultRow>[] cachedRows;
+    private final AtomicReferenceArray<ResultGroup<QueryResultRow>> cachedRows;
 
-    @SuppressWarnings("unchecked")
     private QueryResultImpl(List<List<String>> ids, List<List<String>> documents,
                             List<List<Map<String, Object>>> metadatas,
                             List<List<float[]>> embeddings, List<List<Float>> distances,
@@ -32,7 +31,7 @@ final class QueryResultImpl implements QueryResult {
         this.embeddings = immutableNestedEmbeddings(embeddings);
         this.distances = immutableNestedList(distances);
         this.uris = immutableNestedList(uris);
-        this.cachedRows = new ResultGroup[this.ids.size()];
+        this.cachedRows = new AtomicReferenceArray<ResultGroup<QueryResultRow>>(this.ids.size());
     }
 
     static QueryResultImpl from(ChromaDtos.QueryResponse dto) {
@@ -91,7 +90,7 @@ final class QueryResultImpl implements QueryResult {
 
     @Override
     public ResultGroup<QueryResultRow> rows(int queryIndex) {
-        ResultGroup<QueryResultRow> r = cachedRows[queryIndex]; // throws AIOOBE if bad index
+        ResultGroup<QueryResultRow> r = cachedRows.get(queryIndex); // throws IOOBE if bad index
         if (r == null) {
             List<String> colIds = ids.get(queryIndex);
             List<QueryResultRow> result = new ArrayList<QueryResultRow>(colIds.size());
@@ -106,7 +105,8 @@ final class QueryResultImpl implements QueryResult {
                 ));
             }
             r = new ResultGroupImpl<QueryResultRow>(result);
-            cachedRows[queryIndex] = r;
+            cachedRows.compareAndSet(queryIndex, null, r);
+            r = cachedRows.get(queryIndex);
         }
         return r;
     }

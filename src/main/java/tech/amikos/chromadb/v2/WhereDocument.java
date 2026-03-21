@@ -162,10 +162,9 @@ public abstract class WhereDocument {
             }
             clauses.add(m);
         }
-        return new MapWhereDocument(
-                Collections.<String, Object>singletonMap(
-                        operator, Collections.<Map<String, Object>>unmodifiableList(clauses)),
-                null);
+        Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
+        conditionMap.put(operator, Collections.<Map<String, Object>>unmodifiableList(clauses));
+        return new MapWhereDocument(conditionMap);
     }
 
     private static void requireNonNull(Object value, String fieldName) {
@@ -229,6 +228,24 @@ public abstract class WhereDocument {
         @Override
         public Map<String, Object> toMap() {
             return map;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (!(obj instanceof MapWhereDocument)) return false;
+            MapWhereDocument other = (MapWhereDocument) obj;
+            return map.equals(other.map);
+        }
+
+        @Override
+        public int hashCode() {
+            return map.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "WhereDocument" + map.toString();
         }
     }
 }

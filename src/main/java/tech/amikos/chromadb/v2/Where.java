@@ -346,13 +346,9 @@ public abstract class Where {
     }
 
     private static Where operatorCondition(String key, String operator, Object operand) {
-        Map<String, Object> operatorMap = new LinkedHashMap<String, Object>();
-        operatorMap.put(operator, operand);
-
-        Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
-        conditionMap.put(key, Collections.<String, Object>unmodifiableMap(operatorMap));
-
-        return new MapWhere(conditionMap);
+        Map<String, Object> outer = new LinkedHashMap<String, Object>(1);
+        outer.put(key, Collections.<String, Object>singletonMap(operator, operand));
+        return new MapWhere(Collections.<String, Object>unmodifiableMap(outer), null);
     }
 
     private static String requireMetadataKey(String key) {
@@ -394,7 +390,6 @@ public abstract class Where {
 
         Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
         conditionMap.put(operator, Collections.<Map<String, Object>>unmodifiableList(clauses));
-
         return new MapWhere(conditionMap);
     }
 
@@ -461,8 +456,14 @@ public abstract class Where {
     private static final class MapWhere extends Where {
         private final Map<String, Object> map;
 
+        /** Validates and deep-copies an untrusted map (used by {@link #fromMap}). */
         private MapWhere(Map<?, ?> map) {
             this.map = immutableMapCopy(map);
+        }
+
+        /** Trusted constructor for internally-built immutable maps (skips redundant copy). */
+        private MapWhere(Map<String, Object> validatedMap, Void unused) {
+            this.map = validatedMap;
         }
 
         @Override
