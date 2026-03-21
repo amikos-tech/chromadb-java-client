@@ -111,6 +111,41 @@ Client client = ChromaClient.cloud()
         .build();
 ```
 
+### Cloud vs Self-Hosted Feature Parity
+
+| Operation | Self-Hosted | Chroma Cloud | Notes |
+|-----------|:-----------:|:------------:|-------|
+| `heartbeat()` | Yes | Yes | |
+| `version()` | Yes | Yes | |
+| `preFlight()` | Yes | Yes | |
+| `getIdentity()` | Yes | Yes | |
+| `reset()` | Yes | No | Server-side reset, not available on cloud |
+| `createTenant()` | Yes | Yes | |
+| `getTenant()` | Yes | Yes | |
+| `createDatabase()` | Yes | Yes | |
+| `getDatabase()` | Yes | Yes | |
+| `listDatabases()` | Yes | Yes | |
+| `deleteDatabase()` | Yes | Yes | |
+| `createCollection()` | Yes | Yes | |
+| `getCollection()` | Yes | Yes | |
+| `getOrCreateCollection()` | Yes | Yes | |
+| `listCollections()` | Yes | Yes | |
+| `deleteCollection()` | Yes | Yes | |
+| `countCollections()` | Yes | Yes | |
+| `collection.add()` | Yes | Yes | |
+| `collection.query()` | Yes | Yes | |
+| `collection.get()` | Yes | Yes | |
+| `collection.update()` | Yes | Yes | |
+| `collection.upsert()` | Yes | Yes | |
+| `collection.delete()` | Yes | Yes | |
+| `collection.count()` | Yes | Yes | |
+| `collection.modifyName()` | Yes | Yes | |
+| `collection.modifyMetadata()` | Yes | Yes | |
+| `collection.modifyConfiguration()` | Yes | Yes | |
+| `collection.fork()` | No | Yes | Copy-on-write; 256-fork-edge limit |
+| `collection.forkCount()` | No | Yes | |
+| `collection.indexingStatus()` | No | Yes | Requires Chroma >= 1.4.1 |
+
 ### Transport Options
 
 `ChromaClient.builder()` supports transport customization for production and platform integration scenarios:

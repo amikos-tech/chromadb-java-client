@@ -25,7 +25,7 @@ public class PublicInterfaceCompatibilityTest {
 
     // Expected declared method counts — update these when intentionally adding/removing public methods
     private static final int EXPECTED_CLIENT_METHOD_COUNT = 26;
-    private static final int EXPECTED_COLLECTION_METHOD_COUNT = 18;
+    private static final int EXPECTED_COLLECTION_METHOD_COUNT = 21;
     private static final int EXPECTED_ADD_BUILDER_METHOD_COUNT = 11;
     private static final int EXPECTED_QUERY_BUILDER_METHOD_COUNT = 9;
     private static final int EXPECTED_GET_BUILDER_METHOD_COUNT = 8;
@@ -267,6 +267,24 @@ public class PublicInterfaceCompatibilityTest {
     public void testCollectionModifyNameMethod() throws Exception {
         Method method = Collection.class.getMethod("modifyName", String.class);
         assertEquals(void.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionForkMethod() throws Exception {
+        Method method = Collection.class.getMethod("fork", String.class);
+        assertEquals(Collection.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionForkCountMethod() throws Exception {
+        Method method = Collection.class.getMethod("forkCount");
+        assertEquals(int.class, method.getReturnType());
+    }
+
+    @Test
+    public void testCollectionIndexingStatusMethod() throws Exception {
+        Method method = Collection.class.getMethod("indexingStatus");
+        assertEquals(IndexingStatus.class, method.getReturnType());
     }
 
     // === Builder method existence ===

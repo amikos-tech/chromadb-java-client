@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-result-ergonomics-wheredocument-01-02-PLAN.md
-last_updated: "2026-03-20T19:26:09.775Z"
+stopped_at: Completed 02-collection-api-extensions-02-02-PLAN.md
+last_updated: "2026-03-21T13:50:18.109Z"
 progress:
   total_phases: 10
-  completed_phases: 6
-  total_plans: 16
-  completed_plans: 16
+  completed_phases: 7
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 01 — result-ergonomics-wheredocument
+**Current focus:** Phase 03 — Search API (Phase 02 Collection API Extensions complete)
 
 ## Current Position
 
-Phase: 02
+Phase: 03
 Plan: Not started
 
 ## Performance Metrics
@@ -62,6 +62,8 @@ Plan: Not started
 | Phase 01-result-ergonomics-wheredocument P01 | 2min | 1 tasks | 7 files |
 | Phase 01-result-ergonomics-wheredocument P03 | 5 | 2 tasks | 3 files |
 | Phase 01-result-ergonomics-wheredocument P02 | 2 | 2 tasks | 6 files |
+| Phase 02-collection-api-extensions P01 | 3 | 2 tasks | 7 files |
+| Phase 02-collection-api-extensions P02 | 4 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -114,6 +116,12 @@ Recent decisions affecting current work:
 - [Phase 01-result-ergonomics-wheredocument]: No no-arg rows() on QueryResult (per D-14): callers must always specify queryIndex to be explicit about which query group
 - [Phase 01-result-ergonomics-wheredocument]: IntFunction anonymous class used in QueryResultImpl.stream() for Java 8 compatibility (avoids lambda syntax)
 - [Phase 01-result-ergonomics-wheredocument]: Column-slice null-safe access: if a field list is null (not included), all rows return null for that field
+- [Phase 02-collection-api-extensions]: forkCount() uses ForkCountResponse DTO (not Integer.class) because server returns {count: N} JSON object
+- [Phase 02-collection-api-extensions]: fork() passes explicitEmbeddingFunction to from() for EF inheritance in forked collections (not null)
+- [Phase 02-collection-api-extensions]: Cloud-only methods (fork, forkCount, indexingStatus) propagate ChromaNotFoundException naturally on 404 without special handling
+- [Phase 02-collection-api-extensions]: IndexingStatus uses long fields (not int) for op counts matching Chroma API spec; no convenience isComplete() per D-11
+- [Phase 02-collection-api-extensions]: TestContainers tests catch both ChromaNotFoundException and ChromaServerException for skip-on-unavailable — self-hosted returns 5xx for fork/indexingStatus not 404
+- [Phase 02-collection-api-extensions]: Cloud fork test gated by CHROMA_RUN_FORK_TESTS=true to avoid per-call cloud cost in CI
 
 ### Roadmap Evolution
 
@@ -129,6 +137,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T19:22:23.232Z
-Stopped at: Completed 01-result-ergonomics-wheredocument-01-02-PLAN.md
+Last session: 2026-03-21T13:44:30.107Z
+Stopped at: Completed 02-collection-api-extensions-02-02-PLAN.md
 Resume file: None

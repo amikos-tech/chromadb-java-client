@@ -170,6 +170,45 @@ final class ChromaHttpCollection implements Collection {
     }
 
     @Override
+    public Collection fork(String newName) {
+        String normalizedName = requireNonBlankArgument("newName", newName);
+        String path = ChromaApiPaths.collectionFork(tenant.getName(), database.getName(), id);
+        ChromaDtos.CollectionResponse resp = apiClient.post(
+                path,
+                new ChromaDtos.ForkCollectionRequest(normalizedName),
+                ChromaDtos.CollectionResponse.class
+        );
+        return ChromaHttpCollection.from(resp, apiClient, tenant, database, explicitEmbeddingFunction);
+    }
+
+    @Override
+    public int forkCount() {
+        String path = ChromaApiPaths.collectionForkCount(tenant.getName(), database.getName(), id);
+        ChromaDtos.ForkCountResponse resp = apiClient.get(path, ChromaDtos.ForkCountResponse.class);
+        if (resp.count == null) {
+            throw new ChromaDeserializationException(
+                    "Server returned fork_count response with missing 'count' field", 200);
+        }
+        return resp.count;
+    }
+
+    @Override
+    public IndexingStatus indexingStatus() {
+        String path = ChromaApiPaths.collectionIndexingStatus(tenant.getName(), database.getName(), id);
+        ChromaDtos.IndexingStatusResponse resp = apiClient.get(path, ChromaDtos.IndexingStatusResponse.class);
+        List<String> missing = new ArrayList<String>();
+        if (resp.numIndexedOps == null) missing.add("num_indexed_ops");
+        if (resp.numUnindexedOps == null) missing.add("num_unindexed_ops");
+        if (resp.totalOps == null) missing.add("total_ops");
+        if (resp.opIndexingProgress == null) missing.add("op_indexing_progress");
+        if (!missing.isEmpty()) {
+            throw new ChromaDeserializationException(
+                    "Server returned indexing_status response with missing required fields: " + missing, 200);
+        }
+        return IndexingStatus.of(resp.numIndexedOps, resp.numUnindexedOps, resp.totalOps, resp.opIndexingProgress);
+    }
+
+    @Override
     public void modifyName(String newName) {
         String normalizedName = requireNonBlankArgument("newName", newName);
         String path = ChromaApiPaths.collectionById(tenant.getName(), database.getName(), id);

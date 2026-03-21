@@ -46,18 +46,53 @@ import java.util.Map;
  */
 public interface Collection {
 
+    /**
+     * Returns the unique server-assigned identifier for this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     String getId();
 
+    /**
+     * Returns the name of this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     String getName();
 
+    /**
+     * Returns the tenant that owns this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Tenant getTenant();
 
+    /**
+     * Returns the database that contains this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Database getDatabase();
 
+    /**
+     * Returns the collection-level metadata map, or {@code null} if no metadata was set.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Map<String, Object> getMetadata();
 
+    /**
+     * Returns the declared embedding dimension, or {@code null} if not specified.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Integer getDimension();
 
+    /**
+     * Returns the runtime configuration for this collection, or {@code null} if not set.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     CollectionConfiguration getConfiguration();
 
     /**
@@ -66,6 +101,8 @@ public interface Collection {
      * <p>When both schema sources are present in server payloads, top-level {@code schema}
      * takes precedence over {@code configuration.schema}. After initial resolution, local
      * configuration updates only backfill schema when no schema has been resolved yet.</p>
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      */
     default Schema getSchema() {
         return null;
@@ -73,29 +110,76 @@ public interface Collection {
 
     // --- Record operations ---
 
+    /**
+     * Returns a builder for adding records to this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     AddBuilder add();
 
+    /**
+     * Returns a builder for querying records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     QueryBuilder query();
 
+    /**
+     * Returns a builder for getting records from this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     GetBuilder get();
 
+    /**
+     * Returns a builder for updating records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     UpdateBuilder update();
 
+    /**
+     * Returns a builder for upserting records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     UpsertBuilder upsert();
 
+    /**
+     * Returns a builder for deleting records from this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     DeleteBuilder delete();
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Returns the total number of records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     int count();
 
     // --- Modification ---
 
-    /** @throws ChromaNotFoundException if the collection no longer exists */
+    /**
+     * Renames this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @param newName new name for the collection; must not be blank
+     * @throws NullPointerException if {@code newName} is null
+     * @throws IllegalArgumentException if {@code newName} is blank
+     * @throws ChromaNotFoundException if the collection no longer exists
+     */
     void modifyName(String newName);
 
     /**
      * Sends a partial metadata update to the server and applies the same merge to this local
      * collection snapshot (last write wins on key collisions).
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
      * @param metadata non-null map of metadata keys to merge
      * @throws NullPointerException if {@code metadata} is null
@@ -108,6 +192,8 @@ public interface Collection {
      *
      * <p>Exactly one configuration group must be provided: HNSW or SPANN.</p>
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @param config non-null runtime configuration update
      * @throws NullPointerException if {@code config} is null
      * @throws IllegalArgumentException if {@code config} is empty, mixes HNSW and SPANN fields,
@@ -115,6 +201,54 @@ public interface Collection {
      * @throws ChromaNotFoundException if the collection no longer exists
      */
     void modifyConfiguration(UpdateCollectionConfiguration config);
+
+    // --- Cloud operations ---
+
+    /**
+     * Creates a copy of this collection with the given name in the same tenant and database.
+     *
+     * <p>Fork is copy-on-write on the server: data blocks are shared instantly regardless
+     * of collection size. A fork tree has a 256-edge limit; exceeding it returns a quota error.</p>
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma typically returns
+     * {@link ChromaNotFoundException} (404) or {@link ChromaServerException} (5xx); these
+     * exceptions propagate naturally and will auto-resolve if the server adds self-hosted
+     * fork support.</p>
+     *
+     * @param newName name for the forked collection; must not be blank
+     * @return a new {@link Collection} reference for the forked collection
+     * @throws NullPointerException if {@code newName} is null
+     * @throws IllegalArgumentException if {@code newName} is blank
+     * @throws ChromaNotFoundException  on self-hosted Chroma (fork not supported)
+     * @throws ChromaServerException    on self-hosted Chroma (5xx for unsupported operations)
+     * @throws ChromaException          on other server errors
+     */
+    Collection fork(String newName);
+
+    /**
+     * Returns the number of forks originating from this collection.
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma typically returns
+     * {@link ChromaNotFoundException} (404) or {@link ChromaServerException} (5xx).</p>
+     *
+     * @return number of forks (0 if never forked)
+     * @throws ChromaNotFoundException on self-hosted Chroma (fork_count not supported)
+     * @throws ChromaServerException   on self-hosted Chroma (5xx for unsupported operations)
+     */
+    int forkCount();
+
+    /**
+     * Returns the current indexing progress for this collection.
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only (requires Chroma &gt;= 1.4.1).
+     * Self-hosted Chroma typically returns {@link ChromaNotFoundException} (404) or
+     * {@link ChromaServerException} (5xx).</p>
+     *
+     * @return current {@link IndexingStatus} snapshot
+     * @throws ChromaNotFoundException on self-hosted Chroma or Chroma &lt; 1.4.1
+     * @throws ChromaServerException   on self-hosted Chroma (5xx for unsupported operations)
+     */
+    IndexingStatus indexingStatus();
 
     // --- Builders ---
 

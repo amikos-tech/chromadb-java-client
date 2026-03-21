@@ -1656,4 +1656,30 @@ final class ChromaDtos {
     private interface DoubleConsumer {
         void accept(double value);
     }
+
+    // --- Fork / Indexing Status ---
+
+    static final class ForkCollectionRequest {
+        @SerializedName("new_name")
+        final String newName;
+
+        ForkCollectionRequest(String newName) {
+            this.newName = newName;
+        }
+    }
+
+    static final class ForkCountResponse {
+        Integer count;
+    }
+
+    static final class IndexingStatusResponse {
+        @SerializedName("num_indexed_ops")
+        Long numIndexedOps;
+        @SerializedName("num_unindexed_ops")
+        Long numUnindexedOps;
+        @SerializedName("total_ops")
+        Long totalOps;
+        @SerializedName("op_indexing_progress")
+        Double opIndexingProgress;
+    }
 }
