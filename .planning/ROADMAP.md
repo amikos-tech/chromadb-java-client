@@ -37,7 +37,7 @@ Plans:
 - [x] 01-03-PLAN.md — Implement WhereDocument typed operators and replace stubs with real tests
 
 ### Phase 2: Collection API Extensions
-**Goal:** Add cloud-relevant collection operations (fork, indexing status) and audit cloud feature parity for these capabilities.
+**Goal:** Add cloud-relevant collection operations (fork, forkCount, indexing status) and audit cloud feature parity for all v2 operations.
 **Depends on:** Phase 1
 **Requirements:** [COLL-01, COLL-02, COLL-03]
 **Issues:** #99, #100, #131
@@ -45,7 +45,11 @@ Plans:
   1. User can fork a collection via `collection.fork("newName")`.
   2. User can check indexing progress via `collection.indexingStatus()` returning progress metrics.
   3. Cloud feature parity status for fork and indexing is explicitly documented (supported, partial, or unsupported).
-**Plans:** TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Implement fork/forkCount/indexingStatus core (interfaces, DTOs, paths, HTTP impl, WireMock tests)
+- [ ] 02-02-PLAN.md — Cloud/integration tests, Javadoc Availability tags, README parity table, CHANGELOG
 
 ### Phase 3: Search API
 **Goal:** Implement the Chroma Search endpoint (v1.5+) with full ranking expression DSL, field projection, groupBy, and read levels — matching Go client capabilities.
@@ -95,7 +99,7 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
-| 2. Collection API Extensions | 0/TBD | Pending | — |
+| 2. Collection API Extensions | 0/2 | Pending | — |
 | 3. Search API | 0/TBD | Pending | — |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
 | 5. Cloud Integration Testing | 0/TBD | Pending | — |
