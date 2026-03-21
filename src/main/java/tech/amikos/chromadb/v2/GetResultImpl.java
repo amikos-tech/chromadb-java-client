@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 final class GetResultImpl implements GetResult {
 
@@ -14,6 +15,8 @@ final class GetResultImpl implements GetResult {
     private final List<Map<String, Object>> metadatas;
     private final List<float[]> embeddings;
     private final List<String> uris;
+
+    private volatile ResultGroup<ResultRow> cachedRows;
 
     private GetResultImpl(List<String> ids, List<String> documents,
                           List<Map<String, Object>> metadatas,
@@ -64,6 +67,31 @@ final class GetResultImpl implements GetResult {
     @Override
     public List<String> getUris() {
         return uris;
+    }
+
+    @Override
+    public ResultGroup<ResultRow> rows() {
+        ResultGroup<ResultRow> r = cachedRows;
+        if (r == null) {
+            List<ResultRow> result = new ArrayList<ResultRow>(ids.size());
+            for (int i = 0; i < ids.size(); i++) {
+                result.add(new ResultRowImpl(
+                        ids.get(i),
+                        documents  == null ? null : documents.get(i),
+                        metadatas  == null ? null : metadatas.get(i),
+                        embeddings == null ? null : embeddings.get(i),
+                        uris       == null ? null : uris.get(i)
+                ));
+            }
+            r = new ResultGroupImpl<ResultRow>(result);
+            cachedRows = r;
+        }
+        return r;
+    }
+
+    @Override
+    public Stream<ResultRow> stream() {
+        return rows().stream();
     }
 
     private static <T> List<T> immutableList(List<T> list) {

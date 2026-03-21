@@ -204,12 +204,9 @@ public abstract class Where {
     /**
      * Logical conjunction of child clauses.
      *
-     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
-     * Some Chroma deployments may require two or more clauses.</p>
-     *
-     * @param conditions one or more non-null where clauses
+     * @param conditions two or more non-null where clauses
      * @return where clause equivalent to {@code {"$and":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where and(Where... conditions) { return logicalCondition(OP_AND, conditions); }
@@ -217,12 +214,9 @@ public abstract class Where {
     /**
      * Logical disjunction of child clauses.
      *
-     * <p><strong>Compatibility:</strong> one-clause logical expressions are serialized as provided.
-     * Some Chroma deployments may require two or more clauses.</p>
-     *
-     * @param conditions one or more non-null where clauses
+     * @param conditions two or more non-null where clauses
      * @return where clause equivalent to {@code {"$or":[...]}}
-     * @throws IllegalArgumentException if {@code conditions} is null, empty,
+     * @throws IllegalArgumentException if {@code conditions} is null, has fewer than 2 elements,
      *                                  contains null entries, or contains a clause with null {@code toMap()} output
      */
     public static Where or(Where... conditions) { return logicalCondition(OP_OR, conditions); }
@@ -352,13 +346,9 @@ public abstract class Where {
     }
 
     private static Where operatorCondition(String key, String operator, Object operand) {
-        Map<String, Object> operatorMap = new LinkedHashMap<String, Object>();
-        operatorMap.put(operator, operand);
-
-        Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
-        conditionMap.put(key, Collections.<String, Object>unmodifiableMap(operatorMap));
-
-        return new MapWhere(conditionMap);
+        Map<String, Object> outer = new LinkedHashMap<String, Object>(1);
+        outer.put(key, Collections.<String, Object>singletonMap(operator, operand));
+        return new MapWhere(Collections.<String, Object>unmodifiableMap(outer), null);
     }
 
     private static String requireMetadataKey(String key) {
@@ -381,8 +371,8 @@ public abstract class Where {
 
     private static Where logicalCondition(String operator, Where... conditions) {
         requireNonNullArgument(conditions, "conditions");
-        if (conditions.length == 0) {
-            throw new IllegalArgumentException("conditions must contain at least 1 clause");
+        if (conditions.length < 2) {
+            throw new IllegalArgumentException("conditions must contain at least 2 clauses");
         }
 
         List<Map<String, Object>> clauses = new ArrayList<Map<String, Object>>(conditions.length);
@@ -400,7 +390,6 @@ public abstract class Where {
 
         Map<String, Object> conditionMap = new LinkedHashMap<String, Object>();
         conditionMap.put(operator, Collections.<Map<String, Object>>unmodifiableList(clauses));
-
         return new MapWhere(conditionMap);
     }
 
@@ -467,8 +456,14 @@ public abstract class Where {
     private static final class MapWhere extends Where {
         private final Map<String, Object> map;
 
+        /** Validates and deep-copies an untrusted map (used by {@link #fromMap}). */
         private MapWhere(Map<?, ?> map) {
             this.map = immutableMapCopy(map);
+        }
+
+        /** Trusted constructor for internally-built immutable maps (skips redundant copy). */
+        private MapWhere(Map<String, Object> validatedMap, Void unused) {
+            this.map = validatedMap;
         }
 
         @Override

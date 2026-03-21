@@ -29,7 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. User can iterate query/get results row-by-row via `ResultRow`, `rows()`, and `at(index)`.
   2. User can use `WhereDocument.contains()` and `WhereDocument.notContains()` in get/query builders with correct serialization.
   3. Unit and integration tests validate both features end-to-end.
-**Plans:** TBD
+**Plans:** 2/3 plans executed
+
+Plans:
+- [x] 01-01-PLAN.md — Create ResultRow, QueryResultRow, ResultGroup type hierarchy with impls and unit tests
+- [x] 01-02-PLAN.md — Wire row access into QueryResult/GetResult and add integration tests
+- [x] 01-03-PLAN.md — Implement WhereDocument typed operators and replace stubs with real tests
 
 ### Phase 2: Collection API Extensions
 **Goal:** Add cloud-relevant collection operations (fork, indexing status) and audit cloud feature parity for these capabilities.
@@ -89,7 +94,7 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Result Ergonomics & WhereDocument | 0/TBD | Pending | — |
+| 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
 | 2. Collection API Extensions | 0/TBD | Pending | — |
 | 3. Search API | 0/TBD | Pending | — |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 07-readme-embedding-examples-07-01-PLAN.md
-last_updated: "2026-03-20T17:44:55.534Z"
+stopped_at: Completed 01-result-ergonomics-wheredocument-01-02-PLAN.md
+last_updated: "2026-03-20T19:26:09.775Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_phases: 10
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 07 — readme-embedding-examples
+**Current focus:** Phase 01 — result-ergonomics-wheredocument
 
 ## Current Position
 
-Phase: 07 (readme-embedding-examples) — EXECUTING
-Plan: 1 of 1
+Phase: 02
+Plan: Not started
 
 ## Performance Metrics
 
@@ -59,6 +59,9 @@ Plan: 1 of 1
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-tech-debt-cleanup P01 | 5 | 2 tasks | 3 files |
 | Phase 07-readme-embedding-examples P01 | 3min | 2 tasks | 2 files |
+| Phase 01-result-ergonomics-wheredocument P01 | 2min | 1 tasks | 7 files |
+| Phase 01-result-ergonomics-wheredocument P03 | 5 | 2 tasks | 3 files |
+| Phase 01-result-ergonomics-wheredocument P02 | 2 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -103,6 +106,14 @@ Recent decisions affecting current work:
 - [Phase 06-tech-debt-cleanup]: testAssumeMinVersionSmokeTest uses assumeMinVersion(1.0.0) which always passes on all matrix versions, making it a safe non-inert wiring proof
 - [Phase 07-readme-embedding-examples]: v1 Cohere stays minimal — apiKey only (WithParam.apiKey(apiKey)), no model param per locked Phase 07 context decision
 - [Phase 07-readme-embedding-examples]: 8 WithParam import threshold (4 v2 + 4 v1) asserted in test to prevent future import drift
+- [Phase 01-result-ergonomics-wheredocument]: ResultRow fields return null (not Optional) when Include not requested — consistent with existing GetResult/QueryResult approach
+- [Phase 01-result-ergonomics-wheredocument]: QueryResultRowImpl uses composition (wraps ResultRowImpl) to avoid code duplication without inheritance
+- [Phase 01-result-ergonomics-wheredocument]: Defensive copy applied on every getEmbedding() call, not just construction, to prevent aliasing across callers
+- [Phase 01-result-ergonomics-wheredocument]: contains/notContains reject null and blank strings; regex/notRegex reject only null (empty string is valid regex)
+- [Phase 01-result-ergonomics-wheredocument]: WhereDocument.contains() Javadoc clarifies distinction from Where.documentContains() per D-18: WhereDocument is local-compatible path, Where#documentContains is Cloud-oriented inline filter
+- [Phase 01-result-ergonomics-wheredocument]: No no-arg rows() on QueryResult (per D-14): callers must always specify queryIndex to be explicit about which query group
+- [Phase 01-result-ergonomics-wheredocument]: IntFunction anonymous class used in QueryResultImpl.stream() for Java 8 compatibility (avoids lambda syntax)
+- [Phase 01-result-ergonomics-wheredocument]: Column-slice null-safe access: if a field list is null (not included), all rows return null for that field
 
 ### Roadmap Evolution
 
@@ -118,6 +129,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-20T16:41:11.137Z
-Stopped at: Completed 07-readme-embedding-examples-07-01-PLAN.md
+Last session: 2026-03-20T19:22:23.232Z
+Stopped at: Completed 01-result-ergonomics-wheredocument-01-02-PLAN.md
 Resume file: None
