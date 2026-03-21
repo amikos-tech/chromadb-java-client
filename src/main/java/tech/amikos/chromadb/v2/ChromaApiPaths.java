@@ -105,6 +105,18 @@ final class ChromaApiPaths {
         return collectionById(tenant, db, id) + "/count";
     }
 
+    static String collectionFork(String tenant, String db, String id) {
+        return collectionById(tenant, db, id) + "/fork";
+    }
+
+    static String collectionForkCount(String tenant, String db, String id) {
+        return collectionById(tenant, db, id) + "/fork_count";
+    }
+
+    static String collectionIndexingStatus(String tenant, String db, String id) {
+        return collectionById(tenant, db, id) + "/indexing_status";
+    }
+
     // URLEncoder produces '+' for spaces (form encoding); path segments need '%20' per RFC 3986 §3.3.
     private static String encode(String segment) {
         if (segment == null) {

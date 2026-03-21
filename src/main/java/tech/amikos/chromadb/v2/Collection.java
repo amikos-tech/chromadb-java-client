@@ -116,6 +116,49 @@ public interface Collection {
      */
     void modifyConfiguration(UpdateCollectionConfiguration config);
 
+    // --- Cloud operations ---
+
+    /**
+     * Creates a copy of this collection with the given name in the same tenant and database.
+     *
+     * <p>Fork is copy-on-write on the server: data blocks are shared instantly regardless
+     * of collection size. A fork tree has a 256-edge limit; exceeding it returns a quota error.</p>
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma returns
+     * {@link ChromaNotFoundException} (404); this exception propagates naturally and will
+     * auto-resolve if the server adds self-hosted fork support.</p>
+     *
+     * @param newName name for the forked collection; must not be blank
+     * @return a new {@link Collection} reference for the forked collection
+     * @throws NullPointerException if {@code newName} is null
+     * @throws IllegalArgumentException if {@code newName} is blank
+     * @throws ChromaNotFoundException  on self-hosted Chroma (fork not supported)
+     * @throws ChromaException          on other server errors
+     */
+    Collection fork(String newName);
+
+    /**
+     * Returns the number of forks originating from this collection.
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only. Self-hosted Chroma returns
+     * {@link ChromaNotFoundException} (404).</p>
+     *
+     * @return number of forks (0 if never forked)
+     * @throws ChromaNotFoundException on self-hosted Chroma (fork_count not supported)
+     */
+    int forkCount();
+
+    /**
+     * Returns the current indexing progress for this collection.
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud only (requires Chroma &gt;= 1.4.1).
+     * Self-hosted Chroma returns {@link ChromaNotFoundException} (404).</p>
+     *
+     * @return current {@link IndexingStatus} snapshot
+     * @throws ChromaNotFoundException on self-hosted Chroma or Chroma &lt; 1.4.1
+     */
+    IndexingStatus indexingStatus();
+
     // --- Builders ---
 
     interface AddBuilder {

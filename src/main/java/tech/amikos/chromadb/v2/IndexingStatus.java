@@ -1,0 +1,84 @@
+package tech.amikos.chromadb.v2;
+
+import java.util.Objects;
+
+/**
+ * Immutable snapshot of collection indexing progress.
+ *
+ * <p>Returned by {@link Collection#indexingStatus()}. All fields are server-authoritative.
+ * No computed convenience properties are exposed — callers derive any derived metrics
+ * from the four primitive values.</p>
+ */
+public final class IndexingStatus {
+
+    private final long numIndexedOps;
+    private final long numUnindexedOps;
+    private final long totalOps;
+    private final double opIndexingProgress;
+
+    private IndexingStatus(long numIndexedOps, long numUnindexedOps, long totalOps, double opIndexingProgress) {
+        this.numIndexedOps = numIndexedOps;
+        this.numUnindexedOps = numUnindexedOps;
+        this.totalOps = totalOps;
+        this.opIndexingProgress = opIndexingProgress;
+    }
+
+    /**
+     * Creates an {@code IndexingStatus} snapshot.
+     *
+     * @param numIndexedOps      number of operations that have been indexed
+     * @param numUnindexedOps    number of operations not yet indexed
+     * @param totalOps           total number of operations
+     * @param opIndexingProgress fraction of operations indexed (0.0–1.0)
+     * @return new immutable snapshot
+     */
+    public static IndexingStatus of(long numIndexedOps, long numUnindexedOps, long totalOps, double opIndexingProgress) {
+        return new IndexingStatus(numIndexedOps, numUnindexedOps, totalOps, opIndexingProgress);
+    }
+
+    /** Returns the number of operations that have been indexed. */
+    public long getNumIndexedOps() {
+        return numIndexedOps;
+    }
+
+    /** Returns the number of operations not yet indexed. */
+    public long getNumUnindexedOps() {
+        return numUnindexedOps;
+    }
+
+    /** Returns the total number of operations. */
+    public long getTotalOps() {
+        return totalOps;
+    }
+
+    /** Returns the fraction of operations that have been indexed (0.0–1.0). */
+    public double getOpIndexingProgress() {
+        return opIndexingProgress;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof IndexingStatus)) return false;
+        IndexingStatus that = (IndexingStatus) o;
+        return numIndexedOps == that.numIndexedOps
+                && numUnindexedOps == that.numUnindexedOps
+                && totalOps == that.totalOps
+                && Double.compare(opIndexingProgress, that.opIndexingProgress) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(numIndexedOps, numUnindexedOps, totalOps, Double.doubleToLongBits(opIndexingProgress));
+    }
+
+    @Override
+    public String toString() {
+        return "IndexingStatus{"
+                + "numIndexedOps=" + numIndexedOps
+                + ", numUnindexedOps=" + numUnindexedOps
+                + ", totalOps=" + totalOps
+                + ", opIndexingProgress=" + opIndexingProgress
+                + '}';
+    }
+}
