@@ -13,7 +13,7 @@ This roadmap defines milestone `0.3.0` which extends the stable v2 Java client (
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Result Ergonomics & WhereDocument** — Add row-based result access and complete WhereDocument typed helpers.
-- [ ] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
+- [x] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
 - [ ] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels.
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata.
@@ -45,7 +45,7 @@ Plans:
   1. User can fork a collection via `collection.fork("newName")`.
   2. User can check indexing progress via `collection.indexingStatus()` returning progress metrics.
   3. Cloud feature parity status for fork and indexing is explicitly documented (supported, partial, or unsupported).
-**Plans:** 2 plans
+**Plans:** 2/2 plans executed
 
 Plans:
 - [x] 02-01-PLAN.md — Implement fork/forkCount/indexingStatus core (interfaces, DTOs, paths, HTTP impl, WireMock tests)
@@ -99,7 +99,7 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
-| 2. Collection API Extensions | 0/2 | Pending | — |
+| 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 0/TBD | Pending | — |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
 | 5. Cloud Integration Testing | 0/TBD | Pending | — |

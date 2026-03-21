@@ -4,7 +4,7 @@ milestone: v1.5
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 02-collection-api-extensions-02-02-PLAN.md
-last_updated: "2026-03-21T13:44:30.110Z"
+last_updated: "2026-03-21T13:50:18.109Z"
 progress:
   total_phases: 10
   completed_phases: 7
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 02 — api-coverage-completion
+**Current focus:** Phase 03 — Search API (Phase 02 Collection API Extensions complete)
 
 ## Current Position
 
-Phase: 02 (api-coverage-completion) — EXECUTING
-Plan: 3 of 3
+Phase: 03
+Plan: Not started
 
 ## Performance Metrics
 
