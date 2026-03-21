@@ -46,18 +46,53 @@ import java.util.Map;
  */
 public interface Collection {
 
+    /**
+     * Returns the unique server-assigned identifier for this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     String getId();
 
+    /**
+     * Returns the name of this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     String getName();
 
+    /**
+     * Returns the tenant that owns this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Tenant getTenant();
 
+    /**
+     * Returns the database that contains this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Database getDatabase();
 
+    /**
+     * Returns the collection-level metadata map, or {@code null} if no metadata was set.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Map<String, Object> getMetadata();
 
+    /**
+     * Returns the declared embedding dimension, or {@code null} if not specified.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     Integer getDimension();
 
+    /**
+     * Returns the runtime configuration for this collection, or {@code null} if not set.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     CollectionConfiguration getConfiguration();
 
     /**
@@ -66,6 +101,8 @@ public interface Collection {
      * <p>When both schema sources are present in server payloads, top-level {@code schema}
      * takes precedence over {@code configuration.schema}. After initial resolution, local
      * configuration updates only backfill schema when no schema has been resolved yet.</p>
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      */
     default Schema getSchema() {
         return null;
@@ -73,29 +110,73 @@ public interface Collection {
 
     // --- Record operations ---
 
+    /**
+     * Returns a builder for adding records to this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     AddBuilder add();
 
+    /**
+     * Returns a builder for querying records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     QueryBuilder query();
 
+    /**
+     * Returns a builder for getting records from this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     GetBuilder get();
 
+    /**
+     * Returns a builder for updating records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     UpdateBuilder update();
 
+    /**
+     * Returns a builder for upserting records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     UpsertBuilder upsert();
 
+    /**
+     * Returns a builder for deleting records from this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     */
     DeleteBuilder delete();
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Returns the total number of records in this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     int count();
 
     // --- Modification ---
 
-    /** @throws ChromaNotFoundException if the collection no longer exists */
+    /**
+     * Renames this collection.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaNotFoundException if the collection no longer exists
+     */
     void modifyName(String newName);
 
     /**
      * Sends a partial metadata update to the server and applies the same merge to this local
      * collection snapshot (last write wins on key collisions).
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
      * @param metadata non-null map of metadata keys to merge
      * @throws NullPointerException if {@code metadata} is null
@@ -107,6 +188,8 @@ public interface Collection {
      * Updates mutable runtime indexing parameters for this collection.
      *
      * <p>Exactly one configuration group must be provided: HNSW or SPANN.</p>
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
      * @param config non-null runtime configuration update
      * @throws NullPointerException if {@code config} is null

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Collection.fork(String newName)` — copy-on-write collection fork (Chroma Cloud only)
+- `Collection.forkCount()` — returns the number of forks for a collection (Chroma Cloud only)
+- `Collection.indexingStatus()` — returns current indexing progress as `IndexingStatus` value object (Chroma Cloud only, Chroma >= 1.4.1)
+- `IndexingStatus` immutable value object with `getNumIndexedOps()`, `getNumUnindexedOps()`, `getTotalOps()`, `getOpIndexingProgress()`
+- Cloud integration tests for fork, forkCount, and indexingStatus (`CollectionApiExtensionsCloudTest`)
+- TestContainers integration tests for fork, forkCount, and indexingStatus with auto-skip on 404/5xx (`CollectionApiExtensionsIntegrationTest`)
+- Cloud vs Self-Hosted feature parity table in README covering all 30 v2 operations
+- `<strong>Availability:</strong>` Javadoc tags on all v2 Collection and Client methods
+
 ## [0.2.0] - UNRELEASED
 
 ### Added

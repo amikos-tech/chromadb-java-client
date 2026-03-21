@@ -26,14 +26,28 @@ public interface Client extends AutoCloseable {
 
     // --- Health & info ---
 
-    /** @throws ChromaConnectionException if the server is unreachable */
+    /**
+     * Returns a heartbeat timestamp confirming the server is reachable.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaConnectionException if the server is unreachable
+     */
     String heartbeat();
 
-    /** @throws ChromaConnectionException if the server is unreachable */
+    /**
+     * Returns the server version string.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaConnectionException if the server is unreachable
+     */
     String version();
 
     /**
      * Performs server capability discovery and returns operational limits.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
      *
      * @throws ChromaConnectionException if the server is unreachable
      */
@@ -42,24 +56,40 @@ public interface Client extends AutoCloseable {
     /**
      * Returns identity details for the currently authenticated principal.
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaConnectionException if the server is unreachable
      * @throws ChromaUnauthorizedException if authentication is missing/invalid
      * @throws ChromaForbiddenException if access is denied
      */
     Identity getIdentity();
 
-    /** @throws ChromaServerException if the server rejects the reset */
+    /**
+     * Resets the server, removing all tenants, databases, and collections.
+     *
+     * <p><strong>Availability:</strong> Self-hosted only. Not available on Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException if the server rejects the reset
+     */
     void reset();
 
     // --- Tenant ---
 
     /**
+     * Creates a new tenant with the given name.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaConflictException if the tenant already exists
      * @throws ChromaServerException on server errors
      */
     Tenant createTenant(String name);
 
     /**
+     * Returns the tenant with the given name.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the tenant does not exist
      */
     Tenant getTenant(String name);
@@ -78,6 +108,8 @@ public interface Client extends AutoCloseable {
      * <p>This method updates only local client session context and does not verify that the
      * tenant exists on the server.</p>
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud (client-side only).</p>
+     *
      * @param tenant tenant to use for subsequent tenant-scoped calls
      * @throws NullPointerException if {@code tenant} is null
      */
@@ -86,6 +118,8 @@ public interface Client extends AutoCloseable {
     /**
      * Returns the active tenant in this client session.
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud (client-side only).</p>
+     *
      * @return current non-null tenant snapshot
      */
     Tenant currentTenant();
@@ -93,12 +127,20 @@ public interface Client extends AutoCloseable {
     // --- Database ---
 
     /**
+     * Creates a new database with the given name in the active tenant.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaConflictException if the database already exists
      * @throws ChromaServerException on server errors
      */
     Database createDatabase(String name);
 
     /**
+     * Returns the database with the given name in the active tenant.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the database does not exist
      */
     Database getDatabase(String name);
@@ -112,6 +154,8 @@ public interface Client extends AutoCloseable {
      * <p>This method updates only local client session context and does not verify that the
      * database exists on the server.</p>
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud (client-side only).</p>
+     *
      * @param database database to use for subsequent collection calls
      * @throws NullPointerException if {@code database} is null
      */
@@ -120,14 +164,26 @@ public interface Client extends AutoCloseable {
     /**
      * Returns the active database in this client session.
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud (client-side only).</p>
+     *
      * @return current non-null database snapshot
      */
     Database currentDatabase();
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Lists all databases in the active tenant.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     List<Database> listDatabases();
 
     /**
+     * Deletes the database with the given name from the active tenant.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the database does not exist
      */
     void deleteDatabase(String name);
@@ -135,18 +191,30 @@ public interface Client extends AutoCloseable {
     // --- Collection lifecycle ---
 
     /**
+     * Creates a new collection with the given name in the active tenant and database.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaConflictException if a collection with this name already exists
      * @throws ChromaServerException on server errors
      */
     Collection createCollection(String name);
 
     /**
+     * Creates a new collection with the given name and options in the active tenant and database.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaConflictException if a collection with this name already exists
      * @throws ChromaServerException on server errors
      */
     Collection createCollection(String name, CreateCollectionOptions options);
 
     /**
+     * Returns the collection with the given name.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the collection does not exist
      */
     Collection getCollection(String name);
@@ -161,6 +229,8 @@ public interface Client extends AutoCloseable {
      * {@link #getCollection(String)} and does not bind {@code embeddingFunction}.
      * Implementations should override this method to attach runtime embedding functions.</p>
      *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the collection does not exist
      */
     default Collection getCollection(String name, tech.amikos.chromadb.embeddings.EmbeddingFunction embeddingFunction) {
@@ -168,31 +238,66 @@ public interface Client extends AutoCloseable {
     }
 
     /**
+     * Returns an existing collection with the given name, or creates it if it does not exist.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaServerException on server errors
      */
     Collection getOrCreateCollection(String name);
 
     /**
+     * Returns an existing collection with the given name and options, or creates it if it does not exist.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaServerException on server errors
      */
     Collection getOrCreateCollection(String name, CreateCollectionOptions options);
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Lists all collections in the active tenant and database.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     List<Collection> listCollections();
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Lists collections in the active tenant and database with pagination.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     List<Collection> listCollections(int limit, int offset);
 
     /**
+     * Deletes the collection with the given name from the active tenant and database.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
      * @throws ChromaNotFoundException if the collection does not exist
      */
     void deleteCollection(String name);
 
-    /** @throws ChromaServerException on server errors */
+    /**
+     * Returns the number of collections in the active tenant and database.
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
+     *
+     * @throws ChromaServerException on server errors
+     */
     int countCollections();
 
     // --- AutoCloseable ---
 
+    /**
+     * Closes the client and releases any underlying resources (e.g., connection pool).
+     *
+     * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud (client-side only).</p>
+     */
     @Override
     void close();
 }
