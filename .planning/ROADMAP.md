@@ -66,9 +66,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Create Search API value types, ranking builders, result interfaces, and SearchBuilder on Collection
-- [ ] 03-02-PLAN.md — Implement Search DTOs, HTTP wiring, result converters, and SearchBuilderImpl
-- [ ] 03-03-PLAN.md — Create unit tests, integration tests, and update PublicInterfaceCompatibilityTest
+- [x] 03-01-PLAN.md — Create Search API value types, ranking builders, result interfaces, and SearchBuilder on Collection
+- [x] 03-02-PLAN.md — Implement Search DTOs, HTTP wiring, result converters, and SearchBuilderImpl
+- [x] 03-03-PLAN.md — Create unit tests, integration tests, and update PublicInterfaceCompatibilityTest
 
 ### Phase 4: Embedding Ecosystem
 **Goal:** Expand the embedding ecosystem with sparse/multimodal interfaces, reranking functions, additional providers, and an auto-wiring registry.

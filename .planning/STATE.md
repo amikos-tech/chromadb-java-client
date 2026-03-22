@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-cloud-integration-testing-05-01-PLAN.md
-last_updated: "2026-03-22T15:15:42.351Z"
+stopped_at: Completed 03-search-api-03-01-PLAN.md
+last_updated: "2026-03-22T18:09:56.609Z"
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 20
-  completed_plans: 19
+  total_plans: 23
+  completed_plans: 20
 ---
 
 # Project State
@@ -65,6 +65,7 @@ Plan: 2 of 2
 | Phase 02-collection-api-extensions P01 | 3 | 2 tasks | 7 files |
 | Phase 02-collection-api-extensions P02 | 4 | 2 tasks | 6 files |
 | Phase 05-cloud-integration-testing P01 | 4 | 4 tasks | 3 files |
+| Phase 03-search-api P01 | 4 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,10 @@ Recent decisions affecting current work:
 - [Phase 02-collection-api-extensions]: Cloud fork test gated by CHROMA_RUN_FORK_TESTS=true to avoid per-call cloud cost in CI
 - [Phase 05-cloud-integration-testing]: validateMetadataArrayTypes uses ChromaBadRequestException with typed errorCode strings (MIXED_TYPE_ARRAY, NULL_ARRAY_ELEMENT); Integer/Long normalized to Integer group, Float/Double to Float group for homogeneity
 - [Phase 05-cloud-integration-testing]: Behavioral wiring tests for metadata validation use ChromaHttpCollection.from() with stub ChromaApiClient at localhost:1 — validation fires before network call
+- [Phase 03-search-api]: Knn uses factory+fluent-chain (not inner Builder) because type is factory-discriminated by query type; single required parameter makes builder pattern overkill
+- [Phase 03-search-api]: Rrf.Builder auto-calls knn.withReturnRank() on rank() to prevent returnRank=false pitfall in RRF sub-rankings
+- [Phase 03-search-api]: SearchResult.getScores() uses List<List<Double>> (not Float) to match wire format precision
+- [Phase 03-search-api]: SearchBuilderImpl in ChromaHttpCollection is stub throwing UnsupportedOperationException; full wiring in Plan 02
 
 ### Roadmap Evolution
 
@@ -140,6 +145,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T15:15:42.348Z
-Stopped at: Completed 05-cloud-integration-testing-05-01-PLAN.md
+Last session: 2026-03-22T18:09:56.607Z
+Stopped at: Completed 03-search-api-03-01-PLAN.md
 Resume file: None
