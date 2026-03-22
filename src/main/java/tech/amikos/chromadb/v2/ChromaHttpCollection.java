@@ -944,44 +944,102 @@ final class ChromaHttpCollection implements Collection {
 
     private final class SearchBuilderImpl implements SearchBuilder {
 
+        private List<Search> searches;
+        private Where globalFilter;
+        private Integer globalLimit;
+        private Integer globalOffset;
+        private ReadLevel readLevel;
+
         @Override
         public SearchBuilder queryText(String text) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            Objects.requireNonNull(text, "text");
+            this.searches = Collections.singletonList(
+                    Search.builder().knn(Knn.queryText(text)).build()
+            );
+            return this;
         }
 
         @Override
         public SearchBuilder queryEmbedding(float[] embedding) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            Objects.requireNonNull(embedding, "embedding");
+            this.searches = Collections.singletonList(
+                    Search.builder().knn(Knn.queryEmbedding(embedding)).build()
+            );
+            return this;
         }
 
         @Override
         public SearchBuilder searches(Search... searches) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            Objects.requireNonNull(searches, "searches");
+            this.searches = Arrays.asList(searches);
+            return this;
         }
 
         @Override
         public SearchBuilder where(Where globalFilter) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            this.globalFilter = globalFilter;
+            return this;
         }
 
         @Override
         public SearchBuilder limit(int limit) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            if (limit <= 0) throw new IllegalArgumentException("limit must be > 0");
+            this.globalLimit = limit;
+            return this;
         }
 
         @Override
         public SearchBuilder offset(int offset) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            if (offset < 0) throw new IllegalArgumentException("offset must be >= 0");
+            this.globalOffset = offset;
+            return this;
         }
 
         @Override
         public SearchBuilder readLevel(ReadLevel readLevel) {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            this.readLevel = readLevel;
+            return this;
         }
 
         @Override
         public SearchResult execute() {
-            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+            if (searches == null || searches.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "At least one search must be specified via queryText(), queryEmbedding(), or searches()");
+            }
+
+            // Build effective search list, applying global limit/offset where search has none
+            List<Search> effectiveSearches = new ArrayList<Search>(searches.size());
+            boolean hasGroupBy = false;
+            for (Search s : searches) {
+                if (s.getGroupBy() != null) hasGroupBy = true;
+                if (s.getLimit() == null && (globalLimit != null || globalOffset != null)) {
+                    int effectiveOffset = s.getOffset() != null ? s.getOffset()
+                            : (globalOffset != null ? globalOffset : 0);
+                    Search.Builder b = Search.builder();
+                    if (s.getKnn() != null) b.knn(s.getKnn());
+                    if (s.getRrf() != null) b.rrf(s.getRrf());
+                    if (s.getFilter() != null) b.where(s.getFilter());
+                    if (s.getGroupBy() != null) b.groupBy(s.getGroupBy());
+                    if (s.getSelect() != null) b.select(s.getSelect().toArray(new Select[0]));
+                    if (globalLimit != null) b.limit(globalLimit);
+                    b.offset(effectiveOffset);
+                    effectiveSearches.add(b.build());
+                } else {
+                    effectiveSearches.add(s);
+                }
+            }
+
+            List<Map<String, Object>> searchItems = new ArrayList<Map<String, Object>>(effectiveSearches.size());
+            for (Search s : effectiveSearches) {
+                searchItems.add(ChromaDtos.buildSearchItemMap(s, globalFilter));
+            }
+            String rl = readLevel != null ? readLevel.getValue() : null;
+            ChromaDtos.SearchRequest request = new ChromaDtos.SearchRequest(searchItems, rl);
+
+            String path = ChromaApiPaths.collectionSearch(tenant.getName(), database.getName(), id);
+            ChromaDtos.SearchResponse dto = apiClient.post(path, request, ChromaDtos.SearchResponse.class);
+            return SearchResultImpl.from(dto, hasGroupBy);
         }
     }
 
