@@ -1682,4 +1682,128 @@ final class ChromaDtos {
         @SerializedName("op_indexing_progress")
         Double opIndexingProgress;
     }
+
+    // --- Search API DTOs ---
+
+    static final class SearchRequest {
+        final List<Map<String, Object>> searches;
+        @SerializedName("read_level")
+        final String readLevel;
+
+        SearchRequest(List<Map<String, Object>> searches, String readLevel) {
+            this.searches = searches;
+            this.readLevel = readLevel;
+        }
+    }
+
+    static final class SearchResponse {
+        List<List<String>> ids;
+        List<List<String>> documents;
+        List<List<Map<String, Object>>> metadatas;
+        List<List<List<Float>>> embeddings;
+        List<List<Double>> scores;
+    }
+
+    // --- Search serialization helpers ---
+
+    static Map<String, Object> buildKnnRankMap(Knn knn) {
+        Map<String, Object> knnMap = new LinkedHashMap<String, Object>();
+        Object query = knn.getQuery();
+        if (query instanceof String) {
+            knnMap.put("query", query);
+        } else if (query instanceof float[]) {
+            knnMap.put("query", toFloatList((float[]) query));
+        } else if (query instanceof SparseVector) {
+            SparseVector sv = (SparseVector) query;
+            Map<String, Object> svMap = new LinkedHashMap<String, Object>();
+            List<Integer> indices = new ArrayList<Integer>(sv.getIndices().length);
+            for (int idx : sv.getIndices()) indices.add(idx);
+            svMap.put("indices", indices);
+            List<Float> values = new ArrayList<Float>(sv.getValues().length);
+            for (float v : sv.getValues()) values.add(v);
+            svMap.put("values", values);
+            knnMap.put("query", svMap);
+        }
+        if (knn.getKey() != null) knnMap.put("key", knn.getKey());
+        if (knn.getLimit() != null) knnMap.put("limit", knn.getLimit());
+        if (knn.getDefaultScore() != null) knnMap.put("default", knn.getDefaultScore());
+        if (knn.isReturnRank()) knnMap.put("return_rank", true);
+        Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
+        wrapper.put("knn", knnMap);
+        return wrapper;
+    }
+
+    static Map<String, Object> buildRrfRankMap(Rrf rrf) {
+        Map<String, Object> rrfMap = new LinkedHashMap<String, Object>();
+        List<Map<String, Object>> ranksList = new ArrayList<Map<String, Object>>();
+        for (Rrf.RankWithWeight rw : rrf.getRanks()) {
+            Map<String, Object> entry = new LinkedHashMap<String, Object>();
+            entry.put("rank", buildKnnRankMap(rw.getKnn()));
+            entry.put("weight", rw.getWeight());
+            ranksList.add(entry);
+        }
+        rrfMap.put("ranks", ranksList);
+        rrfMap.put("k", rrf.getK());
+        if (rrf.isNormalize()) rrfMap.put("normalize", true);
+        Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
+        wrapper.put("rrf", rrfMap);
+        return wrapper;
+    }
+
+    static Map<String, Object> buildSearchItemMap(Search search, Where globalFilter) {
+        Map<String, Object> item = new LinkedHashMap<String, Object>();
+
+        // rank
+        if (search.getKnn() != null) {
+            item.put("rank", buildKnnRankMap(search.getKnn()));
+        } else if (search.getRrf() != null) {
+            item.put("rank", buildRrfRankMap(search.getRrf()));
+        }
+
+        // filter — merge per-search and global (per D-04)
+        Map<String, Object> filterMap = null;
+        Where perSearchFilter = search.getFilter();
+        if (perSearchFilter != null && globalFilter != null) {
+            // Merge: per-search entries win on key conflict
+            filterMap = new LinkedHashMap<String, Object>(globalFilter.toMap());
+            filterMap.putAll(perSearchFilter.toMap());
+        } else if (perSearchFilter != null) {
+            filterMap = perSearchFilter.toMap();
+        } else if (globalFilter != null) {
+            filterMap = globalFilter.toMap();
+        }
+        if (filterMap != null && !filterMap.isEmpty()) {
+            item.put("filter", filterMap);
+        }
+
+        // select
+        List<Select> selectList = search.getSelect();
+        if (selectList != null && !selectList.isEmpty()) {
+            Map<String, Object> selectMap = new LinkedHashMap<String, Object>();
+            List<String> keys = new ArrayList<String>(selectList.size());
+            for (Select s : selectList) keys.add(s.getKey());
+            selectMap.put("keys", keys);
+            item.put("select", selectMap);
+        }
+
+        // limit/offset
+        if (search.getLimit() != null || search.getOffset() != null) {
+            Map<String, Object> pageMap = new LinkedHashMap<String, Object>();
+            if (search.getLimit() != null) pageMap.put("limit", search.getLimit());
+            if (search.getOffset() != null) pageMap.put("offset", search.getOffset());
+            item.put("limit", pageMap);
+        }
+
+        // group_by
+        GroupBy gb = search.getGroupBy();
+        if (gb != null) {
+            Map<String, Object> gbMap = new LinkedHashMap<String, Object>();
+            gbMap.put("key", gb.getKey());
+            if (gb.getMinK() != null) gbMap.put("min_k", gb.getMinK());
+            if (gb.getMaxK() != null) gbMap.put("max_k", gb.getMaxK());
+            item.put("group_by", gbMap);
+        }
+
+        return item;
+    }
 }
