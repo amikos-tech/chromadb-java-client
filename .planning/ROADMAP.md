@@ -88,7 +88,11 @@ Plans:
   2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
   3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
   4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
-**Plans:** TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Schema/index + array metadata cloud tests, mixed-type array client validation
+- [ ] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
 
 ## Progress
 
@@ -102,4 +106,4 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 0/TBD | Pending | — |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
-| 5. Cloud Integration Testing | 0/TBD | Pending | — |
+| 5. Cloud Integration Testing | 0/2 | Pending | — |
