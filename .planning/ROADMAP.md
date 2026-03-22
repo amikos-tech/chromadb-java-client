@@ -63,7 +63,12 @@ Plans:
   4. User can group results by metadata key with min/max K controls.
   5. User can specify read level (INDEX_AND_WAL vs INDEX_ONLY).
   6. Integration tests validate search against Chroma >= 1.5.
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Create Search API value types, ranking builders, result interfaces, and SearchBuilder on Collection
+- [ ] 03-02-PLAN.md — Implement Search DTOs, HTTP wiring, result converters, and SearchBuilderImpl
+- [ ] 03-03-PLAN.md — Create unit tests, integration tests, and update PublicInterfaceCompatibilityTest
 
 ### Phase 4: Embedding Ecosystem
 **Goal:** Expand the embedding ecosystem with sparse/multimodal interfaces, reranking functions, additional providers, and an auto-wiring registry.
@@ -104,6 +109,6 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 |-------|----------------|--------|-----------|
 | 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
-| 3. Search API | 0/TBD | Pending | — |
+| 3. Search API | 0/3 | Planned | — |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
 | 5. Cloud Integration Testing | 1/2 | In Progress|  |
