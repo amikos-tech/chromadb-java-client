@@ -23,8 +23,8 @@ public class SearchApiUnitTest {
         assertEquals("#embedding", knn.getKey());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        assertTrue("should have 'knn' key", map.containsKey("knn"));
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        assertTrue("should have '$knn' key", map.containsKey("$knn"));
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         assertEquals("headphones", inner.get("query"));
         assertEquals("#embedding", inner.get("key"));
     }
@@ -37,7 +37,7 @@ public class SearchApiUnitTest {
         assertEquals("#embedding", knn.getKey());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         Object query = inner.get("query");
         assertTrue("serialized query should be a List", query instanceof List);
         List<Float> queryList = (List<Float>) query;
@@ -55,7 +55,7 @@ public class SearchApiUnitTest {
         assertNull("key should be null for sparse vector knn", knn.getKey());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         Object query = inner.get("query");
         assertTrue("serialized sparse query should be a Map", query instanceof Map);
         Map<String, Object> svMap = (Map<String, Object>) query;
@@ -75,7 +75,7 @@ public class SearchApiUnitTest {
         assertEquals(Integer.valueOf(10), knn.getLimit());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         assertEquals(10, inner.get("limit"));
     }
 
@@ -85,7 +85,7 @@ public class SearchApiUnitTest {
         assertTrue(knn.isReturnRank());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         assertEquals(Boolean.TRUE, inner.get("return_rank"));
     }
 
@@ -95,7 +95,7 @@ public class SearchApiUnitTest {
         assertFalse("returnRank should default to false", knn.isReturnRank());
 
         Map<String, Object> map = ChromaDtos.buildKnnRankMap(knn);
-        Map<String, Object> inner = (Map<String, Object>) map.get("knn");
+        Map<String, Object> inner = (Map<String, Object>) map.get("$knn");
         assertFalse("return_rank should not appear in map when false", inner.containsKey("return_rank"));
     }
 
@@ -121,8 +121,8 @@ public class SearchApiUnitTest {
                 .build();
 
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        assertTrue("should have 'rrf' key", map.containsKey("rrf"));
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("rrf");
+        assertTrue("should have '$rrf' key", map.containsKey("$rrf"));
+        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
         List<Map<String, Object>> ranks = (List<Map<String, Object>>) rrfMap.get("ranks");
         assertNotNull(ranks);
         assertEquals("should have 2 ranks", 2, ranks.size());
@@ -131,7 +131,7 @@ public class SearchApiUnitTest {
         Map<String, Object> rank0 = ranks.get(0);
         assertEquals(0.7, (Double) rank0.get("weight"), 1e-9);
         assertTrue("rank entry should have 'rank' key containing knn map",
-                ((Map<String, Object>) rank0.get("rank")).containsKey("knn"));
+                ((Map<String, Object>) rank0.get("rank")).containsKey("$knn"));
     }
 
     @Test
@@ -223,7 +223,7 @@ public class SearchApiUnitTest {
         Map<String, Object> item = ChromaDtos.buildSearchItemMap(search, null);
         assertTrue("item should have 'rank' key", item.containsKey("rank"));
         Map<String, Object> rank = (Map<String, Object>) item.get("rank");
-        assertTrue("rank should contain 'knn'", rank.containsKey("knn"));
+        assertTrue("rank should contain '$knn'", rank.containsKey("$knn"));
     }
 
     @Test

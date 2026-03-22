@@ -103,11 +103,14 @@ final class SearchResultImpl implements SearchResult {
                         score = rowScores.get(i).floatValue();
                     }
                 }
+                List<String> docList = documents == null ? null : documents.get(searchIndex);
+                List<Map<String, Object>> metaList = metadatas == null ? null : metadatas.get(searchIndex);
+                List<float[]> embList = embeddings == null ? null : embeddings.get(searchIndex);
                 result.add(new SearchResultRowImpl(
                         colIds.get(i),
-                        documents  == null ? null : documents.get(searchIndex).get(i),
-                        metadatas  == null ? null : metadatas.get(searchIndex).get(i),
-                        embeddings == null ? null : embeddings.get(searchIndex).get(i),
+                        docList == null ? null : docList.get(i),
+                        metaList == null ? null : metaList.get(i),
+                        embList == null ? null : embList.get(i),
                         null,
                         score
                 ));

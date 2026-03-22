@@ -1729,7 +1729,7 @@ final class ChromaDtos {
         if (knn.getDefaultScore() != null) knnMap.put("default", knn.getDefaultScore());
         if (knn.isReturnRank()) knnMap.put("return_rank", true);
         Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
-        wrapper.put("knn", knnMap);
+        wrapper.put("$knn", knnMap);
         return wrapper;
     }
 
@@ -1746,7 +1746,7 @@ final class ChromaDtos {
         rrfMap.put("k", rrf.getK());
         if (rrf.isNormalize()) rrfMap.put("normalize", true);
         Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
-        wrapper.put("rrf", rrfMap);
+        wrapper.put("$rrf", rrfMap);
         return wrapper;
     }
 
