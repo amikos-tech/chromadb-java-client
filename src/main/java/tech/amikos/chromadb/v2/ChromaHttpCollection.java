@@ -453,6 +453,11 @@ final class ChromaHttpCollection implements Collection {
         return new DeleteBuilderImpl();
     }
 
+    @Override
+    public SearchBuilder search() {
+        return new SearchBuilderImpl();
+    }
+
     // --- Builder implementations ---
 
     private final class AddBuilderImpl implements AddBuilder {
@@ -934,6 +939,49 @@ final class ChromaHttpCollection implements Collection {
                     whereMap,
                     whereDocumentMap
             ));
+        }
+    }
+
+    private final class SearchBuilderImpl implements SearchBuilder {
+
+        @Override
+        public SearchBuilder queryText(String text) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder queryEmbedding(float[] embedding) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder searches(Search... searches) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder where(Where globalFilter) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder limit(int limit) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder offset(int offset) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchBuilder readLevel(ReadLevel readLevel) {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
+        }
+
+        @Override
+        public SearchResult execute() {
+            throw new UnsupportedOperationException("Search API not yet implemented — coming in Phase 03 Plan 02");
         }
     }
 
