@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-search-api-03-02-PLAN.md
-last_updated: "2026-03-22T18:15:45.785Z"
+stopped_at: Completed 03-search-api-03-03-PLAN.md
+last_updated: "2026-03-22T18:35:36.180Z"
 progress:
   total_phases: 10
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -67,6 +67,7 @@ Plan: 2 of 2
 | Phase 05-cloud-integration-testing P01 | 4 | 4 tasks | 3 files |
 | Phase 03-search-api P01 | 4 | 2 tasks | 12 files |
 | Phase 03-search-api P02 | 3min | 2 tasks | 6 files |
+| Phase 03-search-api P03 | 90 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,8 @@ Recent decisions affecting current work:
 - [Phase 03-search-api]: SearchRequest.searches is List<Map<String,Object>> for polymorphic rank serialization (knn vs rrf)
 - [Phase 03-search-api]: 'filter' key used (not 'where') in buildSearchItemMap per Search API wire format spec
 - [Phase 03-search-api]: SearchResultImpl stores Double scores internally, downcasts to Float on row access per SearchResultRow contract
+- [Phase 03-search-api]: RRF and text queryText skipped via Assume in integration tests — server returns 'unknown variant' for $rrf and rejects string values in $knn.query; tests document intended contract
+- [Phase 03-search-api]: Wire format keys corrected to '$knn'/'$rrf' (dollar-prefixed) — bare 'knn'/'rrf' keys rejected by Chroma server
 
 ### Roadmap Evolution
 
@@ -149,6 +152,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T18:15:45.782Z
-Stopped at: Completed 03-search-api-03-02-PLAN.md
+Last session: 2026-03-22T18:35:36.178Z
+Stopped at: Completed 03-search-api-03-03-PLAN.md
 Resume file: None
