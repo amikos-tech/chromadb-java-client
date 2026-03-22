@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-collection-api-extensions-02-02-PLAN.md
-last_updated: "2026-03-21T13:50:18.109Z"
+stopped_at: Completed 05-cloud-integration-testing-05-01-PLAN.md
+last_updated: "2026-03-22T15:15:42.351Z"
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 20
+  completed_plans: 19
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 03 — Search API (Phase 02 Collection API Extensions complete)
+**Current focus:** Phase 05 — cloud-integration-testing
 
 ## Current Position
 
-Phase: 03
-Plan: Not started
+Phase: 05 (cloud-integration-testing) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Plan: Not started
 | Phase 01-result-ergonomics-wheredocument P02 | 2 | 2 tasks | 6 files |
 | Phase 02-collection-api-extensions P01 | 3 | 2 tasks | 7 files |
 | Phase 02-collection-api-extensions P02 | 4 | 2 tasks | 6 files |
+| Phase 05-cloud-integration-testing P01 | 4 | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,8 @@ Recent decisions affecting current work:
 - [Phase 02-collection-api-extensions]: IndexingStatus uses long fields (not int) for op counts matching Chroma API spec; no convenience isComplete() per D-11
 - [Phase 02-collection-api-extensions]: TestContainers tests catch both ChromaNotFoundException and ChromaServerException for skip-on-unavailable — self-hosted returns 5xx for fork/indexingStatus not 404
 - [Phase 02-collection-api-extensions]: Cloud fork test gated by CHROMA_RUN_FORK_TESTS=true to avoid per-call cloud cost in CI
+- [Phase 05-cloud-integration-testing]: validateMetadataArrayTypes uses ChromaBadRequestException with typed errorCode strings (MIXED_TYPE_ARRAY, NULL_ARRAY_ELEMENT); Integer/Long normalized to Integer group, Float/Double to Float group for homogeneity
+- [Phase 05-cloud-integration-testing]: Behavioral wiring tests for metadata validation use ChromaHttpCollection.from() with stub ChromaApiClient at localhost:1 — validation fires before network call
 
 ### Roadmap Evolution
 
@@ -137,6 +140,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T13:44:30.107Z
-Stopped at: Completed 02-collection-api-extensions-02-02-PLAN.md
+Last session: 2026-03-22T15:15:42.348Z
+Stopped at: Completed 05-cloud-integration-testing-05-01-PLAN.md
 Resume file: None
