@@ -528,6 +528,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
             if (hasExplicitIds(ids)) {
                 checkForDuplicateIds(resolvedIds);
@@ -622,6 +623,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
             if (hasExplicitIds(ids)) {
                 checkForDuplicateIds(resolvedIds);
@@ -869,6 +871,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             if (ids == null || ids.isEmpty()) {
                 throw new IllegalArgumentException("ids must not be empty");
             }
@@ -1254,6 +1257,74 @@ final class ChromaHttpCollection implements Collection {
             vectors.add(vector);
         }
         return vectors;
+    }
+
+    /**
+     * Validates that all List values in metadata maps contain homogeneous types.
+     * Mixed-type arrays (e.g., ["foo", 42, true]) are rejected before sending to server.
+     *
+     * @throws ChromaBadRequestException if any metadata map contains a List with mixed types or null elements
+     */
+    static void validateMetadataArrayTypes(List<Map<String, Object>> metadatas) {
+        if (metadatas == null) {
+            return;
+        }
+        for (int i = 0; i < metadatas.size(); i++) {
+            Map<String, Object> meta = metadatas.get(i);
+            if (meta == null) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : meta.entrySet()) {
+                Object value = entry.getValue();
+                if (value instanceof List) {
+                    validateHomogeneousList(entry.getKey(), (List<?>) value, i);
+                }
+            }
+        }
+    }
+
+    private static void validateHomogeneousList(String key, List<?> list, int recordIndex) {
+        if (list.isEmpty()) {
+            return; // empty arrays are valid
+        }
+        Class<?> firstType = null;
+        for (int j = 0; j < list.size(); j++) {
+            Object element = list.get(j);
+            if (element == null) {
+                throw new ChromaBadRequestException(
+                        "metadata[" + recordIndex + "]." + key + "[" + j + "] is null; "
+                                + "array metadata values must not contain null elements",
+                        "NULL_ARRAY_ELEMENT"
+                );
+            }
+            Class<?> normalizedType = normalizeNumericType(element.getClass());
+            if (firstType == null) {
+                firstType = normalizedType;
+            } else if (!firstType.equals(normalizedType)) {
+                throw new ChromaBadRequestException(
+                        "metadata[" + recordIndex + "]." + key + " contains mixed types: "
+                                + "expected " + firstType.getSimpleName() + " but found "
+                                + element.getClass().getSimpleName() + " at index " + j
+                                + "; array metadata values must be homogeneous",
+                        "MIXED_TYPE_ARRAY"
+                );
+            }
+        }
+    }
+
+    /**
+     * Normalizes numeric types to a common base for homogeneity comparison.
+     * Integer, Long, Short, Byte -> Integer (integer group)
+     * Float, Double -> Float (floating group)
+     */
+    private static Class<?> normalizeNumericType(Class<?> clazz) {
+        if (clazz == Integer.class || clazz == Long.class || clazz == Short.class || clazz == Byte.class) {
+            return Integer.class;
+        }
+        if (clazz == Float.class || clazz == Double.class) {
+            return Float.class;
+        }
+        return clazz;
     }
 
     private static List<String> validateQueryTexts(List<String> texts) {
