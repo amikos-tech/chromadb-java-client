@@ -178,7 +178,7 @@ public final class Search {
                     throw new IllegalArgumentException("fields[" + i + "] must not be null");
                 }
             }
-            this.select = fields;
+            this.select = Arrays.copyOf(fields, fields.length);
             return this;
         }
 

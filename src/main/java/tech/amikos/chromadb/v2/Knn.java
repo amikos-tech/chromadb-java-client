@@ -104,6 +104,9 @@ public final class Knn {
      * @return new {@code Knn} with limit set
      */
     public Knn limit(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit must be > 0");
+        }
         return new Knn(this.query, this.key, limit, this.defaultScore, this.returnRank);
     }
 
