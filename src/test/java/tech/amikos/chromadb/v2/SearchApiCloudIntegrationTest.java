@@ -1029,6 +1029,272 @@ public class SearchApiCloudIntegrationTest {
                 result.rows(0).size() <= 3);
     }
 
+    @Test
+    public void testCloudSearchFilterMatrix() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Sub-test A: Where metadata filter alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.eq("category", "electronics"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-A result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertNotNull("category metadata should be present", row.getMetadata());
+                assertEquals("All rows should have category=electronics",
+                        "electronics", row.getMetadata().get("category"));
+            }
+        }
+
+        // Sub-test B: IDIn alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.idIn("prod-001", "prod-005", "prod-008"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-B result should not be null", result);
+            assertTrue("IDIn should return at most 3 results", result.rows(0).size() <= 3);
+            for (SearchResultRow row : result.rows(0)) {
+                assertTrue("IDIn should only return matching ids",
+                        "prod-001".equals(row.getId()) || "prod-005".equals(row.getId()) || "prod-008".equals(row.getId()));
+            }
+        }
+
+        // Sub-test C: IDNotIn alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.idNotIn("prod-001", "prod-002"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-C result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("IDNotIn should exclude prod-001", "prod-001".equals(row.getId()));
+                assertFalse("IDNotIn should exclude prod-002", "prod-002".equals(row.getId()));
+            }
+        }
+
+        // Sub-test D: DocumentContains alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.documentContains("headphones"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-D result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertNotNull("Document should be present", row.getDocument());
+                assertTrue("DocumentContains filter: document must contain 'headphones'",
+                        row.getDocument().toLowerCase().contains("headphones"));
+            }
+        }
+
+        // Sub-test E: IDNotIn + metadata filter combined
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(Where.idNotIn("prod-001"), Where.eq("category", "electronics")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-E result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("IDNotIn+metadata: should exclude prod-001", "prod-001".equals(row.getId()));
+                assertEquals("IDNotIn+metadata: all rows should be electronics",
+                        "electronics", row.getMetadata().get("category"));
+            }
+        }
+
+        // Sub-test F: Where + DocumentContains combined
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(Where.eq("category", "electronics"), Where.documentContains("wireless")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-F result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertEquals("Where+DocumentContains: category must be electronics",
+                        "electronics", row.getMetadata().get("category"));
+                assertTrue("Where+DocumentContains: document must contain 'wireless'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("wireless"));
+            }
+        }
+
+        // Sub-test G: DocumentNotContains alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.documentNotContains("headphones"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-G result should not be null", result);
+            // Zero results is legitimate — some filter+embedding combos may return nothing
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("DocumentNotContains: document must not contain 'headphones'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("headphones"));
+            }
+        }
+
+        // Sub-test H: Where + IDIn + DocumentContains triple combination
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(
+                            Where.eq("category", "electronics"),
+                            Where.idIn("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015"),
+                            Where.documentContains("wireless")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-H result should not be null", result);
+            // Triple combination may legitimately narrow to zero results
+            for (SearchResultRow row : result.rows(0)) {
+                assertEquals("Filter-H: category must be electronics",
+                        "electronics", row.getMetadata().get("category"));
+                String id = row.getId();
+                assertTrue("Filter-H: ID must be in allowed set",
+                        "prod-001".equals(id) || "prod-005".equals(id) || "prod-008".equals(id)
+                                || "prod-009".equals(id) || "prod-011".equals(id) || "prod-015".equals(id));
+                assertTrue("Filter-H: document must contain 'wireless'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("wireless"));
+            }
+        }
+    }
+
+    @Test
+    public void testCloudSearchPagination() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Sub-test A: Basic limit
+        {
+            SearchResult result = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .execute();
+            assertNotNull("Pagination-A result should not be null", result);
+            assertTrue("limit(3) must return <= 3 results", result.rows(0).size() <= 3);
+        }
+
+        // Sub-test B: Limit+offset (page 2)
+        {
+            SearchResult page1 = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .offset(0)
+                    .execute();
+            SearchResult page2 = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .offset(3)
+                    .execute();
+            assertFalse("page1 should have results", page1.rows(0).isEmpty());
+            assertNotNull("page2 result should not be null", page2);
+            // If both pages have results, first rows must differ (different pages)
+            if (!page1.rows(0).isEmpty() && !page2.rows(0).isEmpty()) {
+                assertFalse("page1 and page2 first IDs must differ",
+                        page1.rows(0).get(0).getId().equals(page2.rows(0).get(0).getId()));
+            }
+        }
+
+        // Sub-test C: Client-side validation for invalid inputs (D-14)
+        // These should fail without sending HTTP requests
+        {
+            try {
+                seedCollection.search()
+                        .queryEmbedding(QUERY_ELECTRONICS)
+                        .limit(0)
+                        .execute();
+                fail("Expected IllegalArgumentException for limit=0");
+            } catch (IllegalArgumentException e) {
+                // expected
+            }
+        }
+        {
+            try {
+                seedCollection.search()
+                        .queryEmbedding(QUERY_ELECTRONICS)
+                        .limit(3)
+                        .offset(-1)
+                        .execute();
+                fail("Expected IllegalArgumentException for negative offset");
+            } catch (IllegalArgumentException e) {
+                // expected
+            }
+        }
+    }
+
+    @Test
+    public void testCloudSearchProjectionPresent() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .select(Select.ID, Select.SCORE, Select.DOCUMENT)
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("Projection result should not be null", result);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertFalse("Projection rows should not be empty", rows.isEmpty());
+        for (SearchResultRow row : rows) {
+            assertNotNull("ID should be present when selected", row.getId());
+            assertNotNull("Score should be present when selected", row.getScore());
+            assertNotNull("Document should be present when selected", row.getDocument());
+        }
+        // Embedding was NOT selected — should be null
+        assertNull("Embeddings should be null when not selected", result.getEmbeddings());
+    }
+
+    @Test
+    public void testCloudSearchProjectionCustomKey() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+        // Custom key projection is a Cloud-oriented feature per D-16
+
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .select(Select.ID, Select.SCORE, Select.key("category"),
+                        Select.key("price"))
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("CustomKey projection result should not be null", result);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertFalse("CustomKey rows should not be empty", rows.isEmpty());
+
+        // Verify metadatas contain projected keys
+        List<List<Map<String, Object>>> metadatas = result.getMetadatas();
+        if (metadatas != null && !metadatas.isEmpty() && metadatas.get(0) != null) {
+            for (Map<String, Object> meta : metadatas.get(0)) {
+                if (meta != null) {
+                    assertTrue("Projected metadata should contain 'category' key",
+                            meta.containsKey("category"));
+                    assertTrue("Projected metadata should contain 'price' key",
+                            meta.containsKey("price"));
+                }
+            }
+        }
+    }
+
     // --- Private helpers ---
 
     private static Map<String, Object> buildSingleMeta(String key, Object value) {
