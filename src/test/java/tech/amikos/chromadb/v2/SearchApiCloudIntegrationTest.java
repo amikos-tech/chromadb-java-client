@@ -45,7 +45,6 @@ public class SearchApiCloudIntegrationTest {
     // Query embedding constants matching seed collection clusters (4D)
     private static final float[] QUERY_ELECTRONICS = {0.85f, 0.15f, 0.05f, 0.05f};
     private static final float[] QUERY_GROCERY = {0.05f, 0.85f, 0.15f, 0.05f};
-    private static final float[] QUERY_SPORTS = {0.05f, 0.05f, 0.85f, 0.15f};
 
     private static String sharedApiKey;
     private static String sharedTenant;
@@ -891,14 +890,19 @@ public class SearchApiCloudIntegrationTest {
         for (SearchResultRow row : rows) {
             assertNotNull("row id should not be null", row.getId());
         }
+        // Verify top result is from the electronics cluster (seed data has 6 electronics products
+        // with dominant first-dimension embeddings matching QUERY_ELECTRONICS)
+        List<String> electronicsIds = Arrays.asList("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015");
+        assertTrue("Top KNN result should be from electronics cluster",
+                electronicsIds.contains(rows.get(0).getId()));
     }
 
     @Test
     public void testCloudRrfSearch() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
         // RRF ($rrf) is not yet supported by the Chroma server — returns "unknown variant '$rrf'"
-        // This test documents the intended API contract and will be enabled once server support is added.
-        Assume.assumeTrue("Skipping: $rrf variant is not yet supported by Chroma server", false);
+        // This test attempts the call and expects a specific error. When the server adds RRF support,
+        // this test will fail — update it to validate successful RRF results instead.
 
         Rrf rrf = Rrf.builder()
                 .rank(Knn.queryEmbedding(QUERY_ELECTRONICS), 0.7)
@@ -910,10 +914,14 @@ public class SearchApiCloudIntegrationTest {
                 .selectAll()
                 .limit(5)
                 .build();
-        SearchResult result = seedCollection.search().searches(s).execute();
-
-        assertNotNull("RRF result should not be null", result);
-        assertFalse("RRF should return results", result.getIds().get(0).isEmpty());
+        try {
+            SearchResult result = seedCollection.search().searches(s).execute();
+            // If we reach here, the server now supports $rrf — update this test to validate results
+            fail("$rrf is now supported by the server — update this test to validate RRF results");
+        } catch (ChromaException e) {
+            assertTrue("Expected 'unknown variant' error for unsupported $rrf",
+                    e.getMessage() != null && e.getMessage().contains("unknown variant"));
+        }
     }
 
     @Test
@@ -933,8 +941,16 @@ public class SearchApiCloudIntegrationTest {
         // GroupBy flattens into standard column-major response; access via rows()
         ResultGroup<SearchResultRow> rows = result.rows(0);
         assertNotNull("rows should not be null", rows);
-        // At least 1 row should be returned
-        assertTrue("GroupBy should return at least 1 row", rows.size() >= 1);
+        assertFalse("GroupBy should return at least 1 row", rows.isEmpty());
+        // Verify grouping semantics: multiple distinct categories should appear in results
+        // (seed data has 6 categories; QUERY_ELECTRONICS + limit(10) should reach several)
+        java.util.Set<String> categories = new java.util.HashSet<String>();
+        for (SearchResultRow row : rows) {
+            if (row.getMetadata() != null && row.getMetadata().get("category") != null) {
+                categories.add((String) row.getMetadata().get("category"));
+            }
+        }
+        assertTrue("GroupBy should return results from multiple categories", categories.size() > 1);
     }
 
     @Test
@@ -952,9 +968,16 @@ public class SearchApiCloudIntegrationTest {
         SearchResult result = seedCollection.search().searches(s1, s2).execute();
 
         assertNotNull("Batch result should not be null", result);
-        assertEquals("Should have 2 search groups", result.searchCount(), 2);
+        assertEquals("Should have 2 search groups", 2, result.searchCount());
         assertFalse("group 0 should have results", result.rows(0).isEmpty());
         assertFalse("group 1 should have results", result.rows(1).isEmpty());
+        // Verify groups correspond to their query clusters: group 0 = electronics, group 1 = grocery
+        List<String> electronicsIds = Arrays.asList("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015");
+        List<String> groceryIds = Arrays.asList("prod-002", "prod-007", "prod-010");
+        assertTrue("Batch group 0 top result should be from electronics cluster",
+                electronicsIds.contains(result.rows(0).get(0).getId()));
+        assertTrue("Batch group 1 top result should be from grocery cluster",
+                groceryIds.contains(result.rows(1).get(0).getId()));
     }
 
     @Test
@@ -988,7 +1011,7 @@ public class SearchApiCloudIntegrationTest {
         assertNotNull("INDEX_AND_WAL result should not be null", result);
         assertNotNull("ids should not be null", result.getIds());
         // WAL guarantees recently written records are visible immediately — assert all 3 records returned
-        assertTrue("INDEX_AND_WAL should return all 3 freshly written records", result.rows(0).size() >= 1);
+        assertEquals("INDEX_AND_WAL should return all 3 freshly written records", 3, result.rows(0).size());
     }
 
     @Test
@@ -1003,11 +1026,12 @@ public class SearchApiCloudIntegrationTest {
                 .execute();
 
         assertNotNull("INDEX_ONLY result should not be null", result);
-        // May return fewer than total if index not fully compacted per D-12 -- use <= 15 not exact count
         assertNotNull("ids outer list must be non-null", result.getIds());
+        // Seed collection is indexed from @BeforeClass — INDEX_ONLY should return at least 1 result
+        assertTrue("INDEX_ONLY should return at least 1 result from indexed seedCollection",
+                result.getIds().get(0).size() >= 1);
         assertTrue("INDEX_ONLY result count must be <= 15",
                 result.getIds().get(0).size() <= 15);
-        // Key assertion: INDEX_ONLY must not throw an exception
     }
 
     @Test
@@ -1024,9 +1048,10 @@ public class SearchApiCloudIntegrationTest {
         SearchResult result = seedCollection.search().searches(s).execute();
 
         assertNotNull("KnnLimit result should not be null", result);
+        assertFalse("KnnLimit search should return at least 1 result", result.rows(0).isEmpty());
         // Search.limit(3) caps final result count even though Knn.limit(10) retrieves 10 candidates
-        assertTrue("Search.limit(3) must cap final result count to <= 3",
-                result.rows(0).size() <= 3);
+        assertEquals("Search.limit(3) must cap final result count to exactly 3",
+                3, result.rows(0).size());
     }
 
     @Test
@@ -1043,6 +1068,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-A result should not be null", result);
+            // Seed data has 6 electronics products matching QUERY_ELECTRONICS
+            assertFalse("Filter-A should return at least one electronics record", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertNotNull("category metadata should be present", row.getMetadata());
                 assertEquals("All rows should have category=electronics",
@@ -1060,6 +1087,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-B result should not be null", result);
+            // All 3 IDs exist in seed data and are in the electronics cluster
+            assertFalse("Filter-B IDIn should return at least 1 result", result.rows(0).isEmpty());
             assertTrue("IDIn should return at most 3 results", result.rows(0).size() <= 3);
             for (SearchResultRow row : result.rows(0)) {
                 assertTrue("IDIn should only return matching ids",
@@ -1077,6 +1106,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-C result should not be null", result);
+            // 13 products remain after excluding 2; QUERY_ELECTRONICS should match several
+            assertFalse("Filter-C IDNotIn should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertFalse("IDNotIn should exclude prod-001", "prod-001".equals(row.getId()));
                 assertFalse("IDNotIn should exclude prod-002", "prod-002".equals(row.getId()));
@@ -1093,6 +1124,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-D result should not be null", result);
+            // prod-001 ("Wireless bluetooth headphones...") matches this filter
+            assertFalse("Filter-D DocumentContains should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertNotNull("Document should be present", row.getDocument());
                 assertTrue("DocumentContains filter: document must contain 'headphones'",
@@ -1110,6 +1143,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-E result should not be null", result);
+            // 5 electronics products remain after excluding prod-001
+            assertFalse("Filter-E IDNotIn+metadata should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertFalse("IDNotIn+metadata: should exclude prod-001", "prod-001".equals(row.getId()));
                 assertEquals("IDNotIn+metadata: all rows should be electronics",
@@ -1127,6 +1162,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-F result should not be null", result);
+            // prod-001 and prod-015 are electronics with "wireless" in document
+            assertFalse("Filter-F Where+DocumentContains should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertEquals("Where+DocumentContains: category must be electronics",
                         "electronics", row.getMetadata().get("category"));
@@ -1145,7 +1182,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-G result should not be null", result);
-            // Zero results is legitimate — some filter+embedding combos may return nothing
+            // 14 of 15 products don't contain "headphones"; QUERY_ELECTRONICS should match several
+            assertFalse("Filter-G DocumentNotContains should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertFalse("DocumentNotContains: document must not contain 'headphones'",
                         row.getDocument() != null && row.getDocument().toLowerCase().contains("headphones"));
@@ -1165,7 +1203,8 @@ public class SearchApiCloudIntegrationTest {
                     .build();
             SearchResult result = seedCollection.search().searches(s).execute();
             assertNotNull("Filter-H result should not be null", result);
-            // Triple combination may legitimately narrow to zero results
+            // prod-001 and prod-015 are electronics, in the IDIn set, and contain "wireless"
+            assertFalse("Filter-H triple combination should return at least 1 result", result.rows(0).isEmpty());
             for (SearchResultRow row : result.rows(0)) {
                 assertEquals("Filter-H: category must be electronics",
                         "electronics", row.getMetadata().get("category"));
@@ -1190,6 +1229,7 @@ public class SearchApiCloudIntegrationTest {
                     .limit(3)
                     .execute();
             assertNotNull("Pagination-A result should not be null", result);
+            assertFalse("Pagination-A should return at least 1 result", result.rows(0).isEmpty());
             assertTrue("limit(3) must return <= 3 results", result.rows(0).size() <= 3);
         }
 
@@ -1224,7 +1264,8 @@ public class SearchApiCloudIntegrationTest {
                         .execute();
                 fail("Expected IllegalArgumentException for limit=0");
             } catch (IllegalArgumentException e) {
-                // expected
+                assertTrue("Exception message should mention limit constraint",
+                        e.getMessage() != null && e.getMessage().contains("limit must be > 0"));
             }
         }
         {
@@ -1236,7 +1277,8 @@ public class SearchApiCloudIntegrationTest {
                         .execute();
                 fail("Expected IllegalArgumentException for negative offset");
             } catch (IllegalArgumentException e) {
-                // expected
+                assertTrue("Exception message should mention offset constraint",
+                        e.getMessage() != null && e.getMessage().contains("offset must be >= 0"));
             }
         }
     }
@@ -1260,10 +1302,25 @@ public class SearchApiCloudIntegrationTest {
             assertNotNull("Score should be present when selected", row.getScore());
             assertNotNull("Document should be present when selected", row.getDocument());
         }
-        // Embedding was NOT selected — server may return null or [[null]] depending on response format
-        assertTrue("Embeddings should be null or contain only null entries when not selected",
-                result.getEmbeddings() == null
-                        || (result.getEmbeddings().size() == 1 && result.getEmbeddings().get(0) == null));
+        // Embedding was NOT selected — server may return null, [[null]], or a list of null groups
+        List<List<float[]>> emb = result.getEmbeddings();
+        if (emb != null) {
+            for (List<float[]> group : emb) {
+                if (group != null) {
+                    for (float[] entry : group) {
+                        assertNull("Embedding entry should be null when not selected", entry);
+                    }
+                }
+            }
+        }
+        // Metadata was NOT selected — verify it is absent
+        List<List<Map<String, Object>>> meta = result.getMetadatas();
+        if (meta != null && !meta.isEmpty() && meta.get(0) != null) {
+            for (Map<String, Object> m : meta.get(0)) {
+                assertTrue("Metadata should be null or empty when not selected",
+                        m == null || m.isEmpty());
+            }
+        }
     }
 
     @Test
@@ -1285,15 +1342,21 @@ public class SearchApiCloudIntegrationTest {
 
         // Verify metadatas contain projected keys
         List<List<Map<String, Object>>> metadatas = result.getMetadatas();
-        if (metadatas != null && !metadatas.isEmpty() && metadatas.get(0) != null) {
-            for (Map<String, Object> meta : metadatas.get(0)) {
-                if (meta != null) {
-                    assertTrue("Projected metadata should contain 'category' key",
-                            meta.containsKey("category"));
-                    assertTrue("Projected metadata should contain 'price' key",
-                            meta.containsKey("price"));
-                }
-            }
+        assertNotNull("Metadatas must not be null when custom keys are projected", metadatas);
+        assertFalse("Metadatas outer list must not be empty", metadatas.isEmpty());
+        assertNotNull("Metadatas inner list must not be null", metadatas.get(0));
+        assertFalse("Metadatas inner list must not be empty", metadatas.get(0).isEmpty());
+        for (Map<String, Object> meta : metadatas.get(0)) {
+            assertNotNull("Individual metadata entry must not be null", meta);
+            assertTrue("Projected metadata should contain 'category' key",
+                    meta.containsKey("category"));
+            assertTrue("Projected metadata should contain 'price' key",
+                    meta.containsKey("price"));
+            // Verify non-projected keys are absent (projection should filter the response)
+            assertFalse("Non-projected key 'in_stock' should be absent",
+                    meta.containsKey("in_stock"));
+            assertFalse("Non-projected key 'tags' should be absent",
+                    meta.containsKey("tags"));
         }
     }
 
