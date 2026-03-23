@@ -894,13 +894,12 @@ public class SearchApiCloudIntegrationTest {
     @Test
     public void testCloudRrfSearch() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
-        // RRF ($rrf) is not yet supported by the Chroma server — returns "unknown variant '$rrf'"
-        // This test attempts the call and expects a specific error. When the server adds RRF support,
-        // this test will fail — update it to validate successful RRF results instead.
 
+        // RRF is expanded client-side into arithmetic rank expressions:
+        // -(w1/(k+rank1) + w2/(k+rank2))
         Rrf rrf = Rrf.builder()
-                .rank(Knn.queryEmbedding(QUERY_ELECTRONICS), 0.7)
-                .rank(Knn.queryEmbedding(QUERY_GROCERY), 0.3)
+                .rank(Knn.queryEmbedding(QUERY_ELECTRONICS).limit(50), 0.7)
+                .rank(Knn.queryEmbedding(QUERY_GROCERY).limit(50), 0.3)
                 .k(60)
                 .build();
         Search s = Search.builder()
@@ -908,13 +907,14 @@ public class SearchApiCloudIntegrationTest {
                 .selectAll()
                 .limit(5)
                 .build();
-        try {
-            SearchResult result = seedCollection.search().searches(s).execute();
-            // If we reach here, the server now supports $rrf — update this test to validate results
-            fail("$rrf is now supported by the server — update this test to validate RRF results");
-        } catch (ChromaException e) {
-            // Server rejects $rrf — error message varies by version ("unknown variant", etc.)
-            assertNotNull("RRF rejection should have an error message", e.getMessage());
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("RRF result should not be null", result);
+        assertFalse("RRF should return results", result.rows(0).isEmpty());
+        assertTrue("RRF should return at most 5 results", result.rows(0).size() <= 5);
+        for (SearchResultRow row : result.rows(0)) {
+            assertNotNull("RRF row id should not be null", row.getId());
+            assertNotNull("RRF row score should not be null", row.getScore());
         }
     }
 

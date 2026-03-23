@@ -188,15 +188,9 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
     @Test
     public void testRrfSearch() {
         assumeMinVersion("1.5.0");
-        assumeCloud();
-        // RRF ($rrf) is not yet supported by the Chroma server — the endpoint returns
-        // "unknown variant '$rrf'" for both self-hosted and cloud deployments.
-        // This test documents the intended API contract and will be enabled once server
-        // support is added.
-        Assume.assumeTrue("Skipping: $rrf variant is not yet supported by Chroma server", false);
 
-        Knn knn1 = Knn.queryEmbedding(QUERY_HEADPHONES);
-        Knn knn2 = Knn.queryEmbedding(QUERY_SPEAKER);
+        Knn knn1 = Knn.queryEmbedding(QUERY_HEADPHONES).limit(50);
+        Knn knn2 = Knn.queryEmbedding(QUERY_SPEAKER).limit(50);
         Rrf rrf = Rrf.builder()
                 .rank(knn1, 0.7)
                 .rank(knn2, 0.3)

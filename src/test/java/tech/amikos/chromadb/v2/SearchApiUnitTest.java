@@ -114,6 +114,7 @@ public class SearchApiUnitTest {
 
     // ========== RRF tests (SEARCH-02) ==========
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testRrfDtoStructure() {
         Knn knn1 = Knn.queryText("wireless audio");
@@ -124,18 +125,31 @@ public class SearchApiUnitTest {
                 .k(60)
                 .build();
 
+        // RRF expands to: $mul[$val(-1), $sum[$div{left:$val(w), right:$sum[$val(k), $knn]}, ...]]
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        assertTrue("should have '$rrf' key", map.containsKey("$rrf"));
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        List<Map<String, Object>> ranks = (List<Map<String, Object>>) rrfMap.get("ranks");
-        assertNotNull(ranks);
-        assertEquals("should have 2 ranks", 2, ranks.size());
-        assertEquals(60, rrfMap.get("k"));
-
-        Map<String, Object> rank0 = ranks.get(0);
-        assertEquals(0.7, (Double) rank0.get("weight"), 1e-9);
-        assertTrue("rank entry should have 'rank' key containing knn map",
-                ((Map<String, Object>) rank0.get("rank")).containsKey("$knn"));
+        assertTrue("top level should be $mul (negation)", map.containsKey("$mul"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        assertEquals("$mul should have 2 operands", 2, mulTerms.size());
+        // First operand: $val(-1)
+        Map<String, Object> negVal = (Map<String, Object>) mulTerms.get(0);
+        assertEquals(-1.0, (Double) negVal.get("$val"), 1e-9);
+        // Second operand: $sum of 2 $div terms
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        assertTrue("inner should be $sum", sumMap.containsKey("$sum"));
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        assertEquals("should have 2 terms for 2 ranks", 2, divTerms.size());
+        // First term: $div { left: $val(0.7), right: $sum[$val(60), $knn] }
+        Map<String, Object> div0 = (Map<String, Object>) divTerms.get(0);
+        Map<String, Object> div0Inner = (Map<String, Object>) div0.get("$div");
+        Map<String, Object> leftVal = (Map<String, Object>) div0Inner.get("left");
+        assertEquals(0.7, (Double) leftVal.get("$val"), 1e-9);
+        Map<String, Object> rightSum = (Map<String, Object>) div0Inner.get("right");
+        List<Object> denomTerms = (List<Object>) rightSum.get("$sum");
+        assertEquals(2, denomTerms.size());
+        Map<String, Object> kVal = (Map<String, Object>) denomTerms.get(0);
+        assertEquals(60.0, (Double) kVal.get("$val"), 1e-9);
+        assertTrue("denominator should contain $knn",
+                ((Map<String, Object>) denomTerms.get(1)).containsKey("$knn"));
     }
 
     @Test
@@ -608,15 +622,24 @@ public class SearchApiUnitTest {
 
     // ========== Wire format: Rrf normalize serialization ==========
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testRrfNormalizeSerialization() {
+    public void testRrfNormalizeWeights() {
+        // Two ranks with weights 3.0 and 1.0; normalize=true → 0.75 and 0.25
         Rrf rrf = Rrf.builder()
-                .rank(Knn.queryText("a"), 1.0)
+                .rank(Knn.queryText("a"), 3.0)
+                .rank(Knn.queryText("b"), 1.0)
                 .normalize(true)
                 .build();
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        assertEquals(true, rrfMap.get("normalize"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        // Check normalized weights: 3/(3+1)=0.75 and 1/(3+1)=0.25
+        Map<String, Object> div0 = (Map<String, Object>) ((Map<String, Object>) divTerms.get(0)).get("$div");
+        assertEquals(0.75, (Double) ((Map<String, Object>) div0.get("left")).get("$val"), 1e-9);
+        Map<String, Object> div1 = (Map<String, Object>) ((Map<String, Object>) divTerms.get(1)).get("$div");
+        assertEquals(0.25, (Double) ((Map<String, Object>) div1.get("left")).get("$val"), 1e-9);
     }
 
     // ========== ReadLevel fromValue edge cases ==========
@@ -627,17 +650,19 @@ public class SearchApiUnitTest {
         assertEquals(ReadLevel.INDEX_ONLY, ReadLevel.fromValue("  index_only  "));
     }
 
-    // ========== Rrf normalize=false absent from wire format ==========
+    // ========== Rrf single rank expands without $sum wrapper ==========
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testRrfNormalizeFalseNotSerialized() {
+    public void testRrfSingleRankNoSumWrapper() {
         Rrf rrf = Rrf.builder()
                 .rank(Knn.queryText("a"), 1.0)
-                .build(); // normalize defaults to false
+                .build();
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        assertFalse("normalize should not appear when false", rrfMap.containsKey("normalize"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        // With a single rank, the inner term should be $div directly (no $sum wrapper)
+        Map<String, Object> inner = (Map<String, Object>) mulTerms.get(1);
+        assertTrue("single rank should produce $div directly, not $sum", inner.containsKey("$div"));
     }
 
 }
