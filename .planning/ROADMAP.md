@@ -93,12 +93,12 @@ Plans:
   2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
   3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
   4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
-**Plans:** 3 plans (2 complete + 1 gap closure)
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Schema/index + array metadata cloud tests, mixed-type array client validation
 - [x] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
-- [ ] 05-03-PLAN.md — Gap closure: fix embedding projection assertion and WAL read-level test target
+- [x] 05-03-PLAN.md — Gap closure: fix embedding projection assertion and WAL read-level test target
 
 ## Progress
 
@@ -112,4 +112,4 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 3/3 | Complete   | 2026-03-22 |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
-| 5. Cloud Integration Testing | 2/3 | Gap Closure | — |
+| 5. Cloud Integration Testing | 2/3 | In Progress|  |
