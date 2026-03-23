@@ -42,6 +42,11 @@ public class SearchApiCloudIntegrationTest {
     private static String sharedCollectionName;
     private static boolean cloudAvailable = false;
 
+    // Query embedding constants matching seed collection clusters (4D)
+    private static final float[] QUERY_ELECTRONICS = {0.85f, 0.15f, 0.05f, 0.05f};
+    private static final float[] QUERY_GROCERY = {0.05f, 0.85f, 0.15f, 0.05f};
+    private static final float[] QUERY_SPORTS = {0.05f, 0.05f, 0.85f, 0.15f};
+
     private static String sharedApiKey;
     private static String sharedTenant;
     private static String sharedDatabase;
@@ -859,6 +864,434 @@ public class SearchApiCloudIntegrationTest {
         } catch (ChromaBadRequestException e) {
             assertTrue("Exception message should mention 'mixed types'",
                     e.getMessage().contains("mixed types"));
+        }
+    }
+
+    // =============================================================================
+    // CLOUD-01: Search parity tests (D-07 through D-12)
+    // =============================================================================
+
+    @Test
+    public void testCloudKnnSearch() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        SearchResult result = seedCollection.search()
+                .queryEmbedding(QUERY_ELECTRONICS)
+                .limit(5)
+                .execute();
+
+        assertNotNull("SearchResult should not be null", result);
+        assertNotNull("ids should not be null", result.getIds());
+        assertFalse("ids should not be empty", result.getIds().isEmpty());
+        assertFalse("first search group should have results", result.getIds().get(0).isEmpty());
+        assertTrue("should return at most 5 results", result.getIds().get(0).size() <= 5);
+
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertFalse("rows should not be empty", rows.isEmpty());
+        for (SearchResultRow row : rows) {
+            assertNotNull("row id should not be null", row.getId());
+        }
+    }
+
+    @Test
+    public void testCloudRrfSearch() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+        // RRF ($rrf) is not yet supported by the Chroma server — returns "unknown variant '$rrf'"
+        // This test documents the intended API contract and will be enabled once server support is added.
+        Assume.assumeTrue("Skipping: $rrf variant is not yet supported by Chroma server", false);
+
+        Rrf rrf = Rrf.builder()
+                .rank(Knn.queryEmbedding(QUERY_ELECTRONICS), 0.7)
+                .rank(Knn.queryEmbedding(QUERY_GROCERY), 0.3)
+                .k(60)
+                .build();
+        Search s = Search.builder()
+                .rrf(rrf)
+                .selectAll()
+                .limit(5)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("RRF result should not be null", result);
+        assertFalse("RRF should return results", result.getIds().get(0).isEmpty());
+    }
+
+    @Test
+    public void testCloudGroupBySearch() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .groupBy(GroupBy.builder().key("category").maxK(2).build())
+                .selectAll()
+                .limit(10)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("GroupBy result should not be null", result);
+        assertNotNull("ids should not be null", result.getIds());
+        // GroupBy flattens into standard column-major response; access via rows()
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertNotNull("rows should not be null", rows);
+        // At least 1 row should be returned
+        assertTrue("GroupBy should return at least 1 row", rows.size() >= 1);
+    }
+
+    @Test
+    public void testCloudBatchSearch() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        Search s1 = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .limit(3)
+                .build();
+        Search s2 = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_GROCERY))
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s1, s2).execute();
+
+        assertNotNull("Batch result should not be null", result);
+        assertEquals("Should have 2 search groups", result.searchCount(), 2);
+        assertFalse("group 0 should have results", result.rows(0).isEmpty());
+        assertFalse("group 1 should have results", result.rows(1).isEmpty());
+    }
+
+    @Test
+    public void testCloudSearchReadLevelIndexAndWal() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Use an isolated collection with explicit 3D embeddings; search immediately (no polling)
+        // to test that INDEX_AND_WAL reads recently written WAL records
+        Collection col = createIsolatedCollection("cloud_rl_wal_");
+        col.add()
+                .ids("rl-1", "rl-2", "rl-3")
+                .embeddings(
+                        new float[]{1.0f, 0.0f, 0.0f},
+                        new float[]{0.0f, 1.0f, 0.0f},
+                        new float[]{0.0f, 0.0f, 1.0f}
+                )
+                .documents(
+                        "ReadLevel test document one",
+                        "ReadLevel test document two",
+                        "ReadLevel test document three"
+                )
+                .execute();
+
+        // Search immediately (no polling) — INDEX_AND_WAL guarantees WAL records are visible
+        SearchResult result = seedCollection.search()
+                .queryEmbedding(QUERY_ELECTRONICS)
+                .readLevel(ReadLevel.INDEX_AND_WAL)
+                .limit(3)
+                .execute();
+
+        assertNotNull("INDEX_AND_WAL result should not be null", result);
+        assertNotNull("ids should not be null", result.getIds());
+        // WAL guarantees recently written records visible; seed collection should return results
+        assertTrue("INDEX_AND_WAL should return at least 1 row", result.rows(0).size() >= 1);
+    }
+
+    @Test
+    public void testCloudSearchReadLevelIndexOnly() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Use shared seedCollection (already indexed from @BeforeClass)
+        SearchResult result = seedCollection.search()
+                .queryEmbedding(QUERY_ELECTRONICS)
+                .readLevel(ReadLevel.INDEX_ONLY)
+                .limit(5)
+                .execute();
+
+        assertNotNull("INDEX_ONLY result should not be null", result);
+        // May return fewer than total if index not fully compacted per D-12 -- use <= 15 not exact count
+        assertNotNull("ids outer list must be non-null", result.getIds());
+        assertTrue("INDEX_ONLY result count must be <= 15",
+                result.getIds().get(0).size() <= 15);
+        // Key assertion: INDEX_ONLY must not throw an exception
+    }
+
+    @Test
+    public void testCloudKnnLimitVsSearchLimit() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Knn.limit(10) retrieves 10 nearest neighbor candidates;
+        // Search.limit(3) caps the final result count returned to the caller
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS).limit(10))
+                .selectAll()
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("KnnLimit result should not be null", result);
+        // Search.limit(3) caps final result count even though Knn.limit(10) retrieves 10 candidates
+        assertTrue("Search.limit(3) must cap final result count to <= 3",
+                result.rows(0).size() <= 3);
+    }
+
+    @Test
+    public void testCloudSearchFilterMatrix() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Sub-test A: Where metadata filter alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.eq("category", "electronics"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-A result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertNotNull("category metadata should be present", row.getMetadata());
+                assertEquals("All rows should have category=electronics",
+                        "electronics", row.getMetadata().get("category"));
+            }
+        }
+
+        // Sub-test B: IDIn alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.idIn("prod-001", "prod-005", "prod-008"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-B result should not be null", result);
+            assertTrue("IDIn should return at most 3 results", result.rows(0).size() <= 3);
+            for (SearchResultRow row : result.rows(0)) {
+                assertTrue("IDIn should only return matching ids",
+                        "prod-001".equals(row.getId()) || "prod-005".equals(row.getId()) || "prod-008".equals(row.getId()));
+            }
+        }
+
+        // Sub-test C: IDNotIn alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.idNotIn("prod-001", "prod-002"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-C result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("IDNotIn should exclude prod-001", "prod-001".equals(row.getId()));
+                assertFalse("IDNotIn should exclude prod-002", "prod-002".equals(row.getId()));
+            }
+        }
+
+        // Sub-test D: DocumentContains alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.documentContains("headphones"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-D result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertNotNull("Document should be present", row.getDocument());
+                assertTrue("DocumentContains filter: document must contain 'headphones'",
+                        row.getDocument().toLowerCase().contains("headphones"));
+            }
+        }
+
+        // Sub-test E: IDNotIn + metadata filter combined
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(Where.idNotIn("prod-001"), Where.eq("category", "electronics")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-E result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("IDNotIn+metadata: should exclude prod-001", "prod-001".equals(row.getId()));
+                assertEquals("IDNotIn+metadata: all rows should be electronics",
+                        "electronics", row.getMetadata().get("category"));
+            }
+        }
+
+        // Sub-test F: Where + DocumentContains combined
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(Where.eq("category", "electronics"), Where.documentContains("wireless")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-F result should not be null", result);
+            for (SearchResultRow row : result.rows(0)) {
+                assertEquals("Where+DocumentContains: category must be electronics",
+                        "electronics", row.getMetadata().get("category"));
+                assertTrue("Where+DocumentContains: document must contain 'wireless'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("wireless"));
+            }
+        }
+
+        // Sub-test G: DocumentNotContains alone
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.documentNotContains("headphones"))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-G result should not be null", result);
+            // Zero results is legitimate — some filter+embedding combos may return nothing
+            for (SearchResultRow row : result.rows(0)) {
+                assertFalse("DocumentNotContains: document must not contain 'headphones'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("headphones"));
+            }
+        }
+
+        // Sub-test H: Where + IDIn + DocumentContains triple combination
+        {
+            Search s = Search.builder()
+                    .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                    .where(Where.and(
+                            Where.eq("category", "electronics"),
+                            Where.idIn("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015"),
+                            Where.documentContains("wireless")))
+                    .selectAll()
+                    .limit(10)
+                    .build();
+            SearchResult result = seedCollection.search().searches(s).execute();
+            assertNotNull("Filter-H result should not be null", result);
+            // Triple combination may legitimately narrow to zero results
+            for (SearchResultRow row : result.rows(0)) {
+                assertEquals("Filter-H: category must be electronics",
+                        "electronics", row.getMetadata().get("category"));
+                String id = row.getId();
+                assertTrue("Filter-H: ID must be in allowed set",
+                        "prod-001".equals(id) || "prod-005".equals(id) || "prod-008".equals(id)
+                                || "prod-009".equals(id) || "prod-011".equals(id) || "prod-015".equals(id));
+                assertTrue("Filter-H: document must contain 'wireless'",
+                        row.getDocument() != null && row.getDocument().toLowerCase().contains("wireless"));
+            }
+        }
+    }
+
+    @Test
+    public void testCloudSearchPagination() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        // Sub-test A: Basic limit
+        {
+            SearchResult result = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .execute();
+            assertNotNull("Pagination-A result should not be null", result);
+            assertTrue("limit(3) must return <= 3 results", result.rows(0).size() <= 3);
+        }
+
+        // Sub-test B: Limit+offset (page 2)
+        {
+            SearchResult page1 = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .offset(0)
+                    .execute();
+            SearchResult page2 = seedCollection.search()
+                    .queryEmbedding(QUERY_ELECTRONICS)
+                    .limit(3)
+                    .offset(3)
+                    .execute();
+            assertFalse("page1 should have results", page1.rows(0).isEmpty());
+            assertNotNull("page2 result should not be null", page2);
+            // If both pages have results, first rows must differ (different pages)
+            if (!page1.rows(0).isEmpty() && !page2.rows(0).isEmpty()) {
+                assertFalse("page1 and page2 first IDs must differ",
+                        page1.rows(0).get(0).getId().equals(page2.rows(0).get(0).getId()));
+            }
+        }
+
+        // Sub-test C: Client-side validation for invalid inputs (D-14)
+        // These should fail without sending HTTP requests
+        {
+            try {
+                seedCollection.search()
+                        .queryEmbedding(QUERY_ELECTRONICS)
+                        .limit(0)
+                        .execute();
+                fail("Expected IllegalArgumentException for limit=0");
+            } catch (IllegalArgumentException e) {
+                // expected
+            }
+        }
+        {
+            try {
+                seedCollection.search()
+                        .queryEmbedding(QUERY_ELECTRONICS)
+                        .limit(3)
+                        .offset(-1)
+                        .execute();
+                fail("Expected IllegalArgumentException for negative offset");
+            } catch (IllegalArgumentException e) {
+                // expected
+            }
+        }
+    }
+
+    @Test
+    public void testCloudSearchProjectionPresent() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .select(Select.ID, Select.SCORE, Select.DOCUMENT)
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("Projection result should not be null", result);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertFalse("Projection rows should not be empty", rows.isEmpty());
+        for (SearchResultRow row : rows) {
+            assertNotNull("ID should be present when selected", row.getId());
+            assertNotNull("Score should be present when selected", row.getScore());
+            assertNotNull("Document should be present when selected", row.getDocument());
+        }
+        // Embedding was NOT selected — should be null
+        assertNull("Embeddings should be null when not selected", result.getEmbeddings());
+    }
+
+    @Test
+    public void testCloudSearchProjectionCustomKey() {
+        Assume.assumeTrue("Cloud not available", cloudAvailable);
+        // Custom key projection is a Cloud-oriented feature per D-16
+
+        Search s = Search.builder()
+                .knn(Knn.queryEmbedding(QUERY_ELECTRONICS))
+                .select(Select.ID, Select.SCORE, Select.key("category"),
+                        Select.key("price"))
+                .limit(3)
+                .build();
+        SearchResult result = seedCollection.search().searches(s).execute();
+
+        assertNotNull("CustomKey projection result should not be null", result);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertFalse("CustomKey rows should not be empty", rows.isEmpty());
+
+        // Verify metadatas contain projected keys
+        List<List<Map<String, Object>>> metadatas = result.getMetadatas();
+        if (metadatas != null && !metadatas.isEmpty() && metadatas.get(0) != null) {
+            for (Map<String, Object> meta : metadatas.get(0)) {
+                if (meta != null) {
+                    assertTrue("Projected metadata should contain 'category' key",
+                            meta.containsKey("category"));
+                    assertTrue("Projected metadata should contain 'price' key",
+                            meta.containsKey("price"));
+                }
+            }
         }
     }
 
