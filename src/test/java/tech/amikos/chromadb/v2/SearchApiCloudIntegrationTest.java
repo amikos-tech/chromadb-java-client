@@ -12,9 +12,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -45,6 +47,10 @@ public class SearchApiCloudIntegrationTest {
     // Query embedding constants matching seed collection clusters (4D)
     private static final float[] QUERY_ELECTRONICS = {0.85f, 0.15f, 0.05f, 0.05f};
     private static final float[] QUERY_GROCERY = {0.05f, 0.85f, 0.15f, 0.05f};
+    private static final List<String> ELECTRONICS_IDS = Arrays.asList(
+            "prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015");
+    private static final List<String> GROCERY_IDS = Arrays.asList(
+            "prod-002", "prod-007", "prod-010");
 
     private static String sharedApiKey;
     private static String sharedTenant;
@@ -240,17 +246,6 @@ public class SearchApiCloudIntegrationTest {
 
     private static boolean isNonBlank(String value) {
         return value != null && !value.trim().isEmpty();
-    }
-
-    private static Map<String, Object> metadata(String... keyValues) {
-        if (keyValues.length % 2 != 0) {
-            throw new IllegalArgumentException("keyValues must be key-value pairs");
-        }
-        Map<String, Object> meta = new LinkedHashMap<String, Object>();
-        for (int i = 0; i < keyValues.length; i += 2) {
-            meta.put(keyValues[i], keyValues[i + 1]);
-        }
-        return meta;
     }
 
     private static Map<String, Object> buildMeta(String category, float price, boolean inStock,
@@ -892,9 +887,8 @@ public class SearchApiCloudIntegrationTest {
         }
         // Verify top result is from the electronics cluster (seed data has 6 electronics products
         // with dominant first-dimension embeddings matching QUERY_ELECTRONICS)
-        List<String> electronicsIds = Arrays.asList("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015");
         assertTrue("Top KNN result should be from electronics cluster",
-                electronicsIds.contains(rows.get(0).getId()));
+                ELECTRONICS_IDS.contains(rows.get(0).getId()));
     }
 
     @Test
@@ -918,7 +912,7 @@ public class SearchApiCloudIntegrationTest {
             SearchResult result = seedCollection.search().searches(s).execute();
             // If we reach here, the server now supports $rrf — update this test to validate results
             fail("$rrf is now supported by the server — update this test to validate RRF results");
-        } catch (ChromaException e) {
+        } catch (ChromaClientException e) {
             assertTrue("Expected 'unknown variant' error for unsupported $rrf",
                     e.getMessage() != null && e.getMessage().contains("unknown variant"));
         }
@@ -944,11 +938,12 @@ public class SearchApiCloudIntegrationTest {
         assertFalse("GroupBy should return at least 1 row", rows.isEmpty());
         // Verify grouping semantics: multiple distinct categories should appear in results
         // (seed data has 6 categories; QUERY_ELECTRONICS + limit(10) should reach several)
-        java.util.Set<String> categories = new java.util.HashSet<String>();
+        Set<String> categories = new HashSet<String>();
         for (SearchResultRow row : rows) {
-            if (row.getMetadata() != null && row.getMetadata().get("category") != null) {
-                categories.add((String) row.getMetadata().get("category"));
-            }
+            assertNotNull("Metadata should be present when selectAll() is used", row.getMetadata());
+            Object cat = row.getMetadata().get("category");
+            assertNotNull("category key should be present in metadata", cat);
+            categories.add((String) cat);
         }
         assertTrue("GroupBy should return results from multiple categories", categories.size() > 1);
     }
@@ -972,12 +967,10 @@ public class SearchApiCloudIntegrationTest {
         assertFalse("group 0 should have results", result.rows(0).isEmpty());
         assertFalse("group 1 should have results", result.rows(1).isEmpty());
         // Verify groups correspond to their query clusters: group 0 = electronics, group 1 = grocery
-        List<String> electronicsIds = Arrays.asList("prod-001", "prod-005", "prod-008", "prod-009", "prod-011", "prod-015");
-        List<String> groceryIds = Arrays.asList("prod-002", "prod-007", "prod-010");
         assertTrue("Batch group 0 top result should be from electronics cluster",
-                electronicsIds.contains(result.rows(0).get(0).getId()));
+                ELECTRONICS_IDS.contains(result.rows(0).get(0).getId()));
         assertTrue("Batch group 1 top result should be from grocery cluster",
-                groceryIds.contains(result.rows(1).get(0).getId()));
+                GROCERY_IDS.contains(result.rows(1).get(0).getId()));
     }
 
     @Test
