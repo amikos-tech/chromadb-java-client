@@ -3,10 +3,11 @@ package tech.amikos.chromadb.v2;
 import java.util.Map;
 
 /**
- * Represents a single result row from a get or query operation.
+ * Represents a single result row from a get, query, or search operation.
  *
- * <p>Fields are {@code null} when the corresponding {@link Include} value was not specified in the
- * request. No {@code Optional} wrappers are used — callers should check for {@code null} directly.
+ * <p>Fields are {@code null} when the corresponding projection was not requested (e.g.,
+ * {@link Include} for get/query, {@link Select} for search). No {@code Optional} wrappers
+ * are used — callers should check for {@code null} directly.
  */
 public interface ResultRow {
 
@@ -16,24 +17,24 @@ public interface ResultRow {
     String getId();
 
     /**
-     * Returns the document text, or {@code null} if {@link Include#DOCUMENTS} was not included.
+     * Returns the document text, or {@code null} if document projection was not requested.
      */
     String getDocument();
 
     /**
-     * Returns an unmodifiable metadata map, or {@code null} if {@link Include#METADATAS} was not
-     * included.
+     * Returns an unmodifiable metadata map, or {@code null} if metadata projection was not
+     * requested.
      */
     Map<String, Object> getMetadata();
 
     /**
-     * Returns a defensive copy of the embedding array, or {@code null} if
-     * {@link Include#EMBEDDINGS} was not included.
+     * Returns a defensive copy of the embedding array, or {@code null} if embedding projection
+     * was not requested.
      */
     float[] getEmbedding();
 
     /**
-     * Returns the URI, or {@code null} if {@link Include#URIS} was not included.
+     * Returns the URI, or {@code null} if URI projection was not requested.
      */
     String getUri();
 }

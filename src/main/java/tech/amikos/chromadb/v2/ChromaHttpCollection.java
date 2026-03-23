@@ -453,6 +453,11 @@ final class ChromaHttpCollection implements Collection {
         return new DeleteBuilderImpl();
     }
 
+    @Override
+    public SearchBuilder search() {
+        return new SearchBuilderImpl();
+    }
+
     // --- Builder implementations ---
 
     private final class AddBuilderImpl implements AddBuilder {
@@ -528,6 +533,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
             if (hasExplicitIds(ids)) {
                 checkForDuplicateIds(resolvedIds);
@@ -622,6 +628,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             List<String> resolvedIds = resolveIds(ids, idGenerator, documents, embeddings, metadatas, uris);
             if (hasExplicitIds(ids)) {
                 checkForDuplicateIds(resolvedIds);
@@ -869,6 +876,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public void execute() {
+            validateMetadataArrayTypes(metadatas);
             if (ids == null || ids.isEmpty()) {
                 throw new IllegalArgumentException("ids must not be empty");
             }
@@ -931,6 +939,107 @@ final class ChromaHttpCollection implements Collection {
                     whereMap,
                     whereDocumentMap
             ));
+        }
+    }
+
+    private final class SearchBuilderImpl implements SearchBuilder {
+
+        private List<Search> searches;
+        private Where globalFilter;
+        private Integer globalLimit;
+        private Integer globalOffset;
+        private ReadLevel readLevel;
+
+        @Override
+        public SearchBuilder queryText(String text) {
+            Objects.requireNonNull(text, "text");
+            this.searches = Collections.singletonList(
+                    Search.builder().knn(Knn.queryText(text)).build()
+            );
+            return this;
+        }
+
+        @Override
+        public SearchBuilder queryEmbedding(float[] embedding) {
+            Objects.requireNonNull(embedding, "embedding");
+            this.searches = Collections.singletonList(
+                    Search.builder().knn(Knn.queryEmbedding(embedding)).build()
+            );
+            return this;
+        }
+
+        @Override
+        public SearchBuilder searches(Search... searches) {
+            Objects.requireNonNull(searches, "searches");
+            for (int i = 0; i < searches.length; i++) {
+                if (searches[i] == null) {
+                    throw new IllegalArgumentException("searches[" + i + "] must not be null");
+                }
+            }
+            this.searches = Arrays.asList(searches);
+            return this;
+        }
+
+        @Override
+        public SearchBuilder where(Where globalFilter) {
+            Objects.requireNonNull(globalFilter, "globalFilter");
+            this.globalFilter = globalFilter;
+            return this;
+        }
+
+        @Override
+        public SearchBuilder limit(int limit) {
+            if (limit <= 0) throw new IllegalArgumentException("limit must be > 0");
+            this.globalLimit = limit;
+            return this;
+        }
+
+        @Override
+        public SearchBuilder offset(int offset) {
+            if (offset < 0) throw new IllegalArgumentException("offset must be >= 0");
+            this.globalOffset = offset;
+            return this;
+        }
+
+        @Override
+        public SearchBuilder readLevel(ReadLevel readLevel) {
+            Objects.requireNonNull(readLevel, "readLevel");
+            this.readLevel = readLevel;
+            return this;
+        }
+
+        @Override
+        public SearchResult execute() {
+            if (searches == null || searches.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "At least one search must be specified via queryText(), queryEmbedding(), or searches()");
+            }
+
+            // Build effective search list, applying global limit/offset where search has none
+            List<Search> effectiveSearches = new ArrayList<Search>(searches.size());
+            for (Search s : searches) {
+                boolean needsLimit = s.getLimit() == null && globalLimit != null;
+                boolean needsOffset = s.getOffset() == null && globalOffset != null;
+                if (needsLimit || needsOffset) {
+                    Search.Builder b = s.toBuilder();
+                    if (needsLimit) b.limit(globalLimit);
+                    if (needsOffset) b.offset(globalOffset);
+                    effectiveSearches.add(b.build());
+                } else {
+                    effectiveSearches.add(s);
+                }
+            }
+
+            List<Map<String, Object>> searchItems = new ArrayList<Map<String, Object>>(effectiveSearches.size());
+            for (Search s : effectiveSearches) {
+                searchItems.add(ChromaDtos.buildSearchItemMap(s, globalFilter));
+            }
+            String rl = readLevel != null ? readLevel.getValue() : null;
+            ChromaDtos.SearchRequest request = new ChromaDtos.SearchRequest(searchItems, rl);
+
+            String path = ChromaApiPaths.collectionSearch(tenant.getName(), database.getName(), id);
+            ChromaDtos.SearchResponse dto = apiClient.post(path, request, ChromaDtos.SearchResponse.class);
+            return SearchResultImpl.from(dto);
         }
     }
 
@@ -1254,6 +1363,74 @@ final class ChromaHttpCollection implements Collection {
             vectors.add(vector);
         }
         return vectors;
+    }
+
+    /**
+     * Validates that all List values in metadata maps contain homogeneous types.
+     * Mixed-type arrays (e.g., ["foo", 42, true]) are rejected before sending to server.
+     *
+     * @throws ChromaBadRequestException if any metadata map contains a List with mixed types or null elements
+     */
+    static void validateMetadataArrayTypes(List<Map<String, Object>> metadatas) {
+        if (metadatas == null) {
+            return;
+        }
+        for (int i = 0; i < metadatas.size(); i++) {
+            Map<String, Object> meta = metadatas.get(i);
+            if (meta == null) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : meta.entrySet()) {
+                Object value = entry.getValue();
+                if (value instanceof List) {
+                    validateHomogeneousList(entry.getKey(), (List<?>) value, i);
+                }
+            }
+        }
+    }
+
+    private static void validateHomogeneousList(String key, List<?> list, int recordIndex) {
+        if (list.isEmpty()) {
+            return; // empty arrays are valid
+        }
+        Class<?> firstType = null;
+        for (int j = 0; j < list.size(); j++) {
+            Object element = list.get(j);
+            if (element == null) {
+                throw new ChromaBadRequestException(
+                        "metadata[" + recordIndex + "]." + key + "[" + j + "] is null; "
+                                + "array metadata values must not contain null elements",
+                        "NULL_ARRAY_ELEMENT"
+                );
+            }
+            Class<?> normalizedType = normalizeNumericType(element.getClass());
+            if (firstType == null) {
+                firstType = normalizedType;
+            } else if (!firstType.equals(normalizedType)) {
+                throw new ChromaBadRequestException(
+                        "metadata[" + recordIndex + "]." + key + " contains mixed types: "
+                                + "expected " + firstType.getSimpleName() + " but found "
+                                + element.getClass().getSimpleName() + " at index " + j
+                                + "; array metadata values must be homogeneous",
+                        "MIXED_TYPE_ARRAY"
+                );
+            }
+        }
+    }
+
+    /**
+     * Normalizes numeric types to a common base for homogeneity comparison.
+     * Integer, Long, Short, Byte -> Integer (integer group)
+     * Float, Double -> Float (floating group)
+     */
+    private static Class<?> normalizeNumericType(Class<?> clazz) {
+        if (clazz == Integer.class || clazz == Long.class || clazz == Short.class || clazz == Byte.class) {
+            return Integer.class;
+        }
+        if (clazz == Float.class || clazz == Double.class) {
+            return Float.class;
+        }
+        return clazz;
     }
 
     private static List<String> validateQueryTexts(List<String> texts) {

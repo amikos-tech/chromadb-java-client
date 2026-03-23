@@ -153,6 +153,16 @@ public interface Collection {
     DeleteBuilder delete();
 
     /**
+     * Returns a builder for searching records in this collection.
+     *
+     * <p>Search uses ranking expressions (KNN, RRF) and field projection (Select)
+     * instead of the query endpoint's Include enum. Requires Chroma >= 1.5.</p>
+     *
+     * <p><strong>Availability:</strong> Chroma Cloud and self-hosted >= 1.5.</p>
+     */
+    SearchBuilder search();
+
+    /**
      * Returns the total number of records in this collection.
      *
      * <p><strong>Availability:</strong> Self-hosted and Chroma Cloud.</p>
@@ -385,5 +395,79 @@ public interface Collection {
          * @throws ChromaBadRequestException if the filter is invalid
          */
         void execute();
+    }
+
+    /**
+     * Fluent builder for the Search API endpoint.
+     *
+     * <p>Use {@link #queryText(String)} or {@link #queryEmbedding(float[])} as convenience
+     * shortcuts for single KNN searches, or {@link #searches(Search...)} for batch/complex cases.
+     * Call {@link #execute()} to submit the search and obtain a {@link SearchResult}.</p>
+     */
+    interface SearchBuilder {
+        /**
+         * Convenience shortcut: creates a single {@link Search} with a text-based KNN.
+         * Replaces any previously configured searches.
+         *
+         * @param text the query text; must not be null
+         */
+        SearchBuilder queryText(String text);
+
+        /**
+         * Convenience shortcut: creates a single {@link Search} with an embedding-based KNN.
+         * Replaces any previously configured searches.
+         *
+         * @param embedding the query embedding; must not be null
+         */
+        SearchBuilder queryEmbedding(float[] embedding);
+
+        /**
+         * Sets one or more {@link Search} configurations for batch or complex search scenarios.
+         * Replaces any previously configured searches.
+         *
+         * @param searches one or more search configurations; must not be null or contain nulls
+         */
+        SearchBuilder searches(Search... searches);
+
+        /**
+         * Sets a global metadata/ID filter applied to all searches.
+         *
+         * @param globalFilter the global where filter; must not be null
+         */
+        SearchBuilder where(Where globalFilter);
+
+        /**
+         * Sets a default result limit applied to individual searches that do not specify their
+         * own limit. This is a per-search fallback, not a global cap across all search inputs.
+         *
+         * @param limit maximum number of results per search; must be positive
+         */
+        SearchBuilder limit(int limit);
+
+        /**
+         * Sets a default result offset applied to individual searches that do not specify their
+         * own offset. This is a per-search fallback, not a global cap across all search inputs.
+         *
+         * @param offset number of results to skip per search; must be non-negative
+         */
+        SearchBuilder offset(int offset);
+
+        /**
+         * Sets the read level controlling which data sources are queried.
+         *
+         * @param readLevel the read level; must not be null
+         */
+        SearchBuilder readLevel(ReadLevel readLevel);
+
+        /**
+         * Executes the search and returns the result.
+         *
+         * @return search result containing all matched records
+         * @throws IllegalArgumentException if no search was configured via queryText(),
+         *                                  queryEmbedding(), or searches()
+         * @throws ChromaBadRequestException if the search request is invalid
+         * @throws ChromaException on other server errors
+         */
+        SearchResult execute();
     }
 }

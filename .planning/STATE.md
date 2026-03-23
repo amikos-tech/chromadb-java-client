@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 02-collection-api-extensions-02-02-PLAN.md
-last_updated: "2026-03-21T13:50:18.109Z"
+status: "Phase 03 shipped — PR #139"
+stopped_at: Completed 03-search-api-03-03-PLAN.md
+last_updated: "2026-03-23T08:38:51.785Z"
 progress:
   total_phases: 10
-  completed_phases: 7
-  total_plans: 18
-  completed_plans: 18
+  completed_phases: 8
+  total_plans: 23
+  completed_plans: 22
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 03 — Search API (Phase 02 Collection API Extensions complete)
+**Current focus:** Phase 05 — cloud-integration-testing
 
 ## Current Position
 
-Phase: 03
-Plan: Not started
+Phase: 05 (cloud-integration-testing) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -64,6 +64,10 @@ Plan: Not started
 | Phase 01-result-ergonomics-wheredocument P02 | 2 | 2 tasks | 6 files |
 | Phase 02-collection-api-extensions P01 | 3 | 2 tasks | 7 files |
 | Phase 02-collection-api-extensions P02 | 4 | 2 tasks | 6 files |
+| Phase 05-cloud-integration-testing P01 | 4 | 4 tasks | 3 files |
+| Phase 03-search-api P01 | 4 | 2 tasks | 12 files |
+| Phase 03-search-api P02 | 3min | 2 tasks | 6 files |
+| Phase 03-search-api P03 | 90 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -122,6 +126,17 @@ Recent decisions affecting current work:
 - [Phase 02-collection-api-extensions]: IndexingStatus uses long fields (not int) for op counts matching Chroma API spec; no convenience isComplete() per D-11
 - [Phase 02-collection-api-extensions]: TestContainers tests catch both ChromaNotFoundException and ChromaServerException for skip-on-unavailable — self-hosted returns 5xx for fork/indexingStatus not 404
 - [Phase 02-collection-api-extensions]: Cloud fork test gated by CHROMA_RUN_FORK_TESTS=true to avoid per-call cloud cost in CI
+- [Phase 05-cloud-integration-testing]: validateMetadataArrayTypes uses ChromaBadRequestException with typed errorCode strings (MIXED_TYPE_ARRAY, NULL_ARRAY_ELEMENT); Integer/Long normalized to Integer group, Float/Double to Float group for homogeneity
+- [Phase 05-cloud-integration-testing]: Behavioral wiring tests for metadata validation use ChromaHttpCollection.from() with stub ChromaApiClient at localhost:1 — validation fires before network call
+- [Phase 03-search-api]: Knn uses factory+fluent-chain (not inner Builder) because type is factory-discriminated by query type; single required parameter makes builder pattern overkill
+- [Phase 03-search-api]: Rrf.Builder auto-calls knn.withReturnRank() on rank() to prevent returnRank=false pitfall in RRF sub-rankings
+- [Phase 03-search-api]: SearchResult.getScores() uses List<List<Double>> (not Float) to match wire format precision
+- [Phase 03-search-api]: SearchBuilderImpl in ChromaHttpCollection is stub throwing UnsupportedOperationException; full wiring in Plan 02
+- [Phase 03-search-api]: SearchRequest.searches is List<Map<String,Object>> for polymorphic rank serialization (knn vs rrf)
+- [Phase 03-search-api]: 'filter' key used (not 'where') in buildSearchItemMap per Search API wire format spec
+- [Phase 03-search-api]: SearchResultImpl stores Double scores internally, downcasts to Float on row access per SearchResultRow contract
+- [Phase 03-search-api]: RRF and text queryText skipped via Assume in integration tests — server returns 'unknown variant' for $rrf and rejects string values in $knn.query; tests document intended contract
+- [Phase 03-search-api]: Wire format keys corrected to '$knn'/'$rrf' (dollar-prefixed) — bare 'knn'/'rrf' keys rejected by Chroma server
 
 ### Roadmap Evolution
 
@@ -137,6 +152,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-21T13:44:30.107Z
-Stopped at: Completed 02-collection-api-extensions-02-02-PLAN.md
+Last session: 2026-03-22T18:35:36.178Z
+Stopped at: Completed 03-search-api-03-03-PLAN.md
 Resume file: None

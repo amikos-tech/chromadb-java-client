@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Result Ergonomics & WhereDocument** — Add row-based result access and complete WhereDocument typed helpers.
 - [x] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
-- [ ] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels.
+- [x] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels. (completed 2026-03-22)
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata.
 
@@ -63,7 +63,12 @@ Plans:
   4. User can group results by metadata key with min/max K controls.
   5. User can specify read level (INDEX_AND_WAL vs INDEX_ONLY).
   6. Integration tests validate search against Chroma >= 1.5.
-**Plans:** TBD
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 03-01-PLAN.md — Create Search API value types, ranking builders, result interfaces, and SearchBuilder on Collection
+- [x] 03-02-PLAN.md — Implement Search DTOs, HTTP wiring, result converters, and SearchBuilderImpl
+- [x] 03-03-PLAN.md — Create unit tests, integration tests, and update PublicInterfaceCompatibilityTest
 
 ### Phase 4: Embedding Ecosystem
 **Goal:** Expand the embedding ecosystem with sparse/multimodal interfaces, reranking functions, additional providers, and an auto-wiring registry.
@@ -88,7 +93,11 @@ Plans:
   2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
   3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
   4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
-**Plans:** TBD
+**Plans:** 1/2 plans executed
+
+Plans:
+- [x] 05-01-PLAN.md — Schema/index + array metadata cloud tests, mixed-type array client validation
+- [ ] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
 
 ## Progress
 
@@ -100,6 +109,6 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 |-------|----------------|--------|-----------|
 | 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
-| 3. Search API | 0/TBD | Pending | — |
+| 3. Search API | 3/3 | Complete   | 2026-03-22 |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
-| 5. Cloud Integration Testing | 0/TBD | Pending | — |
+| 5. Cloud Integration Testing | 1/2 | In Progress|  |

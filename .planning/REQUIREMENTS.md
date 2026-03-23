@@ -20,10 +20,10 @@ Requirements for the current milestone. Each maps to roadmap phases.
 
 ### Search API
 
-- [ ] **SEARCH-01**: User can execute `collection.search()` with KNN ranking (queryText, queryVector, querySparseVector) and get typed `SearchResult`.
-- [ ] **SEARCH-02**: User can compose RRF (Reciprocal Rank Fusion) from multiple weighted rank expressions with arithmetic combinators.
-- [ ] **SEARCH-03**: User can project specific fields (`#id`, `#document`, `#embedding`, `#score`, `#metadata`, custom keys) in search results.
-- [ ] **SEARCH-04**: User can group search results by metadata key with min/max K controls, and specify read level (INDEX_AND_WAL vs INDEX_ONLY).
+- [x] **SEARCH-01**: User can execute `collection.search()` with KNN ranking (queryText, queryVector, querySparseVector) and get typed `SearchResult`.
+- [x] **SEARCH-02**: User can compose RRF (Reciprocal Rank Fusion) from multiple weighted rank expressions with arithmetic combinators.
+- [x] **SEARCH-03**: User can project specific fields (`#id`, `#document`, `#embedding`, `#score`, `#metadata`, custom keys) in search results.
+- [x] **SEARCH-04**: User can group search results by metadata key with min/max K controls, and specify read level (INDEX_AND_WAL vs INDEX_ONLY).
 
 ### Embedding Ecosystem
 
@@ -36,8 +36,8 @@ Requirements for the current milestone. Each maps to roadmap phases.
 ### Cloud Integration Testing
 
 - [ ] **CLOUD-01**: Cloud search parity tests cover pagination, IDIn/IDNotIn, document filters, metadata projection, and combined filter scenarios.
-- [ ] **CLOUD-02**: Cloud schema/index tests cover distance space variants, HNSW/SPANN config paths, invalid transitions, and schema round-trip assertions.
-- [ ] **CLOUD-03**: Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, and contains/not_contains filter behavior.
+- [x] **CLOUD-02**: Cloud schema/index tests cover distance space variants, HNSW/SPANN config paths, invalid transitions, and schema round-trip assertions.
+- [x] **CLOUD-03**: Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, and contains/not_contains filter behavior.
 
 ## Future Milestones (Post-0.3.0)
 
@@ -62,18 +62,18 @@ Deferred to future milestones.
 | COLL-01 | Phase 2 | Complete |
 | COLL-02 | Phase 2 | Complete |
 | COLL-03 | Phase 2 | Complete |
-| SEARCH-01 | Phase 3 | Pending |
-| SEARCH-02 | Phase 3 | Pending |
-| SEARCH-03 | Phase 3 | Pending |
-| SEARCH-04 | Phase 3 | Pending |
+| SEARCH-01 | Phase 3 | Complete |
+| SEARCH-02 | Phase 3 | Complete |
+| SEARCH-03 | Phase 3 | Complete |
+| SEARCH-04 | Phase 3 | Complete |
 | EMB-05 | Phase 4 | Pending |
 | EMB-06 | Phase 4 | Pending |
 | EMB-07 | Phase 4 | Pending |
 | EMB-08 | Phase 4 | Pending |
 | RERANK-01 | Phase 4 | Pending |
 | CLOUD-01 | Phase 5 | Pending |
-| CLOUD-02 | Phase 5 | Pending |
-| CLOUD-03 | Phase 5 | Pending |
+| CLOUD-02 | Phase 5 | Complete |
+| CLOUD-03 | Phase 5 | Complete |
 
 **Coverage:**
 - 0.3.0 requirements: 17 total
