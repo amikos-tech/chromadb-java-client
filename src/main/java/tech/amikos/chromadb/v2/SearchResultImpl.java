@@ -134,8 +134,14 @@ final class SearchResultImpl implements SearchResult {
 
     @Override
     public List<SearchResultGroup> groups(int searchIndex) {
+        if (searchIndex < 0 || searchIndex >= ids.size()) {
+            throw new IndexOutOfBoundsException(
+                    "searchIndex " + searchIndex + " out of range [0, " + ids.size() + ")");
+        }
         if (!grouped) {
-            return Collections.emptyList();
+            throw new IllegalStateException(
+                    "Search result is not grouped — use rows(searchIndex) instead, "
+                    + "or check isGrouped() before calling groups()");
         }
         // TODO: Group key extraction depends on server response format; currently each row
         // is returned as a single-element group with key=null — refine when server groupBy

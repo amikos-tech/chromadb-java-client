@@ -435,19 +435,22 @@ public class SearchApiUnitTest {
         assertNull("score should be null when inner entry is null", rows.get(0).getScore());
     }
 
-    @Test
-    public void testSearchResultGroupsReturnsEmptyWhenNotGrouped() {
+    @Test(expected = IllegalStateException.class)
+    public void testSearchResultGroupsThrowsWhenNotGrouped() {
         ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
         dto.ids = Arrays.asList(Arrays.asList("id1"));
-        dto.documents = null;
-        dto.metadatas = null;
-        dto.scores = null;
-        dto.embeddings = null;
 
         SearchResult result = SearchResultImpl.from(dto, false);
-        List<SearchResultGroup> groups = result.groups(0);
-        assertNotNull("groups should not be null", groups);
-        assertTrue("groups should be empty when not grouped", groups.isEmpty());
+        result.groups(0); // should throw — use isGrouped() check + rows() instead
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testSearchResultGroupsBoundsCheckWhenNotGrouped() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        result.groups(-1); // bounds check fires before grouped check
     }
 
     @Test

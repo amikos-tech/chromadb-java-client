@@ -59,11 +59,12 @@ public interface SearchResult {
     /**
      * Returns the grouped results for the specified search input.
      *
-     * <p>Returns a non-empty list when {@link GroupBy} was configured and the server returned
-     * grouped results. Returns an empty list when grouping was not configured.</p>
+     * <p>Use {@link #isGrouped()} to check whether the result is grouped before calling
+     * this method.</p>
      *
      * @param searchIndex zero-based index of the search input
-     * @return list of groups for that search input; empty if not grouped
+     * @return list of groups for that search input
+     * @throws IllegalStateException if the result is not grouped (use {@link #rows(int)} instead)
      * @throws IndexOutOfBoundsException if searchIndex is out of range
      */
     List<SearchResultGroup> groups(int searchIndex);
