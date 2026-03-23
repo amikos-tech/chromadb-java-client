@@ -99,6 +99,22 @@ public final class Search {
     }
 
     /**
+     * Returns a new {@link Builder} pre-populated with this instance's fields.
+     * Useful for creating modified copies without manually copying every field.
+     */
+    public Builder toBuilder() {
+        Builder b = new Builder();
+        b.knn = this.knn;
+        b.rrf = this.rrf;
+        b.filter = this.filter;
+        b.select = this.select == null ? null : this.select.toArray(new Select[0]);
+        b.groupBy = this.groupBy;
+        b.limit = this.limit;
+        b.offset = this.offset;
+        return b;
+    }
+
+    /**
      * Builder for {@link Search}.
      */
     public static final class Builder {

@@ -1023,12 +1023,7 @@ final class ChromaHttpCollection implements Collection {
                 if (s.getLimit() == null && (globalLimit != null || globalOffset != null)) {
                     int effectiveOffset = s.getOffset() != null ? s.getOffset()
                             : (globalOffset != null ? globalOffset : 0);
-                    Search.Builder b = Search.builder();
-                    if (s.getKnn() != null) b.knn(s.getKnn());
-                    if (s.getRrf() != null) b.rrf(s.getRrf());
-                    if (s.getFilter() != null) b.where(s.getFilter());
-                    if (s.getGroupBy() != null) b.groupBy(s.getGroupBy());
-                    if (s.getSelect() != null) b.select(s.getSelect().toArray(new Select[0]));
+                    Search.Builder b = s.toBuilder();
                     if (globalLimit != null) b.limit(globalLimit);
                     b.offset(effectiveOffset);
                     effectiveSearches.add(b.build());

@@ -1706,6 +1706,9 @@ final class ChromaDtos {
 
     // --- Search serialization helpers ---
 
+    private static final String WIRE_KNN = "$knn";
+    private static final String WIRE_RRF = "$rrf";
+
     static Map<String, Object> buildKnnRankMap(Knn knn) {
         Map<String, Object> knnMap = new LinkedHashMap<String, Object>();
         Object query = knn.getQuery();
@@ -1716,11 +1719,13 @@ final class ChromaDtos {
         } else if (query instanceof SparseVector) {
             SparseVector sv = (SparseVector) query;
             Map<String, Object> svMap = new LinkedHashMap<String, Object>();
-            List<Integer> indices = new ArrayList<Integer>(sv.getIndices().length);
-            for (int idx : sv.getIndices()) indices.add(idx);
+            int[] svIndices = sv.getIndices();
+            List<Integer> indices = new ArrayList<Integer>(svIndices.length);
+            for (int idx : svIndices) indices.add(idx);
             svMap.put("indices", indices);
-            List<Float> values = new ArrayList<Float>(sv.getValues().length);
-            for (float v : sv.getValues()) values.add(v);
+            float[] svValues = sv.getValues();
+            List<Float> values = new ArrayList<Float>(svValues.length);
+            for (float v : svValues) values.add(v);
             svMap.put("values", values);
             knnMap.put("query", svMap);
         } else {
@@ -1733,7 +1738,7 @@ final class ChromaDtos {
         if (knn.getDefaultScore() != null) knnMap.put("default", knn.getDefaultScore());
         if (knn.isReturnRank()) knnMap.put("return_rank", true);
         Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
-        wrapper.put("$knn", knnMap);
+        wrapper.put(WIRE_KNN, knnMap);
         return wrapper;
     }
 
@@ -1750,7 +1755,7 @@ final class ChromaDtos {
         rrfMap.put("k", rrf.getK());
         if (rrf.isNormalize()) rrfMap.put("normalize", true);
         Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
-        wrapper.put("$rrf", rrfMap);
+        wrapper.put(WIRE_RRF, rrfMap);
         return wrapper;
     }
 
