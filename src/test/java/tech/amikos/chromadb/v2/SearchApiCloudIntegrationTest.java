@@ -47,7 +47,7 @@ public class SearchApiCloudIntegrationTest {
     private static String sharedDatabase;
 
     @BeforeClass
-    public static void setUpSharedSeedCollection() throws InterruptedException {
+    public static void setUpSharedSeedCollection() {
         Utils.loadEnvFile(".env");
         sharedApiKey = Utils.getEnvOrProperty("CHROMA_API_KEY");
         sharedTenant = Utils.getEnvOrProperty("CHROMA_TENANT");
@@ -152,9 +152,6 @@ public class SearchApiCloudIntegrationTest {
                 )
                 .execute();
 
-        // Poll for indexing completion (D-09)
-        waitForIndexing(seedCollection, 60_000L, 2_000L);
-
         cloudAvailable = true;
     }
 
@@ -216,20 +213,6 @@ public class SearchApiCloudIntegrationTest {
     }
 
     // --- Helper methods ---
-
-    private static void waitForIndexing(Collection col, long timeoutMs, long pollIntervalMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            IndexingStatus status = col.indexingStatus();
-            if (status.getOpIndexingProgress() >= 1.0 - 1e-6) {
-                return;
-            }
-            Thread.sleep(pollIntervalMs);
-        }
-        IndexingStatus finalStatus = col.indexingStatus();
-        fail("Indexing did not complete within " + timeoutMs + "ms: " + finalStatus);
-    }
 
     private Collection createIsolatedCollection(String prefix) {
         String name = uniqueCollectionName(prefix);
@@ -572,7 +555,7 @@ public class SearchApiCloudIntegrationTest {
     // =============================================================================
 
     @Test
-    public void testCloudStringArrayMetadata() throws InterruptedException {
+    public void testCloudStringArrayMetadata() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_str_arr_");
@@ -585,7 +568,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.9f, 0.1f, 0.1f})
                 .execute();
 
-        waitForIndexing(col, 60_000L, 2_000L);
 
         GetResult result = col.get()
                 .ids("arr-str-1")
@@ -625,7 +607,7 @@ public class SearchApiCloudIntegrationTest {
     }
 
     @Test
-    public void testCloudNumberArrayMetadata() throws InterruptedException {
+    public void testCloudNumberArrayMetadata() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_num_arr_");
@@ -640,7 +622,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.1f, 0.9f, 0.1f})
                 .execute();
 
-        waitForIndexing(col, 60_000L, 2_000L);
 
         GetResult result = col.get()
                 .ids("arr-num-1")
@@ -683,7 +664,7 @@ public class SearchApiCloudIntegrationTest {
     }
 
     @Test
-    public void testCloudBoolArrayMetadata() throws InterruptedException {
+    public void testCloudBoolArrayMetadata() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_bool_arr_");
@@ -696,7 +677,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.1f, 0.1f, 0.9f})
                 .execute();
 
-        waitForIndexing(col, 60_000L, 2_000L);
 
         GetResult result = col.get()
                 .ids("arr-bool-1")
@@ -728,7 +708,7 @@ public class SearchApiCloudIntegrationTest {
     }
 
     @Test
-    public void testCloudArrayContainsEdgeCases() throws InterruptedException {
+    public void testCloudArrayContainsEdgeCases() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_arr_edge_");
@@ -759,7 +739,6 @@ public class SearchApiCloudIntegrationTest {
                 )
                 .execute();
 
-        waitForIndexing(col, 60_000L, 2_000L);
 
         // Contains on single-element: should return only edge-1
         GetResult soloResult = col.get()
@@ -797,7 +776,7 @@ public class SearchApiCloudIntegrationTest {
     }
 
     @Test
-    public void testCloudEmptyArrayMetadata() throws InterruptedException {
+    public void testCloudEmptyArrayMetadata() {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_empty_arr_");
@@ -810,7 +789,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.5f, 0.5f, 0.1f})
                 .execute();
 
-        waitForIndexing(col, 60_000L, 2_000L);
 
         GetResult result = col.get()
                 .ids("arr-empty-1")
