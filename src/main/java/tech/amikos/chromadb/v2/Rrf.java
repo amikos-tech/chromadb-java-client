@@ -64,8 +64,8 @@ public final class Rrf {
      */
     public static final class RankWithWeight {
 
-        final Knn knn;
-        final double weight;
+        private final Knn knn;
+        private final double weight;
 
         private RankWithWeight(Knn knn, double weight) {
             this.knn = knn;

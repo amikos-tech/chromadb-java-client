@@ -41,6 +41,12 @@ final class SearchResultImpl implements SearchResult {
     }
 
     static SearchResultImpl from(ChromaDtos.SearchResponse dto, boolean grouped) {
+        if (dto == null) {
+            throw new ChromaDeserializationException(
+                    "Server returned an empty search response payload",
+                    200
+            );
+        }
         if (dto.ids == null) {
             throw new ChromaDeserializationException(
                     "Server returned search result without required ids field",
@@ -91,16 +97,20 @@ final class SearchResultImpl implements SearchResult {
 
     @Override
     public ResultGroup<SearchResultRow> rows(int searchIndex) {
+        if (searchIndex < 0 || searchIndex >= ids.size()) {
+            throw new IndexOutOfBoundsException(
+                    "searchIndex " + searchIndex + " out of range [0, " + ids.size() + ")");
+        }
         ResultGroup<SearchResultRow> r = cachedRows.get(searchIndex);
         if (r == null) {
             List<String> colIds = ids.get(searchIndex);
             List<SearchResultRow> result = new ArrayList<SearchResultRow>(colIds.size());
             for (int i = 0; i < colIds.size(); i++) {
-                Float score = null;
+                Double score = null;
                 if (scores != null) {
                     List<Double> rowScores = scores.get(searchIndex);
                     if (rowScores != null && rowScores.get(i) != null) {
-                        score = rowScores.get(i).floatValue();
+                        score = rowScores.get(i);
                     }
                 }
                 List<String> docList = documents == null ? null : documents.get(searchIndex);
@@ -125,11 +135,11 @@ final class SearchResultImpl implements SearchResult {
     @Override
     public List<SearchResultGroup> groups(int searchIndex) {
         if (!grouped) {
-            throw new IllegalStateException(
-                    "Search result is not grouped — use rows(searchIndex) instead");
+            return Collections.emptyList();
         }
-        // Each result row is returned as a single-element group with key=null.
-        // Group key extraction depends on server response format; refined in integration tests.
+        // TODO: Group key extraction depends on server response format; currently each row
+        // is returned as a single-element group with key=null — refine when server groupBy
+        // response structure is verified in integration tests.
         ResultGroup<SearchResultRow> rowGroup = rows(searchIndex);
         List<SearchResultGroup> groups = new ArrayList<SearchResultGroup>(rowGroup.size());
         for (int i = 0; i < rowGroup.size(); i++) {
@@ -147,7 +157,7 @@ final class SearchResultImpl implements SearchResult {
     }
 
     @Override
-    public int groupCount() {
+    public int searchCount() {
         return ids.size();
     }
 

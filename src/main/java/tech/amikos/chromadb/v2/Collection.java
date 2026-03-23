@@ -407,6 +407,7 @@ public interface Collection {
     interface SearchBuilder {
         /**
          * Convenience shortcut: creates a single {@link Search} with a text-based KNN.
+         * Replaces any previously configured searches.
          *
          * @param text the query text; must not be null
          */
@@ -414,6 +415,7 @@ public interface Collection {
 
         /**
          * Convenience shortcut: creates a single {@link Search} with an embedding-based KNN.
+         * Replaces any previously configured searches.
          *
          * @param embedding the query embedding; must not be null
          */
@@ -421,8 +423,9 @@ public interface Collection {
 
         /**
          * Sets one or more {@link Search} configurations for batch or complex search scenarios.
+         * Replaces any previously configured searches.
          *
-         * @param searches one or more search configurations; must not be null
+         * @param searches one or more search configurations; must not be null or contain nulls
          */
         SearchBuilder searches(Search... searches);
 
@@ -434,16 +437,18 @@ public interface Collection {
         SearchBuilder where(Where globalFilter);
 
         /**
-         * Sets the global result limit across all search inputs.
+         * Sets a default result limit applied to individual searches that do not specify their
+         * own limit. This is a per-search fallback, not a global cap across all search inputs.
          *
-         * @param limit maximum number of results
+         * @param limit maximum number of results per search; must be positive
          */
         SearchBuilder limit(int limit);
 
         /**
-         * Sets the global result offset across all search inputs.
+         * Sets a default result offset applied to individual searches that do not specify their
+         * own offset. This is a per-search fallback, not a global cap across all search inputs.
          *
-         * @param offset number of results to skip
+         * @param offset number of results to skip per search; must be non-negative
          */
         SearchBuilder offset(int offset);
 
@@ -458,6 +463,8 @@ public interface Collection {
          * Executes the search and returns the result.
          *
          * @return search result containing all matched records
+         * @throws IllegalArgumentException if no search was configured via queryText(),
+         *                                  queryEmbedding(), or searches()
          * @throws ChromaBadRequestException if the search request is invalid
          * @throws ChromaException on other server errors
          */

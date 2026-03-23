@@ -125,6 +125,15 @@ public final class GroupBy {
             if (key == null || key.trim().isEmpty()) {
                 throw new IllegalArgumentException("key must not be null or blank");
             }
+            if (minK != null && minK < 1) {
+                throw new IllegalArgumentException("minK must be >= 1, got " + minK);
+            }
+            if (maxK != null && maxK < 1) {
+                throw new IllegalArgumentException("maxK must be >= 1, got " + maxK);
+            }
+            if (minK != null && maxK != null && minK > maxK) {
+                throw new IllegalArgumentException("minK (" + minK + ") must not exceed maxK (" + maxK + ")");
+            }
             return new GroupBy(key, minK, maxK);
         }
     }

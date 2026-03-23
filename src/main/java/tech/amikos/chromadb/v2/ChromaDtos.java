@@ -1723,6 +1723,10 @@ final class ChromaDtos {
             for (float v : sv.getValues()) values.add(v);
             svMap.put("values", values);
             knnMap.put("query", svMap);
+        } else {
+            throw new IllegalStateException(
+                    "Unsupported Knn query type: " + query.getClass().getName()
+                    + ". Expected String, float[], or SparseVector.");
         }
         if (knn.getKey() != null) knnMap.put("key", knn.getKey());
         if (knn.getLimit() != null) knnMap.put("limit", knn.getLimit());
@@ -1753,14 +1757,17 @@ final class ChromaDtos {
     static Map<String, Object> buildSearchItemMap(Search search, Where globalFilter) {
         Map<String, Object> item = new LinkedHashMap<String, Object>();
 
-        // rank
+        // rank — exactly one of knn or rrf must be present (enforced by Search.build())
         if (search.getKnn() != null) {
             item.put("rank", buildKnnRankMap(search.getKnn()));
         } else if (search.getRrf() != null) {
             item.put("rank", buildRrfRankMap(search.getRrf()));
+        } else {
+            throw new IllegalStateException(
+                    "Search item has neither knn nor rrf ranking — this indicates a bug in Search construction");
         }
 
-        // filter — merge per-search and global (per D-04)
+        // filter — merge per-search and global; per-search entries win on key conflict
         Map<String, Object> filterMap = null;
         Where perSearchFilter = search.getFilter();
         if (perSearchFilter != null && globalFilter != null) {

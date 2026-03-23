@@ -75,8 +75,12 @@ public interface SearchResult {
 
     /**
      * Returns the number of search inputs (outer list size of ids).
+     *
+     * <p>This is the count of search inputs submitted, not the number of groups within
+     * a GroupBy result. Each search input produces one entry in the outer lists returned
+     * by column accessors like {@link #getIds()}.</p>
      */
-    int groupCount();
+    int searchCount();
 
     /**
      * Returns a stream over all search groups, enabling flatMap patterns.

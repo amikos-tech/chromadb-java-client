@@ -13,10 +13,10 @@ import java.util.Objects;
 final class SearchResultRowImpl implements SearchResultRow {
 
     private final ResultRowImpl base;
-    private final Float score;
+    private final Double score;
 
     SearchResultRowImpl(String id, String document, Map<String, Object> metadata,
-                        float[] embedding, String uri, Float score) {
+                        float[] embedding, String uri, Double score) {
         this.base = new ResultRowImpl(id, document, metadata, embedding, uri);
         this.score = score;
     }
@@ -47,7 +47,7 @@ final class SearchResultRowImpl implements SearchResultRow {
     }
 
     @Override
-    public Float getScore() {
+    public Double getScore() {
         return score;
     }
 

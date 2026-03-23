@@ -971,12 +971,18 @@ final class ChromaHttpCollection implements Collection {
         @Override
         public SearchBuilder searches(Search... searches) {
             Objects.requireNonNull(searches, "searches");
+            for (int i = 0; i < searches.length; i++) {
+                if (searches[i] == null) {
+                    throw new IllegalArgumentException("searches[" + i + "] must not be null");
+                }
+            }
             this.searches = Arrays.asList(searches);
             return this;
         }
 
         @Override
         public SearchBuilder where(Where globalFilter) {
+            Objects.requireNonNull(globalFilter, "globalFilter");
             this.globalFilter = globalFilter;
             return this;
         }
@@ -997,6 +1003,7 @@ final class ChromaHttpCollection implements Collection {
 
         @Override
         public SearchBuilder readLevel(ReadLevel readLevel) {
+            Objects.requireNonNull(readLevel, "readLevel");
             this.readLevel = readLevel;
             return this;
         }

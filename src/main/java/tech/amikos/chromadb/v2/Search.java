@@ -3,6 +3,7 @@ package tech.amikos.chromadb.v2;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Per-search configuration composing a ranking expression (KNN or RRF) with optional filter,
@@ -119,6 +120,7 @@ public final class Search {
          * @return this builder
          */
         public Builder knn(Knn knn) {
+            Objects.requireNonNull(knn, "knn must not be null");
             this.knn = knn;
             return this;
         }
@@ -130,6 +132,7 @@ public final class Search {
          * @return this builder
          */
         public Builder rrf(Rrf rrf) {
+            Objects.requireNonNull(rrf, "rrf must not be null");
             this.rrf = rrf;
             return this;
         }
@@ -141,6 +144,7 @@ public final class Search {
          * @return this builder
          */
         public Builder where(Where filter) {
+            Objects.requireNonNull(filter, "filter must not be null");
             this.filter = filter;
             return this;
         }
@@ -152,6 +156,12 @@ public final class Search {
          * @return this builder
          */
         public Builder select(Select... fields) {
+            Objects.requireNonNull(fields, "fields must not be null");
+            for (int i = 0; i < fields.length; i++) {
+                if (fields[i] == null) {
+                    throw new IllegalArgumentException("fields[" + i + "] must not be null");
+                }
+            }
             this.select = fields;
             return this;
         }
@@ -173,6 +183,7 @@ public final class Search {
          * @return this builder
          */
         public Builder groupBy(GroupBy groupBy) {
+            Objects.requireNonNull(groupBy, "groupBy must not be null");
             this.groupBy = groupBy;
             return this;
         }

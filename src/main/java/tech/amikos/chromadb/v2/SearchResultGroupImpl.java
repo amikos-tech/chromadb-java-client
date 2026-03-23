@@ -11,6 +11,7 @@ final class SearchResultGroupImpl implements SearchResultGroup {
     private final ResultGroup<SearchResultRow> rows;
 
     SearchResultGroupImpl(Object key, ResultGroup<SearchResultRow> rows) {
+        Objects.requireNonNull(rows, "rows must not be null");
         this.key = key;
         this.rows = rows;
     }

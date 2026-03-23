@@ -12,7 +12,8 @@ public interface SearchResultRow extends ResultRow {
      * Returns the relevance score from the ranking expression, or {@code null} if
      * {@link Select#SCORE} was not included in the projection.
      *
-     * <p>Higher scores indicate greater relevance.</p>
+     * <p>Higher scores indicate greater relevance. Returns {@link Double} to preserve
+     * the full wire-format precision, consistent with {@link SearchResult#getScores()}.</p>
      */
-    Float getScore();
+    Double getScore();
 }

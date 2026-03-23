@@ -36,8 +36,11 @@ public final class Knn {
     }
 
     /**
-     * Creates a KNN query by text. The embedding function configured on the collection will be
-     * used to convert the text to an embedding.
+     * Creates a KNN query by text. The text is sent to the server, which uses the collection's
+     * server-side embedding function to convert it to an embedding.
+     *
+     * <p>Unlike {@link Collection.QueryBuilder#queryTexts(String...)}, no client-side embedding
+     * function is invoked.</p>
      *
      * @param text the query text; must not be null
      * @return a new {@code Knn} instance
@@ -66,7 +69,8 @@ public final class Knn {
 
     /**
      * Creates a KNN query by sparse vector. The {@code key} field defaults to {@code null} and
-     * must be set via {@link #key(String)} to identify the target sparse field.
+     * should be set via {@link #key(String)} to identify the target sparse field. If omitted,
+     * the key will not be included in the wire format.
      *
      * @param sparseVector the sparse query vector; must not be null
      * @return a new {@code Knn} instance
@@ -87,6 +91,9 @@ public final class Knn {
      * @return new {@code Knn} with the key set
      */
     public Knn key(String key) {
+        if (key == null) {
+            throw new IllegalArgumentException("key must not be null");
+        }
         return new Knn(this.query, key, this.limit, this.defaultScore, this.returnRank);
     }
 
@@ -135,8 +142,12 @@ public final class Knn {
 
     /**
      * Returns the query object (String, float[], or {@link SparseVector}).
+     * When the query is a {@code float[]}, a defensive copy is returned.
      */
     public Object getQuery() {
+        if (query instanceof float[]) {
+            return Arrays.copyOf((float[]) query, ((float[]) query).length);
+        }
         return query;
     }
 
