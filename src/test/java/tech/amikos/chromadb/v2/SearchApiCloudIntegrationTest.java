@@ -129,6 +129,27 @@ public class SearchApiCloudIntegrationTest {
                 .ids(ids)
                 .documents(documents)
                 .metadatas(metadatas)
+                .embeddings(
+                        // Electronics cluster: dominant first dimension
+                        new float[]{0.90f, 0.10f, 0.10f, 0.10f},  // prod-001 headphones
+                        // Grocery cluster: dominant second dimension
+                        new float[]{0.10f, 0.90f, 0.10f, 0.10f},  // prod-002 tea
+                        // Clothing/Sports cluster: dominant third dimension
+                        new float[]{0.15f, 0.10f, 0.85f, 0.10f},  // prod-003 shoes
+                        new float[]{0.10f, 0.10f, 0.80f, 0.20f},  // prod-004 water bottle
+                        new float[]{0.85f, 0.15f, 0.10f, 0.10f},  // prod-005 laptop stand
+                        new float[]{0.10f, 0.10f, 0.90f, 0.10f},  // prod-006 yoga mat
+                        new float[]{0.10f, 0.85f, 0.15f, 0.10f},  // prod-007 coffee
+                        new float[]{0.88f, 0.12f, 0.10f, 0.10f},  // prod-008 keyboard
+                        new float[]{0.80f, 0.10f, 0.10f, 0.20f},  // prod-009 speaker
+                        new float[]{0.10f, 0.80f, 0.20f, 0.10f},  // prod-010 protein
+                        new float[]{0.82f, 0.10f, 0.10f, 0.18f},  // prod-011 desk lamp
+                        // Travel/Office cluster: dominant fourth dimension
+                        new float[]{0.10f, 0.10f, 0.20f, 0.80f},  // prod-012 backpack
+                        new float[]{0.10f, 0.10f, 0.85f, 0.15f},  // prod-013 resistance bands
+                        new float[]{0.10f, 0.10f, 0.10f, 0.90f},  // prod-014 notebook
+                        new float[]{0.87f, 0.13f, 0.10f, 0.10f}   // prod-015 earbuds
+                )
                 .execute();
 
         // Poll for indexing completion (D-09)
@@ -497,6 +518,11 @@ public class SearchApiCloudIntegrationTest {
                         "Schema round trip test document two",
                         "Schema round trip test document three"
                 )
+                .embeddings(
+                        new float[]{1.0f, 0.0f, 0.0f},
+                        new float[]{0.0f, 1.0f, 0.0f},
+                        new float[]{0.0f, 0.0f, 1.0f}
+                )
                 .execute();
 
         Collection fetched = client.getCollection(col.getName());
@@ -529,6 +555,10 @@ public class SearchApiCloudIntegrationTest {
         col.add()
                 .ids("s4", "s5")
                 .documents("Additional document four", "Additional document five")
+                .embeddings(
+                        new float[]{0.5f, 0.5f, 0.0f},
+                        new float[]{0.0f, 0.5f, 0.5f}
+                )
                 .execute();
 
         Collection refetched = client.getCollection(col.getName());
@@ -552,6 +582,7 @@ public class SearchApiCloudIntegrationTest {
                 .metadatas(Collections.<Map<String, Object>>singletonList(
                         buildSingleMeta("tags", Arrays.<Object>asList("electronics", "wireless", "audio"))
                 ))
+                .embeddings(new float[]{0.9f, 0.1f, 0.1f})
                 .execute();
 
         waitForIndexing(col, 60_000L, 2_000L);
@@ -606,6 +637,7 @@ public class SearchApiCloudIntegrationTest {
                 .ids("arr-num-1")
                 .documents("Document with numeric array metadata")
                 .metadatas(Collections.<Map<String, Object>>singletonList(meta))
+                .embeddings(new float[]{0.1f, 0.9f, 0.1f})
                 .execute();
 
         waitForIndexing(col, 60_000L, 2_000L);
@@ -661,6 +693,7 @@ public class SearchApiCloudIntegrationTest {
                 .metadatas(Collections.<Map<String, Object>>singletonList(
                         buildSingleMeta("flags", Arrays.<Object>asList(true, false, true))
                 ))
+                .embeddings(new float[]{0.1f, 0.1f, 0.9f})
                 .execute();
 
         waitForIndexing(col, 60_000L, 2_000L);
@@ -719,6 +752,11 @@ public class SearchApiCloudIntegrationTest {
                         "No tag document"
                 )
                 .metadatas(metas)
+                .embeddings(
+                        new float[]{1.0f, 0.0f, 0.0f},
+                        new float[]{0.0f, 1.0f, 0.0f},
+                        new float[]{0.0f, 0.0f, 1.0f}
+                )
                 .execute();
 
         waitForIndexing(col, 60_000L, 2_000L);
@@ -769,6 +807,7 @@ public class SearchApiCloudIntegrationTest {
                 .metadatas(Collections.<Map<String, Object>>singletonList(
                         buildSingleMeta("tags", Collections.emptyList())
                 ))
+                .embeddings(new float[]{0.5f, 0.5f, 0.1f})
                 .execute();
 
         waitForIndexing(col, 60_000L, 2_000L);
