@@ -1017,9 +1017,7 @@ final class ChromaHttpCollection implements Collection {
 
             // Build effective search list, applying global limit/offset where search has none
             List<Search> effectiveSearches = new ArrayList<Search>(searches.size());
-            boolean hasGroupBy = false;
             for (Search s : searches) {
-                if (s.getGroupBy() != null) hasGroupBy = true;
                 boolean needsLimit = s.getLimit() == null && globalLimit != null;
                 boolean needsOffset = s.getOffset() == null && globalOffset != null;
                 if (needsLimit || needsOffset) {
@@ -1041,7 +1039,7 @@ final class ChromaHttpCollection implements Collection {
 
             String path = ChromaApiPaths.collectionSearch(tenant.getName(), database.getName(), id);
             ChromaDtos.SearchResponse dto = apiClient.post(path, request, ChromaDtos.SearchResponse.class);
-            return SearchResultImpl.from(dto, hasGroupBy);
+            return SearchResultImpl.from(dto);
         }
     }
 

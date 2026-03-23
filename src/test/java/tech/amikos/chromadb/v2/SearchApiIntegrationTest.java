@@ -300,7 +300,7 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
         SearchResult result = searchCollection.search().searches(s).execute();
 
         assertNotNull(result);
-        assertTrue("result should be grouped", result.isGrouped());
+        assertNotNull("ids should not be null", result.getIds());
     }
 
     // ========== SEARCH-01: Global filter (D-04) ==========

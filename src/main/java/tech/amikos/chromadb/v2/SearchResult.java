@@ -57,24 +57,6 @@ public interface SearchResult {
     ResultGroup<SearchResultRow> rows(int searchIndex);
 
     /**
-     * Returns the grouped results for the specified search input.
-     *
-     * <p>Use {@link #isGrouped()} to check whether the result is grouped before calling
-     * this method.</p>
-     *
-     * @param searchIndex zero-based index of the search input
-     * @return list of groups for that search input
-     * @throws IllegalStateException if the result is not grouped (use {@link #rows(int)} instead)
-     * @throws IndexOutOfBoundsException if searchIndex is out of range
-     */
-    List<SearchResultGroup> groups(int searchIndex);
-
-    /**
-     * Returns {@code true} if the results are grouped (i.e., {@link GroupBy} was configured).
-     */
-    boolean isGrouped();
-
-    /**
      * Returns the number of search inputs (outer list size of ids).
      *
      * <p>This is the count of search inputs submitted, not the number of groups within

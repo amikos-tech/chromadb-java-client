@@ -1,7 +1,6 @@
 package tech.amikos.chromadb.v2;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -21,24 +20,21 @@ final class SearchResultImpl implements SearchResult {
     private final List<List<Map<String, Object>>> metadatas;
     private final List<List<float[]>> embeddings;
     private final List<List<Double>> scores;
-    private final boolean grouped;
 
     private final AtomicReferenceArray<ResultGroup<SearchResultRow>> cachedRows;
 
     private SearchResultImpl(List<List<String>> ids, List<List<String>> documents,
                              List<List<Map<String, Object>>> metadatas,
-                             List<List<float[]>> embeddings, List<List<Double>> scores,
-                             boolean grouped) {
+                             List<List<float[]>> embeddings, List<List<Double>> scores) {
         this.ids = ImmutableCopyUtils.nestedList(ids);
         this.documents = ImmutableCopyUtils.nestedList(documents);
         this.metadatas = ImmutableCopyUtils.nestedMetadata(metadatas);
         this.embeddings = ImmutableCopyUtils.nestedEmbeddings(embeddings);
         this.scores = ImmutableCopyUtils.nestedList(scores);
-        this.grouped = grouped;
         this.cachedRows = new AtomicReferenceArray<ResultGroup<SearchResultRow>>(this.ids.size());
     }
 
-    static SearchResultImpl from(ChromaDtos.SearchResponse dto, boolean grouped) {
+    static SearchResultImpl from(ChromaDtos.SearchResponse dto) {
         if (dto == null) {
             throw new ChromaDeserializationException(
                     "Server returned an empty search response payload",
@@ -63,8 +59,7 @@ final class SearchResultImpl implements SearchResult {
                 dto.documents,
                 dto.metadatas,
                 embeddings,
-                dto.scores,
-                grouped
+                dto.scores
         );
     }
 
@@ -122,33 +117,6 @@ final class SearchResultImpl implements SearchResult {
             r = cachedRows.get(searchIndex);
         }
         return r;
-    }
-
-    @Override
-    public List<SearchResultGroup> groups(int searchIndex) {
-        checkSearchIndex(searchIndex);
-        if (!grouped) {
-            throw new IllegalStateException(
-                    "Search result is not grouped — use rows(searchIndex) instead, "
-                    + "or check isGrouped() before calling groups()");
-        }
-        // TODO: Group key extraction depends on server response format; currently each row
-        // is returned as a single-element group with key=null — refine when server groupBy
-        // response structure is verified in integration tests.
-        ResultGroup<SearchResultRow> rowGroup = rows(searchIndex);
-        List<SearchResultGroup> groups = new ArrayList<SearchResultGroup>(rowGroup.size());
-        for (int i = 0; i < rowGroup.size(); i++) {
-            final SearchResultRow row = rowGroup.get(i);
-            List<SearchResultRow> singleRow = Collections.singletonList(row);
-            groups.add(new SearchResultGroupImpl(null,
-                    new ResultGroupImpl<SearchResultRow>(singleRow)));
-        }
-        return Collections.unmodifiableList(groups);
-    }
-
-    @Override
-    public boolean isGrouped() {
-        return grouped;
     }
 
     @Override

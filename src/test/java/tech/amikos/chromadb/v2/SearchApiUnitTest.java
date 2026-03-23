@@ -357,7 +357,7 @@ public class SearchApiUnitTest {
         dto.metadatas = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         assertEquals(1, result.searchCount());
         assertEquals(Arrays.asList(Arrays.asList("id1", "id2")), result.getIds());
         assertEquals(Arrays.asList(Arrays.asList("doc1", "doc2")), result.getDocuments());
@@ -366,14 +366,14 @@ public class SearchApiUnitTest {
 
     @Test(expected = ChromaDeserializationException.class)
     public void testSearchResultImplFromNullDto() {
-        SearchResultImpl.from(null, false);
+        SearchResultImpl.from(null);
     }
 
     @Test(expected = ChromaDeserializationException.class)
     public void testSearchResultImplFromNullIds() {
         ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
         dto.ids = null;
-        SearchResultImpl.from(dto, false);
+        SearchResultImpl.from(dto);
     }
 
     @Test
@@ -385,7 +385,7 @@ public class SearchApiUnitTest {
         dto.scores = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         assertEquals(1, result.searchCount());
         assertNull("documents should be null when not set", result.getDocuments());
         assertNull("metadatas should be null when not set", result.getMetadatas());
@@ -410,7 +410,7 @@ public class SearchApiUnitTest {
         dto.metadatas = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         ResultGroup<SearchResultRow> rows = result.rows(0);
         assertEquals(2, rows.size());
         // Verify scores are Double precision (not Float narrowed)
@@ -430,27 +430,9 @@ public class SearchApiUnitTest {
         dto.metadatas = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         ResultGroup<SearchResultRow> rows = result.rows(0);
         assertNull("score should be null when inner entry is null", rows.get(0).getScore());
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testSearchResultGroupsThrowsWhenNotGrouped() {
-        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
-        dto.ids = Arrays.asList(Arrays.asList("id1"));
-
-        SearchResult result = SearchResultImpl.from(dto, false);
-        result.groups(0); // should throw — use isGrouped() check + rows() instead
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testSearchResultGroupsBoundsCheckWhenNotGrouped() {
-        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
-        dto.ids = Arrays.asList(Arrays.asList("id1"));
-
-        SearchResult result = SearchResultImpl.from(dto, false);
-        result.groups(-1); // bounds check fires before grouped check
     }
 
     @Test
@@ -465,7 +447,7 @@ public class SearchApiUnitTest {
         dto.scores = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         assertEquals("searchCount should return number of search inputs", 2, result.searchCount());
     }
 
@@ -481,7 +463,7 @@ public class SearchApiUnitTest {
         dto.scores = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         long count = result.stream().count();
         assertEquals("stream should return 2 groups", 2, count);
     }
@@ -495,7 +477,7 @@ public class SearchApiUnitTest {
         dto.scores = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         result.rows(-1);
     }
 
@@ -508,7 +490,7 @@ public class SearchApiUnitTest {
         dto.scores = null;
         dto.embeddings = null;
 
-        SearchResult result = SearchResultImpl.from(dto, false);
+        SearchResult result = SearchResultImpl.from(dto);
         result.rows(999);
     }
 
@@ -658,20 +640,4 @@ public class SearchApiUnitTest {
         assertFalse("normalize should not appear when false", rrfMap.containsKey("normalize"));
     }
 
-    // ========== SearchResultGroupImpl null rows guard ==========
-
-    @Test(expected = NullPointerException.class)
-    public void testSearchResultGroupImplNullRowsThrows() {
-        new SearchResultGroupImpl("key", null);
-    }
-
-    // ========== groups() bounds check with valid grouped result ==========
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testSearchResultGroupsBoundsCheckWhenGrouped() {
-        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
-        dto.ids = Arrays.asList(Arrays.asList("id1"));
-        SearchResult result = SearchResultImpl.from(dto, true);
-        result.groups(999); // out of range
-    }
 }
