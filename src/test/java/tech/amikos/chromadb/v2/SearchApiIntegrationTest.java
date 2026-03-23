@@ -178,7 +178,7 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
         SearchResult result = searchCollection.search().searches(s1, s2).execute();
 
         assertNotNull(result);
-        assertEquals("should have 2 search groups", 2, result.groupCount());
+        assertEquals("should have 2 search groups", 2, result.searchCount());
         assertFalse("group 0 should have results", result.rows(0).isEmpty());
         assertFalse("group 1 should have results", result.rows(1).isEmpty());
     }

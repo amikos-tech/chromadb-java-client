@@ -2,6 +2,10 @@ package tech.amikos.chromadb.v2;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -340,5 +344,301 @@ public class SearchApiUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void testGroupByNullKeyThrows() {
         GroupBy.builder().build();
+    }
+
+    // ========== SearchResultImpl.from() parsing tests ==========
+
+    @Test
+    public void testSearchResultImplFromHappyPath() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1", "id2"));
+        dto.documents = Arrays.asList(Arrays.asList("doc1", "doc2"));
+        dto.scores = Arrays.asList(Arrays.asList(0.9, 0.8));
+        dto.metadatas = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        assertEquals(1, result.searchCount());
+        assertEquals(Arrays.asList(Arrays.asList("id1", "id2")), result.getIds());
+        assertEquals(Arrays.asList(Arrays.asList("doc1", "doc2")), result.getDocuments());
+        assertEquals(Arrays.asList(Arrays.asList(0.9, 0.8)), result.getScores());
+    }
+
+    @Test(expected = ChromaDeserializationException.class)
+    public void testSearchResultImplFromNullDto() {
+        SearchResultImpl.from(null, false);
+    }
+
+    @Test(expected = ChromaDeserializationException.class)
+    public void testSearchResultImplFromNullIds() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = null;
+        SearchResultImpl.from(dto, false);
+    }
+
+    @Test
+    public void testSearchResultImplFromNullOptionalFields() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        assertEquals(1, result.searchCount());
+        assertNull("documents should be null when not set", result.getDocuments());
+        assertNull("metadatas should be null when not set", result.getMetadatas());
+        assertNull("scores should be null when not set", result.getScores());
+        assertNull("embeddings should be null when not set", result.getEmbeddings());
+
+        // Row access should return null for missing fields
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertEquals(1, rows.size());
+        SearchResultRow row = rows.get(0);
+        assertEquals("id1", row.getId());
+        assertNull("document should be null for missing field", row.getDocument());
+        assertNull("score should be null for missing field", row.getScore());
+    }
+
+    @Test
+    public void testSearchResultRowsAccessWithScores() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1", "id2"));
+        dto.scores = Arrays.asList(Arrays.asList(0.123456789012345, 0.987654321098765));
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertEquals(2, rows.size());
+        // Verify scores are Double precision (not Float narrowed)
+        assertEquals(0.123456789012345, rows.get(0).getScore(), 0.0);
+        assertEquals(0.987654321098765, rows.get(1).getScore(), 0.0);
+    }
+
+    @Test
+    public void testSearchResultRowsNullSafety() {
+        // Build a response where scores inner list has a null entry
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        List<Double> scoreInner = new ArrayList<Double>();
+        scoreInner.add(null);
+        dto.scores = Arrays.asList(scoreInner);
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        ResultGroup<SearchResultRow> rows = result.rows(0);
+        assertNull("score should be null when inner entry is null", rows.get(0).getScore());
+    }
+
+    @Test
+    public void testSearchResultGroupsReturnsEmptyWhenNotGrouped() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        List<SearchResultGroup> groups = result.groups(0);
+        assertNotNull("groups should not be null", groups);
+        assertTrue("groups should be empty when not grouped", groups.isEmpty());
+    }
+
+    @Test
+    public void testSearchResultSearchCount() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(
+                Arrays.asList("id1", "id2"),
+                Arrays.asList("id3")
+        );
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        assertEquals("searchCount should return number of search inputs", 2, result.searchCount());
+    }
+
+    @Test
+    public void testSearchResultStream() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(
+                Arrays.asList("id1"),
+                Arrays.asList("id2")
+        );
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        long count = result.stream().count();
+        assertEquals("stream should return 2 groups", 2, count);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testSearchResultRowsInvalidIndexNegative() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        result.rows(-1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testSearchResultRowsInvalidIndexTooLarge() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        dto.documents = null;
+        dto.metadatas = null;
+        dto.scores = null;
+        dto.embeddings = null;
+
+        SearchResult result = SearchResultImpl.from(dto, false);
+        result.rows(999);
+    }
+
+    // ========== Search.builder() both-set validation ==========
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSearchBothKnnAndRrfThrows() {
+        Knn knn = Knn.queryText("test");
+        Rrf rrf = Rrf.builder().rank(knn, 1.0).build();
+        Search.builder().knn(knn).rrf(rrf).build();
+    }
+
+    // ========== Null validation tests ==========
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchBuilderKnnNull() {
+        Search.builder().knn(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchBuilderRrfNull() {
+        Search.builder().rrf(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchBuilderWhereNull() {
+        Search.builder().knn(Knn.queryText("test")).where(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchBuilderGroupByNull() {
+        Search.builder().knn(Knn.queryText("test")).groupBy(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchBuilderSelectNull() {
+        Search.builder().knn(Knn.queryText("test")).select((Select[]) null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSearchBuilderSelectNullElement() {
+        Search.builder().knn(Knn.queryText("test")).select(Select.ID, null, Select.SCORE);
+    }
+
+    // ========== Knn null validation tests ==========
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testKnnQueryTextNull() {
+        Knn.queryText(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testKnnQueryEmbeddingNull() {
+        Knn.queryEmbedding(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testKnnQuerySparseVectorNull() {
+        Knn.querySparseVector(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testKnnKeyNull() {
+        Knn.queryText("test").key(null);
+    }
+
+    @Test
+    public void testKnnGetQueryDefensiveCopy() {
+        float[] orig = {1.0f, 2.0f};
+        Knn knn = Knn.queryEmbedding(orig);
+        float[] returned = (float[]) knn.getQuery();
+        returned[0] = 999f;
+        float[] returnedAgain = (float[]) knn.getQuery();
+        assertEquals(1.0f, returnedAgain[0], 0.001f);
+    }
+
+    // ========== Rrf null validation ==========
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfRankNullKnn() {
+        Rrf.builder().rank(null, 1.0);
+    }
+
+    // ========== GroupBy validation improvements ==========
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByBlankKeyThrows() {
+        GroupBy.builder().key("   ").build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByMinKLessThanOneThrows() {
+        GroupBy.builder().key("cat").minK(0).build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByMaxKLessThanOneThrows() {
+        GroupBy.builder().key("cat").maxK(0).build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByMinKExceedsMaxKThrows() {
+        GroupBy.builder().key("cat").minK(5).maxK(3).build();
+    }
+
+    // ========== Wire format: global-only filter path ==========
+
+    @Test
+    public void testBuildSearchItemMapGlobalFilterOnly() {
+        Search s = Search.builder().knn(Knn.queryText("test")).build();
+        Where globalFilter = Where.eq("color", "blue");
+        Map<String, Object> item = ChromaDtos.buildSearchItemMap(s, globalFilter);
+        assertNotNull("filter should be present from global filter", item.get("filter"));
+    }
+
+    // ========== Wire format: Rrf normalize serialization ==========
+
+    @Test
+    public void testRrfNormalizeSerialization() {
+        Rrf rrf = Rrf.builder()
+                .rank(Knn.queryText("a"), 1.0)
+                .normalize(true)
+                .build();
+        Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
+        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
+        assertEquals(true, rrfMap.get("normalize"));
+    }
+
+    // ========== ReadLevel fromValue edge cases ==========
+
+    @Test
+    public void testReadLevelFromValueCaseInsensitive() {
+        assertEquals(ReadLevel.INDEX_AND_WAL, ReadLevel.fromValue("INDEX_AND_WAL"));
+        assertEquals(ReadLevel.INDEX_ONLY, ReadLevel.fromValue("  index_only  "));
     }
 }
