@@ -644,4 +644,34 @@ public class SearchApiUnitTest {
         assertEquals(ReadLevel.INDEX_AND_WAL, ReadLevel.fromValue("INDEX_AND_WAL"));
         assertEquals(ReadLevel.INDEX_ONLY, ReadLevel.fromValue("  index_only  "));
     }
+
+    // ========== Rrf normalize=false absent from wire format ==========
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRrfNormalizeFalseNotSerialized() {
+        Rrf rrf = Rrf.builder()
+                .rank(Knn.queryText("a"), 1.0)
+                .build(); // normalize defaults to false
+        Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
+        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
+        assertFalse("normalize should not appear when false", rrfMap.containsKey("normalize"));
+    }
+
+    // ========== SearchResultGroupImpl null rows guard ==========
+
+    @Test(expected = NullPointerException.class)
+    public void testSearchResultGroupImplNullRowsThrows() {
+        new SearchResultGroupImpl("key", null);
+    }
+
+    // ========== groups() bounds check with valid grouped result ==========
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testSearchResultGroupsBoundsCheckWhenGrouped() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.asList(Arrays.asList("id1"));
+        SearchResult result = SearchResultImpl.from(dto, true);
+        result.groups(999); // out of range
+    }
 }
