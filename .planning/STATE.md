@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: Milestone complete
+status: "Phase 05 shipped — PR #140"
 stopped_at: Completed 05-cloud-integration-testing-05-03-PLAN.md
-last_updated: "2026-03-23T13:49:20.152Z"
+last_updated: "2026-03-23T13:51:04.103Z"
 progress:
   total_phases: 10
   completed_phases: 9
