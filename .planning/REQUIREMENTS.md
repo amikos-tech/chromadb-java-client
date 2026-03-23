@@ -35,7 +35,7 @@ Requirements for the current milestone. Each maps to roadmap phases.
 
 ### Cloud Integration Testing
 
-- [ ] **CLOUD-01**: Cloud search parity tests cover pagination, IDIn/IDNotIn, document filters, metadata projection, and combined filter scenarios.
+- [x] **CLOUD-01**: Cloud search parity tests cover pagination, IDIn/IDNotIn, document filters, metadata projection, and combined filter scenarios.
 - [x] **CLOUD-02**: Cloud schema/index tests cover distance space variants, HNSW/SPANN config paths, invalid transitions, and schema round-trip assertions.
 - [x] **CLOUD-03**: Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, and contains/not_contains filter behavior.
 
@@ -71,7 +71,7 @@ Deferred to future milestones.
 | EMB-07 | Phase 4 | Pending |
 | EMB-08 | Phase 4 | Pending |
 | RERANK-01 | Phase 4 | Pending |
-| CLOUD-01 | Phase 5 | Pending |
+| CLOUD-01 | Phase 5 | Complete |
 | CLOUD-02 | Phase 5 | Complete |
 | CLOUD-03 | Phase 5 | Complete |
 

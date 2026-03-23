@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
 - [x] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels. (completed 2026-03-22)
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
-- [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata.
+- [x] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (completed 2026-03-23)
 
 ## Phase Details
 
@@ -93,11 +93,11 @@ Plans:
   2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
   3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
   4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Schema/index + array metadata cloud tests, mixed-type array client validation
-- [ ] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
+- [x] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
 
 ## Progress
 
@@ -111,4 +111,4 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 3/3 | Complete   | 2026-03-22 |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
-| 5. Cloud Integration Testing | 1/2 | In Progress|  |
+| 5. Cloud Integration Testing | 2/2 | Complete   | 2026-03-23 |

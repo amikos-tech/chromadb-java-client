@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: "Phase 03 shipped — PR #139"
-stopped_at: Completed 03-search-api-03-03-PLAN.md
-last_updated: "2026-03-23T08:38:51.785Z"
+status: Ready to execute
+stopped_at: Completed 05-cloud-integration-testing-05-02-PLAN.md
+last_updated: "2026-03-23T12:41:00.503Z"
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 23
-  completed_plans: 22
+  completed_plans: 23
 ---
 
 # Project State
@@ -68,6 +68,7 @@ Plan: 2 of 2
 | Phase 03-search-api P01 | 4 | 2 tasks | 12 files |
 | Phase 03-search-api P02 | 3min | 2 tasks | 6 files |
 | Phase 03-search-api P03 | 90 | 2 tasks | 7 files |
+| Phase 05-cloud-integration-testing P02 | 4 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,7 @@ Recent decisions affecting current work:
 - [Phase 03-search-api]: SearchResultImpl stores Double scores internally, downcasts to Float on row access per SearchResultRow contract
 - [Phase 03-search-api]: RRF and text queryText skipped via Assume in integration tests — server returns 'unknown variant' for $rrf and rejects string values in $knn.query; tests document intended contract
 - [Phase 03-search-api]: Wire format keys corrected to '$knn'/'$rrf' (dollar-prefixed) — bare 'knn'/'rrf' keys rejected by Chroma server
+- [Phase 05-cloud-integration-testing]: CLOUD-01 search parity tests: GroupBy results via rows() only; ReadLevel WAL uses isolated collection without polling; RRF auto-skipped with Assume.assumeTrue false documenting server limitation; filter matrix 8 sub-scenarios inline; pagination client validation throws IllegalArgumentException before HTTP
 
 ### Roadmap Evolution
 
@@ -152,6 +154,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-22T18:35:36.178Z
-Stopped at: Completed 03-search-api-03-03-PLAN.md
+Last session: 2026-03-23T12:41:00.500Z
+Stopped at: Completed 05-cloud-integration-testing-05-02-PLAN.md
 Resume file: None
