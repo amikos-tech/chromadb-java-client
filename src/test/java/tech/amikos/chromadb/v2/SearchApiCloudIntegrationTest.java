@@ -27,7 +27,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Cloud integration tests for schema/index parity (CLOUD-02) and array metadata (CLOUD-03).
+ * Cloud integration tests for search parity (CLOUD-01), schema/index parity (CLOUD-02),
+ * and array metadata (CLOUD-03).
  *
  * <p>Credentials loaded from {@code .env} or environment variables:
  * CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE.</p>
@@ -423,8 +424,11 @@ public class SearchApiCloudIntegrationTest {
             }
             // Cannot switch from HNSW to SPANN — skip this test gracefully
             return;
-        } catch (ChromaException e) {
-            // SPANN may not be available on this cloud account
+        } catch (ChromaBadRequestException e) {
+            // SPANN may not be available on this cloud account/plan
+            return;
+        } catch (ChromaNotFoundException e) {
+            // SPANN endpoint may not exist on this cloud version
             return;
         }
 
@@ -1339,19 +1343,24 @@ public class SearchApiCloudIntegrationTest {
 
     /**
      * Polls a condition until it passes or the timeout expires (similar to Go's require.Eventually).
+     * Retries on both {@link AssertionError} and transient {@link ChromaException} (e.g., connection
+     * timeouts or server errors during cloud replication windows).
      *
      * @param timeout  maximum time to wait
      * @param tick     interval between attempts
-     * @param runnable assertion block that throws {@link AssertionError} on failure
+     * @param runnable assertion block that throws {@link AssertionError} or {@link ChromaException} on failure
      */
     private static void assertEventually(Duration timeout, Duration tick, Runnable runnable) {
         long deadline = System.nanoTime() + timeout.toNanos();
-        AssertionError lastError = null;
-        while (System.nanoTime() < deadline) {
+        Throwable lastError = null;
+        do {
             try {
                 runnable.run();
                 return; // passed
             } catch (AssertionError e) {
+                lastError = e;
+            } catch (ChromaException e) {
+                // Transient server/connection errors during cloud replication
                 lastError = e;
             }
             try {
@@ -1360,7 +1369,9 @@ public class SearchApiCloudIntegrationTest {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("assertEventually interrupted", ie);
             }
-        }
-        throw lastError;
+        } while (System.nanoTime() < deadline);
+        if (lastError instanceof RuntimeException) throw (RuntimeException) lastError;
+        if (lastError instanceof Error) throw (Error) lastError;
+        throw new AssertionError("assertEventually timed out", lastError);
     }
 }

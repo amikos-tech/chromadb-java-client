@@ -97,10 +97,7 @@ public class CollectionApiExtensionsCloudTest {
             int count = col.forkCount();
             assertEquals(0, count);
         } catch (ChromaNotFoundException e) {
-            Assume.assumeTrue("forkCount not available on this Chroma Cloud account", false);
-        } catch (ChromaServerException e) {
-            Assume.assumeTrue("forkCount not available on this Chroma Cloud account"
-                    + " (server error: " + e.getMessage() + ")", false);
+            Assume.assumeTrue("forkCount endpoint not available on this Chroma Cloud account", false);
         }
     }
 

@@ -53,7 +53,7 @@ public final class Rrf {
     }
 
     /**
-     * Returns whether scores should be normalized.
+     * Returns whether weights should be normalized before expansion.
      */
     public boolean isNormalize() {
         return normalize;
@@ -103,33 +103,43 @@ public final class Rrf {
          * automatically set to {@code true} on the provided {@link Knn} instance.
          *
          * @param knn    the KNN sub-ranking; must not be null
-         * @param weight fusion weight for this sub-ranking
+         * @param weight fusion weight for this sub-ranking; must be non-negative and finite
          * @return this builder
-         * @throws IllegalArgumentException if {@code knn} is null
+         * @throws IllegalArgumentException if {@code knn} is null, or weight is negative, NaN, or infinite
          */
         public Builder rank(Knn knn, double weight) {
             if (knn == null) {
                 throw new IllegalArgumentException("knn must not be null");
+            }
+            if (Double.isNaN(weight) || Double.isInfinite(weight)) {
+                throw new IllegalArgumentException("weight must be finite, got: " + weight);
+            }
+            if (weight < 0) {
+                throw new IllegalArgumentException("RRF weight must be non-negative, got: " + weight);
             }
             ranks.add(new RankWithWeight(knn.withReturnRank(), weight));
             return this;
         }
 
         /**
-         * Sets the RRF k constant. Default is 60.
+         * Sets the RRF k constant. Default is 60. Must be positive.
          *
-         * @param k the RRF k constant
+         * @param k the RRF k constant; must be &gt; 0
          * @return this builder
+         * @throws IllegalArgumentException if {@code k} is not positive
          */
         public Builder k(int k) {
+            if (k <= 0) {
+                throw new IllegalArgumentException("RRF k must be positive, got: " + k);
+            }
             this.k = k;
             return this;
         }
 
         /**
-         * Sets whether scores should be normalized. Default is {@code false}.
+         * Sets whether weights should be normalized before expansion. Default is {@code false}.
          *
-         * @param normalize whether to normalize scores
+         * @param normalize whether to normalize weights
          * @return this builder
          */
         public Builder normalize(boolean normalize) {

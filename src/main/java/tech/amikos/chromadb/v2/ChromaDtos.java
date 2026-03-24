@@ -1746,8 +1746,12 @@ final class ChromaDtos {
      * The server has no native {@code $rrf} operator — RRF is a client-side formula:
      * {@code -(sum(weight_i / (k + rank_i)))}
      *
+     * <p>When {@code normalize} is enabled, each weight is first divided by the sum of all
+     * weights before expansion (i.e., {@code w_i' = w_i / sum(w)}).</p>
+     *
      * <p>Each term becomes: {@code $div { left: $val(weight), right: $sum[$val(k), $knn(...)] }}
-     * All terms are summed, then negated (RRF: higher is better → Chroma: lower is better).</p>
+     * All terms are summed (single term: {@code $div} directly, no {@code $sum} wrapper),
+     * then negated (RRF: higher is better → Chroma: lower is better).</p>
      */
     static Map<String, Object> buildRrfRankMap(Rrf rrf) {
         List<Rrf.RankWithWeight> ranks = rrf.getRanks();
@@ -1755,11 +1759,11 @@ final class ChromaDtos {
         for (int i = 0; i < ranks.size(); i++) {
             weights[i] = ranks.get(i).getWeight();
         }
-        // Normalize weights if requested
+        // Normalize weights if requested (divide each by the sum of all weights)
         if (rrf.isNormalize()) {
             double sum = 0;
             for (double w : weights) sum += w;
-            if (sum > 1e-6) {
+            if (sum > 1e-9) {
                 for (int i = 0; i < weights.length; i++) weights[i] /= sum;
             }
         }
