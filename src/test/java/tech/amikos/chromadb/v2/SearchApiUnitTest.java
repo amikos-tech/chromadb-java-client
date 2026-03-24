@@ -390,6 +390,13 @@ public class SearchApiUnitTest {
         SearchResultImpl.from(dto);
     }
 
+    @Test(expected = ChromaDeserializationException.class)
+    public void testSearchResultImplFromNullInnerIdsList() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.<List<String>>asList((List<String>) null);
+        SearchResultImpl.from(dto);
+    }
+
     @Test
     public void testSearchResultImplFromNullOptionalFields() {
         ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
@@ -586,6 +593,14 @@ public class SearchApiUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void testRrfRankNullKnn() {
         Rrf.builder().rank(null, 1.0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfAllZeroWeightsThrows() {
+        Rrf.builder()
+                .rank(Knn.queryText("a"), 0.0)
+                .rank(Knn.queryText("b"), 0.0)
+                .build();
     }
 
     // ========== GroupBy validation improvements ==========

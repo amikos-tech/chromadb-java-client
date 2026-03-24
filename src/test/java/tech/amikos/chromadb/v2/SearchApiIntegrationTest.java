@@ -206,12 +206,10 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
             assertNotNull(result);
             assertFalse("RRF should return results", result.getIds().get(0).isEmpty());
         } catch (ChromaException e) {
-            // Arithmetic rank expressions may not be supported on older self-hosted versions
+            // Arithmetic rank expressions may not be supported on older self-hosted versions;
+            // this also catches ChromaDeserializationException for malformed response bodies
             Assume.assumeTrue("RRF not supported on self-hosted Chroma " + configuredChromaVersion()
                     + " (" + e.getMessage() + ")", false);
-        } catch (NullPointerException e) {
-            // Server may return an unexpected response format for arithmetic expressions
-            Assume.assumeTrue("RRF not supported on self-hosted Chroma " + configuredChromaVersion(), false);
         }
     }
 

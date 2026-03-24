@@ -47,6 +47,14 @@ final class SearchResultImpl implements SearchResult {
                     200
             );
         }
+        for (int i = 0; i < dto.ids.size(); i++) {
+            if (dto.ids.get(i) == null) {
+                throw new ChromaDeserializationException(
+                        "Server returned null inner ids list at search index " + i,
+                        200
+                );
+            }
+        }
         List<List<float[]>> embeddings = null;
         if (dto.embeddings != null) {
             embeddings = new ArrayList<List<float[]>>(dto.embeddings.size());

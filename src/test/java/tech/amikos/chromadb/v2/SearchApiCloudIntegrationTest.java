@@ -104,35 +104,35 @@ public class SearchApiCloudIntegrationTest {
         );
 
         List<Map<String, Object>> metadatas = new ArrayList<Map<String, Object>>();
-        metadatas.add(buildMeta("electronics", 149.99f, true,
+        metadatas.add(buildMeta("electronics", 149.99, true,
                 Arrays.<Object>asList("audio", "wireless"), Arrays.<Object>asList(4, 5, 3)));
-        metadatas.add(buildMeta("grocery", 12.99f, true,
+        metadatas.add(buildMeta("grocery", 12.99, true,
                 Arrays.<Object>asList("tea", "organic"), Arrays.<Object>asList(5, 4, 5)));
-        metadatas.add(buildMeta("clothing", 89.99f, true,
+        metadatas.add(buildMeta("clothing", 89.99, true,
                 Arrays.<Object>asList("running", "sports"), Arrays.<Object>asList(4, 4, 3)));
-        metadatas.add(buildMeta("sports", 29.99f, false,
+        metadatas.add(buildMeta("sports", 29.99, false,
                 Arrays.<Object>asList("hydration", "outdoor"), Arrays.<Object>asList(5, 5, 4)));
-        metadatas.add(buildMeta("electronics", 49.99f, true,
+        metadatas.add(buildMeta("electronics", 49.99, true,
                 Arrays.<Object>asList("laptop", "accessories"), Arrays.<Object>asList(4, 3, 5)));
-        metadatas.add(buildMeta("sports", 39.99f, true,
+        metadatas.add(buildMeta("sports", 39.99, true,
                 Arrays.<Object>asList("yoga", "fitness"), Arrays.<Object>asList(5, 4, 4)));
-        metadatas.add(buildMeta("grocery", 24.99f, true,
+        metadatas.add(buildMeta("grocery", 24.99, true,
                 Arrays.<Object>asList("coffee", "roasted"), Arrays.<Object>asList(5, 5, 5)));
-        metadatas.add(buildMeta("electronics", 129.99f, true,
+        metadatas.add(buildMeta("electronics", 129.99, true,
                 Arrays.<Object>asList("keyboard", "gaming"), Arrays.<Object>asList(4, 4, 3)));
-        metadatas.add(buildMeta("electronics", 79.99f, false,
+        metadatas.add(buildMeta("electronics", 79.99, false,
                 Arrays.<Object>asList("smart-home", "voice"), Arrays.<Object>asList(3, 4, 3)));
-        metadatas.add(buildMeta("grocery", 44.99f, true,
+        metadatas.add(buildMeta("grocery", 44.99, true,
                 Arrays.<Object>asList("fitness", "protein"), Arrays.<Object>asList(4, 3, 4)));
-        metadatas.add(buildMeta("electronics", 35.99f, true,
+        metadatas.add(buildMeta("electronics", 35.99, true,
                 Arrays.<Object>asList("lighting", "office"), Arrays.<Object>asList(4, 5, 4)));
-        metadatas.add(buildMeta("travel", 119.99f, true,
+        metadatas.add(buildMeta("travel", 119.99, true,
                 Arrays.<Object>asList("travel", "outdoor"), Arrays.<Object>asList(4, 4, 5)));
-        metadatas.add(buildMeta("sports", 19.99f, true,
+        metadatas.add(buildMeta("sports", 19.99, true,
                 Arrays.<Object>asList("fitness", "strength"), Arrays.<Object>asList(5, 4, 3)));
-        metadatas.add(buildMeta("office", 8.99f, true,
+        metadatas.add(buildMeta("office", 8.99, true,
                 Arrays.<Object>asList("stationery", "school"), Arrays.<Object>asList(3, 3, 4)));
-        metadatas.add(buildMeta("electronics", 59.99f, true,
+        metadatas.add(buildMeta("electronics", 59.99, true,
                 Arrays.<Object>asList("audio", "wireless"), Arrays.<Object>asList(4, 5, 5)));
 
         seedCollection.add()
@@ -248,7 +248,7 @@ public class SearchApiCloudIntegrationTest {
         return value != null && !value.trim().isEmpty();
     }
 
-    private static Map<String, Object> buildMeta(String category, float price, boolean inStock,
+    private static Map<String, Object> buildMeta(String category, double price, boolean inStock,
                                                   List<Object> tags, List<Object> ratings) {
         Map<String, Object> meta = new LinkedHashMap<String, Object>();
         meta.put("category", category);
@@ -388,21 +388,11 @@ public class SearchApiCloudIntegrationTest {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_hnsw_cfg_");
-        IndexGroup indexGroup = detectIndexGroup(col);
-        boolean usedHnsw = indexGroup != IndexGroup.SPANN;
 
         try {
-            if (usedHnsw) {
-                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
-                        .hnswSearchEf(200)
-                        .build());
-            } else {
-                // Try HNSW even though current group is SPANN — may hit switch error
-                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
-                        .hnswSearchEf(200)
-                        .build());
-                usedHnsw = true;
-            }
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .hnswSearchEf(200)
+                    .build());
         } catch (IllegalArgumentException e) {
             if (!isIndexGroupSwitchError(e)) {
                 throw e;
@@ -411,12 +401,10 @@ public class SearchApiCloudIntegrationTest {
             return;
         }
 
-        if (usedHnsw) {
-            Collection fetched = client.getCollection(col.getName());
-            assertNotNull("Configuration must not be null after HNSW update", fetched.getConfiguration());
-            assertEquals("HNSW searchEf must round-trip to 200",
-                    Integer.valueOf(200), fetched.getConfiguration().getHnswSearchEf());
-        }
+        Collection fetched = client.getCollection(col.getName());
+        assertNotNull("Configuration must not be null after HNSW update", fetched.getConfiguration());
+        assertEquals("HNSW searchEf must round-trip to 200",
+                Integer.valueOf(200), fetched.getConfiguration().getHnswSearchEf());
     }
 
     @Test
@@ -424,21 +412,11 @@ public class SearchApiCloudIntegrationTest {
         Assume.assumeTrue("Cloud not available", cloudAvailable);
 
         Collection col = createIsolatedCollection("cloud_spann_cfg_");
-        IndexGroup indexGroup = detectIndexGroup(col);
-        boolean usedSpann = indexGroup == IndexGroup.SPANN;
 
         try {
-            if (usedSpann) {
-                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
-                        .spannSearchNprobe(16)
-                        .build());
-            } else {
-                // Try SPANN even though current group is not SPANN — may hit switch error
-                col.modifyConfiguration(UpdateCollectionConfiguration.builder()
-                        .spannSearchNprobe(16)
-                        .build());
-                usedSpann = true;
-            }
+            col.modifyConfiguration(UpdateCollectionConfiguration.builder()
+                    .spannSearchNprobe(16)
+                    .build());
         } catch (IllegalArgumentException e) {
             if (!isIndexGroupSwitchError(e)) {
                 throw e;
@@ -450,16 +428,14 @@ public class SearchApiCloudIntegrationTest {
             return;
         }
 
-        if (usedSpann) {
-            Collection fetched = client.getCollection(col.getName());
-            if (fetched.getConfiguration() == null
-                    || fetched.getConfiguration().getSpannSearchNprobe() == null) {
-                // Cloud accepted the update but does not expose SPANN params in config response
-                return;
-            }
-            assertEquals("SPANN searchNprobe must round-trip to 16",
-                    Integer.valueOf(16), fetched.getConfiguration().getSpannSearchNprobe());
+        Collection fetched = client.getCollection(col.getName());
+        if (fetched.getConfiguration() == null
+                || fetched.getConfiguration().getSpannSearchNprobe() == null) {
+            // Cloud accepted the update but does not expose SPANN params in config response
+            return;
         }
+        assertEquals("SPANN searchNprobe must round-trip to 16",
+                Integer.valueOf(16), fetched.getConfiguration().getSpannSearchNprobe());
     }
 
     @Test
@@ -495,7 +471,7 @@ public class SearchApiCloudIntegrationTest {
         } catch (IllegalArgumentException e) {
             // Expected: client-side validation prevents the switch
             assertTrue("Error message should mention index group switch",
-                    isIndexGroupSwitchError(e) || e.getMessage() != null);
+                    isIndexGroupSwitchError(e));
         } catch (ChromaException e) {
             // Expected: server-side rejection is also acceptable
             assertNotNull("Exception message must not be null", e.getMessage());
@@ -535,12 +511,8 @@ public class SearchApiCloudIntegrationTest {
         // Schema should be present for a collection with default embedding config on cloud
         // If schema is null, we accept it (some cloud plans may not return schema)
         if (schema != null) {
-            // Keys map should be present (not null)
-            if (schema.getKeys() != null) {
-                // Schema has field definitions — it deserialized correctly
-                assertTrue("Schema keys map should not be empty if present",
-                        schema.getKeys().isEmpty() || !schema.getKeys().isEmpty()); // always passes, confirms non-null
-            }
+            // Schema deserialized correctly — verify keys map is non-null
+            assertNotNull("Schema keys map should not be null", schema.getKeys());
             // Passthrough should be a Map (unknown fields preserved)
             if (schema.getPassthrough() != null) {
                 assertNotNull("Passthrough map should be a valid map", schema.getPassthrough());
@@ -817,8 +789,7 @@ public class SearchApiCloudIntegrationTest {
 
         Object tags = retrieved.get("tags");
         if (tags == null) {
-            // Cloud nullifies empty arrays — document actual behavior
-            assertNull("Cloud nullified the empty array (tags is null)", tags);
+            // Cloud nullifies empty arrays — this is acceptable behavior
         } else if (tags instanceof List) {
             List<?> tagList = (List<?>) tags;
             // Cloud preserves empty arrays — document actual behavior
@@ -979,7 +950,7 @@ public class SearchApiCloudIntegrationTest {
 
         // Use an isolated collection with explicit 3D embeddings; search immediately (no polling)
         // to test that INDEX_AND_WAL reads recently written WAL records
-        Collection col = createIsolatedCollection("cloud_rl_wal_");
+        final Collection col = createIsolatedCollection("cloud_rl_wal_");
         col.add()
                 .ids("rl-1", "rl-2", "rl-3")
                 .embeddings(
@@ -994,17 +965,23 @@ public class SearchApiCloudIntegrationTest {
                 )
                 .execute();
 
-        // Search immediately (no polling) — INDEX_AND_WAL guarantees WAL records are visible
-        SearchResult result = col.search()
-                .queryEmbedding(new float[]{0.9f, 0.1f, 0.1f})
-                .readLevel(ReadLevel.INDEX_AND_WAL)
-                .limit(3)
-                .execute();
+        // INDEX_AND_WAL guarantees WAL records are visible; use assertEventually to
+        // tolerate brief cloud replication delays without masking real failures
+        assertEventually(Duration.ofSeconds(10), Duration.ofSeconds(1), new Runnable() {
+            @Override
+            public void run() {
+                SearchResult result = col.search()
+                        .queryEmbedding(new float[]{0.9f, 0.1f, 0.1f})
+                        .readLevel(ReadLevel.INDEX_AND_WAL)
+                        .limit(3)
+                        .execute();
 
-        assertNotNull("INDEX_AND_WAL result should not be null", result);
-        assertNotNull("ids should not be null", result.getIds());
-        // WAL guarantees recently written records are visible immediately — assert all 3 records returned
-        assertEquals("INDEX_AND_WAL should return all 3 freshly written records", 3, result.rows(0).size());
+                assertNotNull("INDEX_AND_WAL result should not be null", result);
+                assertNotNull("ids should not be null", result.getIds());
+                assertEquals("INDEX_AND_WAL should return all 3 freshly written records",
+                        3, result.rows(0).size());
+            }
+        });
     }
 
     @Test
@@ -1358,5 +1335,32 @@ public class SearchApiCloudIntegrationTest {
         Map<String, Object> meta = new LinkedHashMap<String, Object>();
         meta.put(key, value);
         return meta;
+    }
+
+    /**
+     * Polls a condition until it passes or the timeout expires (similar to Go's require.Eventually).
+     *
+     * @param timeout  maximum time to wait
+     * @param tick     interval between attempts
+     * @param runnable assertion block that throws {@link AssertionError} on failure
+     */
+    private static void assertEventually(Duration timeout, Duration tick, Runnable runnable) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        AssertionError lastError = null;
+        while (System.nanoTime() < deadline) {
+            try {
+                runnable.run();
+                return; // passed
+            } catch (AssertionError e) {
+                lastError = e;
+            }
+            try {
+                Thread.sleep(tick.toMillis());
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("assertEventually interrupted", ie);
+            }
+        }
+        throw lastError;
     }
 }

@@ -147,6 +147,14 @@ public final class Rrf {
             if (ranks.isEmpty()) {
                 throw new IllegalArgumentException("at least one rank must be added");
             }
+            double weightSum = 0;
+            for (RankWithWeight rw : ranks) {
+                weightSum += Math.abs(rw.getWeight());
+            }
+            if (weightSum < 1e-9) {
+                throw new IllegalArgumentException(
+                        "RRF weights must not all be zero — at least one rank must have a non-zero weight");
+            }
             return new Rrf(ranks, k, normalize);
         }
     }
