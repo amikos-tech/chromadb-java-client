@@ -674,7 +674,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.1f, 0.1f, 0.9f})
                 .execute();
 
-
         GetResult result = col.get()
                 .ids("arr-bool-1")
                 .include(Include.METADATAS)
@@ -784,7 +783,6 @@ public class SearchApiCloudIntegrationTest {
                 ))
                 .embeddings(new float[]{0.5f, 0.5f, 0.1f})
                 .execute();
-
 
         GetResult result = col.get()
                 .ids("arr-empty-1")

@@ -1759,13 +1759,16 @@ final class ChromaDtos {
         for (int i = 0; i < ranks.size(); i++) {
             weights[i] = ranks.get(i).getWeight();
         }
-        // Normalize weights if requested (divide each by the sum of all weights)
+        // Normalize weights if requested (divide each by the sum of all weights).
+        // Rrf.build() guarantees weightSum >= 1e-9, so sum should always be positive here.
         if (rrf.isNormalize()) {
             double sum = 0;
             for (double w : weights) sum += w;
-            if (sum > 1e-9) {
-                for (int i = 0; i < weights.length; i++) weights[i] /= sum;
+            if (sum <= 1e-9) {
+                throw new IllegalStateException(
+                        "RRF weight sum is effectively zero (" + sum + "); this should have been rejected by Rrf.build()");
             }
+            for (int i = 0; i < weights.length; i++) weights[i] /= sum;
         }
         // Build terms: weight_i / (k + rank_i)
         List<Map<String, Object>> terms = new ArrayList<Map<String, Object>>();
