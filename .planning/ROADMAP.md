@@ -132,8 +132,8 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 
 Plans:
 - [x] 06-01-PLAN.md — MkDocs scaffold, config, homepage, CI workflow, Javadoc plugin upgrade
-- [ ] 06-02-PLAN.md — Core guide pages (client, auth, records, filtering, search, embeddings) with snippet files
-- [ ] 06-03-PLAN.md — Advanced guide pages (cloud-features, schema, id-generators, transport, logging, migration) with snippet files
+- [x] 06-02-PLAN.md — Core guide pages (client, auth, records, filtering, search, embeddings) with snippet files
+- [x] 06-03-PLAN.md — Advanced guide pages (cloud-features, schema, id-generators, transport, logging, migration) with snippet files
 - [ ] 06-04-PLAN.md — Examples section stubs, nav expansion, and visual verification checkpoint
 
 ### Phase 7: Working Examples

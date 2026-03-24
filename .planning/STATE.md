@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 06-documentation-site-01-PLAN.md
-last_updated: "2026-03-24T15:31:37.789Z"
+stopped_at: Completed 06-documentation-site-03-PLAN.md
+last_updated: "2026-03-24T15:38:43.470Z"
 progress:
   total_phases: 14
   completed_phases: 11
   total_plans: 31
-  completed_plans: 28
+  completed_plans: 30
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 06 (documentation-site) — EXECUTING
-Plan: 2 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -71,6 +71,8 @@ Plan: 2 of 4
 | Phase 05-cloud-integration-testing P02 | 4 | 2 tasks | 1 files |
 | Phase 05 P03 | 5 | 1 tasks | 1 files |
 | Phase 06-documentation-site P01 | 3 | 2 tasks | 24 files |
+| Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
+| Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -146,6 +148,8 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: java-examples/index.md placed inside docs_dir (docs/docs/java-examples/) — MkDocs only serves content from docs_dir; placing outside caused strict-mode build failure
 - [Phase 06-documentation-site]: api/ nav entry uses api/index.md placeholder so mkdocs build --strict passes; actual Javadoc deployed by CI into api/ path over this placeholder
 - [Phase 06-documentation-site]: maven-javadoc-plugin upgraded from 2.9.1 to 3.11.2 with doclint=none and source=8 for modern HTML5 Javadoc output and Java 8 compatibility
+- [Phase 06-documentation-site]: Migration page uses pymdownx.tabbed for v1/v2 side-by-side examples — v1 code is the designated exception per D-11; all other pages are v2-only
+- [Phase 06-documentation-site]: ChromaLoggers is package-private; logging docs expose only ChromaLogger interface and ChromaLogger.noop() as the public API surface
 
 ### Roadmap Evolution
 
@@ -163,6 +167,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:31:37.786Z
-Stopped at: Completed 06-documentation-site-01-PLAN.md
+Last session: 2026-03-24T15:38:28.225Z
+Stopped at: Completed 06-documentation-site-03-PLAN.md
 Resume file: None
