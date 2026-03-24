@@ -118,13 +118,23 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 
 ### Phase 6: Documentation Site
 
-**Goal:** Build a rich documentation site (similar to amikos-tech/chroma-go) covering all library features, API surfaces, and usage examples.
-**Requirements**: TBD
+**Goal:** Build a rich documentation site (similar to amikos-tech/chroma-go) covering all library features, API surfaces, and usage examples, deployed to java.chromadb.dev via GitHub Pages.
+**Requirements**: [DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06]
 **Depends on:** Phases 1-5 (documents features built in earlier phases)
-**Plans:** 0 plans
+**Success Criteria** (what must be TRUE):
+  1. MkDocs Material site builds with `--strict` flag without errors.
+  2. All 12 guide pages have rich content with snippet-included Java code examples (v2 API only).
+  3. GitHub Actions workflow deploys MkDocs + Javadoc to GitHub Pages on push to main.
+  4. Custom domain java.chromadb.dev configured via CNAME file.
+  5. Examples section stubbed with 7 topic directories for Phase 7.
+  6. User visually approves the site via local `mkdocs serve`.
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — MkDocs scaffold, config, homepage, CI workflow, Javadoc plugin upgrade
+- [ ] 06-02-PLAN.md — Core guide pages (client, auth, records, filtering, search, embeddings) with snippet files
+- [ ] 06-03-PLAN.md — Advanced guide pages (cloud-features, schema, id-generators, transport, logging, migration) with snippet files
+- [ ] 06-04-PLAN.md — Examples section stubs, nav expansion, and visual verification checkpoint
 
 ### Phase 7: Working Examples
 
