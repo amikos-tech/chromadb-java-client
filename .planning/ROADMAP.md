@@ -128,7 +128,7 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
   4. Custom domain java.chromadb.dev configured via CNAME file.
   5. Examples section stubbed with 7 topic directories for Phase 7.
   6. User visually approves the site via local `mkdocs serve`.
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [x] 06-01-PLAN.md — MkDocs scaffold, config, homepage, CI workflow, Javadoc plugin upgrade

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 06-documentation-site-03-PLAN.md
-last_updated: "2026-03-24T15:38:43.470Z"
+stopped_at: Completed 06-documentation-site-02-PLAN.md
+last_updated: "2026-03-24T15:38:52.734Z"
 progress:
   total_phases: 14
   completed_phases: 11
@@ -150,6 +150,8 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: maven-javadoc-plugin upgraded from 2.9.1 to 3.11.2 with doclint=none and source=8 for modern HTML5 Javadoc output and Java 8 compatibility
 - [Phase 06-documentation-site]: Migration page uses pymdownx.tabbed for v1/v2 side-by-side examples — v1 code is the designated exception per D-11; all other pages are v2-only
 - [Phase 06-documentation-site]: ChromaLoggers is package-private; logging docs expose only ChromaLogger interface and ChromaLogger.noop() as the public API surface
+- [Phase 06-documentation-site]: SearchExample uses Search.builder() + collection.search().searches(...) pattern to expose full Knn/Rrf/Search type hierarchy
+- [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
 
 ### Roadmap Evolution
 
@@ -167,6 +169,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:38:28.225Z
-Stopped at: Completed 06-documentation-site-03-PLAN.md
+Last session: 2026-03-24T15:38:52.731Z
+Stopped at: Completed 06-documentation-site-02-PLAN.md
 Resume file: None
