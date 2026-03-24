@@ -249,6 +249,8 @@ public class SearchApiCloudIntegrationTest {
         return value != null && !value.trim().isEmpty();
     }
 
+    // Note: ratings are boxed as Integer here but may round-trip through JSON as Double.
+    // Assertions should compare via Number, not exact Integer type (see instanceof Number checks).
     private static Map<String, Object> buildMeta(String category, double price, boolean inStock,
                                                   List<Object> tags, List<Object> ratings) {
         Map<String, Object> meta = new LinkedHashMap<String, Object>();
@@ -468,18 +470,23 @@ public class SearchApiCloudIntegrationTest {
                         .spannSearchNprobe(8)
                         .build());
             }
-            // If no exception — the server allowed the transition (UNKNOWN group allows either)
-            // This is acceptable behavior when the index group is UNKNOWN
+            // No exception — only acceptable when the index group is UNKNOWN
+            if (indexGroup != IndexGroup.UNKNOWN) {
+                fail("Expected rejection for cross-group transition from " + indexGroup
+                        + ", but server accepted the configuration change");
+            }
         } catch (IllegalArgumentException e) {
             // Expected: client-side validation prevents the switch
             assertTrue("Error message should mention index group switch",
                     isIndexGroupSwitchError(e));
         } catch (ChromaBadRequestException e) {
             // Expected: server-side rejection for invalid index group transition
-            assertNotNull("Exception message must not be null", e.getMessage());
+            assertTrue("Bad-request message should not be empty",
+                    e.getMessage() != null && !e.getMessage().isEmpty());
         } catch (ChromaServerException e) {
             // Some server versions return 5xx for unsupported transitions
-            assertNotNull("Exception message must not be null", e.getMessage());
+            assertTrue("Server-error message should not be empty",
+                    e.getMessage() != null && !e.getMessage().isEmpty());
         }
     }
 
@@ -560,7 +567,6 @@ public class SearchApiCloudIntegrationTest {
                 .embeddings(new float[]{0.9f, 0.1f, 0.1f})
                 .execute();
 
-
         GetResult result = col.get()
                 .ids("arr-str-1")
                 .include(Include.METADATAS)
@@ -613,7 +619,6 @@ public class SearchApiCloudIntegrationTest {
                 .metadatas(Collections.<Map<String, Object>>singletonList(meta))
                 .embeddings(new float[]{0.1f, 0.9f, 0.1f})
                 .execute();
-
 
         GetResult result = col.get()
                 .ids("arr-num-1")
@@ -730,7 +735,6 @@ public class SearchApiCloudIntegrationTest {
                         new float[]{0.0f, 0.0f, 1.0f}
                 )
                 .execute();
-
 
         // Contains on single-element: should return only edge-1
         GetResult soloResult = col.get()
@@ -1004,8 +1008,8 @@ public class SearchApiCloudIntegrationTest {
         assertNotNull("ids outer list must be non-null", result.getIds());
         // INDEX_ONLY may return 0 results if the index hasn't compacted yet (async on Cloud).
         // The key assertion is that the call succeeds without error.
-        assertTrue("INDEX_ONLY result count must be >= 0 and <= 15",
-                result.getIds().get(0).size() >= 0 && result.getIds().get(0).size() <= 15);
+        assertTrue("INDEX_ONLY result count must be <= 15",
+                result.getIds().get(0).size() <= 15);
     }
 
     @Test
