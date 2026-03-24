@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (gap closure in progress)
 - [ ] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs).
+- [ ] **Phase 7: Working Examples** — Add full working examples for all major features (similar to chroma-go examples/).
 
 ## Phase Details
 
@@ -124,3 +125,13 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 6 to break down)
+
+### Phase 7: Working Examples
+
+**Goal:** Add full working examples for all major features, organized by topic, runnable standalone — similar to amikos-tech/chroma-go examples/.
+**Requirements**: TBD
+**Depends on:** Phases 1-5 (examples demonstrate features built in earlier phases)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 7 to break down)

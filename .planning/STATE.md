@@ -147,6 +147,7 @@ Recent decisions affecting current work:
 
 - Phase 6 added: Tech Debt Cleanup (DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, inert assumeMinVersion removal)
 - Phase 6 added: Documentation Site — rich docs with API surfaces, examples, and feature guides (similar to chroma-go)
+- Phase 7 added: Working Examples — full runnable examples for all major features (similar to chroma-go examples/)
 
 ### Pending Todos
 
