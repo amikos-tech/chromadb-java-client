@@ -60,11 +60,13 @@ All sizes are as rendered by MkDocs Material 9.7.6 with the Roboto/Roboto Mono f
 | Body | 16px | 400 (regular) | 1.6 |
 | Label / Caption | 14px | 400 (regular) | 1.5 |
 | Heading (h2/h3) | 20px | 600 (semibold) | 1.3 |
-| Display (h1 / page title) | 28px | 700 (bold) | 1.2 |
+| Display (h1 / page title) | 28px | 600 (semibold) | 1.2 |
 
 Code blocks use Roboto Mono at 14px, weight 400, line-height 1.5.
 
-**Source:** CONTEXT.md D-12 (Roboto/Roboto Mono); MkDocs Material default typography scale (default).
+Weight scale: 400 (regular) for body, labels, and code; 600 (semibold) for all headings including Display. Two weights total.
+
+**Source:** CONTEXT.md D-12 (Roboto/Roboto Mono); MkDocs Material default typography scale (default). Display weight collapsed from 700 to 600 to satisfy 2-weight maximum (checker revision 2026-03-24).
 
 ---
 
@@ -108,6 +110,10 @@ This section is specific to MkDocs Material layouts. It replaces the shadcn comp
 │  Footer: copyright / social links                        │
 └──────────────────────────────────────────────────────────┘
 ```
+
+### Homepage Focal Point
+
+Primary focal point on the homepage (`index.md`): the `Get Started` CTA button positioned beneath the h1 page title. This is the single highest-priority interactive element on the page. The `View on GitHub` secondary CTA appears alongside it but at lower visual weight.
 
 ### Navigation Structure
 
