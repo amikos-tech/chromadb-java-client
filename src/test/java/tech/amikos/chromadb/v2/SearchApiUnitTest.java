@@ -114,6 +114,7 @@ public class SearchApiUnitTest {
 
     // ========== RRF tests (SEARCH-02) ==========
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testRrfDtoStructure() {
         Knn knn1 = Knn.queryText("wireless audio");
@@ -124,18 +125,31 @@ public class SearchApiUnitTest {
                 .k(60)
                 .build();
 
+        // RRF expands to: $mul[$val(-1), $sum[$div{left:$val(w), right:$sum[$val(k), $knn]}, ...]]
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        assertTrue("should have '$rrf' key", map.containsKey("$rrf"));
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        List<Map<String, Object>> ranks = (List<Map<String, Object>>) rrfMap.get("ranks");
-        assertNotNull(ranks);
-        assertEquals("should have 2 ranks", 2, ranks.size());
-        assertEquals(60, rrfMap.get("k"));
-
-        Map<String, Object> rank0 = ranks.get(0);
-        assertEquals(0.7, (Double) rank0.get("weight"), 1e-9);
-        assertTrue("rank entry should have 'rank' key containing knn map",
-                ((Map<String, Object>) rank0.get("rank")).containsKey("$knn"));
+        assertTrue("top level should be $mul (negation)", map.containsKey("$mul"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        assertEquals("$mul should have 2 operands", 2, mulTerms.size());
+        // First operand: $val(-1)
+        Map<String, Object> negVal = (Map<String, Object>) mulTerms.get(0);
+        assertEquals(-1.0, (Double) negVal.get("$val"), 1e-9);
+        // Second operand: $sum of 2 $div terms
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        assertTrue("inner should be $sum", sumMap.containsKey("$sum"));
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        assertEquals("should have 2 terms for 2 ranks", 2, divTerms.size());
+        // First term: $div { left: $val(0.7), right: $sum[$val(60), $knn] }
+        Map<String, Object> div0 = (Map<String, Object>) divTerms.get(0);
+        Map<String, Object> div0Inner = (Map<String, Object>) div0.get("$div");
+        Map<String, Object> leftVal = (Map<String, Object>) div0Inner.get("left");
+        assertEquals(0.7, (Double) leftVal.get("$val"), 1e-9);
+        Map<String, Object> rightSum = (Map<String, Object>) div0Inner.get("right");
+        List<Object> denomTerms = (List<Object>) rightSum.get("$sum");
+        assertEquals(2, denomTerms.size());
+        Map<String, Object> kVal = (Map<String, Object>) denomTerms.get(0);
+        assertEquals(60.0, (Double) kVal.get("$val"), 1e-9);
+        assertTrue("denominator should contain $knn",
+                ((Map<String, Object>) denomTerms.get(1)).containsKey("$knn"));
     }
 
     @Test
@@ -159,6 +173,121 @@ public class SearchApiUnitTest {
         Knn knn = Knn.queryText("test");
         Rrf rrf = Rrf.builder().rank(knn, 1.0).build();
         assertEquals("default k should be 60", 60, rrf.getK());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRrfDtoStructureSecondRank() {
+        // Verify the second rank's weight and KNN are correctly placed in the expanded structure
+        Knn knn1 = Knn.queryText("wireless audio");
+        Knn knn2 = Knn.queryText("noise cancelling headphones");
+        Rrf rrf = Rrf.builder()
+                .rank(knn1, 0.7)
+                .rank(knn2, 0.3)
+                .k(60)
+                .build();
+        Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        // Second term: $div { left: $val(0.3), right: $sum[$val(60), $knn] }
+        Map<String, Object> div1 = (Map<String, Object>) divTerms.get(1);
+        Map<String, Object> div1Inner = (Map<String, Object>) div1.get("$div");
+        Map<String, Object> leftVal1 = (Map<String, Object>) div1Inner.get("left");
+        assertEquals("second rank weight should be 0.3", 0.3, (Double) leftVal1.get("$val"), 1e-9);
+        Map<String, Object> rightSum1 = (Map<String, Object>) div1Inner.get("right");
+        List<Object> denomTerms1 = (List<Object>) rightSum1.get("$sum");
+        assertEquals(2, denomTerms1.size());
+        Map<String, Object> kVal1 = (Map<String, Object>) denomTerms1.get(0);
+        assertEquals("k should be 60 in second rank too", 60.0, (Double) kVal1.get("$val"), 1e-9);
+        assertTrue("second rank denominator should contain $knn",
+                ((Map<String, Object>) denomTerms1.get(1)).containsKey("$knn"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRrfCustomKValue() {
+        // Verify non-default k value propagates into the expanded structure
+        Rrf rrf = Rrf.builder()
+                .rank(Knn.queryText("a"), 1.0)
+                .k(100)
+                .build();
+        Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        // Single rank → $div directly (no $sum wrapper)
+        Map<String, Object> divMap = (Map<String, Object>) mulTerms.get(1);
+        Map<String, Object> divInner = (Map<String, Object>) divMap.get("$div");
+        Map<String, Object> rightSum = (Map<String, Object>) divInner.get("right");
+        List<Object> denomTerms = (List<Object>) rightSum.get("$sum");
+        Map<String, Object> kVal = (Map<String, Object>) denomTerms.get(0);
+        assertEquals("custom k=100 should appear in $val", 100.0, (Double) kVal.get("$val"), 1e-9);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRrfThreeRanksExpandsCorrectly() {
+        // Verify 3 ranks produce a $sum list with 3 $div terms
+        Rrf rrf = Rrf.builder()
+                .rank(Knn.queryText("a"), 0.5)
+                .rank(Knn.queryText("b"), 0.3)
+                .rank(Knn.queryText("c"), 0.2)
+                .k(60)
+                .build();
+        Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        assertTrue("3 ranks should produce $sum wrapper", sumMap.containsKey("$sum"));
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        assertEquals("should have 3 terms for 3 ranks", 3, divTerms.size());
+        // Verify each term is a $div
+        for (int i = 0; i < 3; i++) {
+            assertTrue("term " + i + " should be a $div",
+                    ((Map<String, Object>) divTerms.get(i)).containsKey("$div"));
+        }
+        // Verify weights: 0.5, 0.3, 0.2
+        double[] expectedWeights = {0.5, 0.3, 0.2};
+        for (int i = 0; i < 3; i++) {
+            Map<String, Object> div = (Map<String, Object>) divTerms.get(i);
+            Map<String, Object> divInner = (Map<String, Object>) div.get("$div");
+            Map<String, Object> leftVal = (Map<String, Object>) divInner.get("left");
+            assertEquals("weight for rank " + i, expectedWeights[i],
+                    (Double) leftVal.get("$val"), 1e-9);
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfNegativeWeightThrows() {
+        Rrf.builder().rank(Knn.queryText("a"), -1.0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfNaNWeightThrows() {
+        Rrf.builder().rank(Knn.queryText("a"), Double.NaN);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfInfiniteWeightThrows() {
+        Rrf.builder().rank(Knn.queryText("a"), Double.POSITIVE_INFINITY);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfNegativeInfinityWeightThrows() {
+        Rrf.builder().rank(Knn.queryText("a"), Double.NEGATIVE_INFINITY);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfKZeroThrows() {
+        Rrf.builder().k(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfKNegativeThrows() {
+        Rrf.builder().k(-1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfKMinValueThrows() {
+        Rrf.builder().k(Integer.MIN_VALUE);
     }
 
     // ========== Search builder tests ==========
@@ -228,6 +357,20 @@ public class SearchApiUnitTest {
         assertTrue("item should have 'rank' key", item.containsKey("rank"));
         Map<String, Object> rank = (Map<String, Object>) item.get("rank");
         assertTrue("rank should contain '$knn'", rank.containsKey("$knn"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testBuildSearchItemMapRrf() {
+        // Verify RRF routing through buildSearchItemMap produces $mul (not $knn)
+        Knn knn = Knn.queryText("test");
+        Rrf rrf = Rrf.builder().rank(knn, 1.0).build();
+        Search search = Search.builder().rrf(rrf).build();
+        Map<String, Object> item = ChromaDtos.buildSearchItemMap(search, null);
+        assertTrue("item should have 'rank' key", item.containsKey("rank"));
+        Map<String, Object> rank = (Map<String, Object>) item.get("rank");
+        assertTrue("RRF rank should contain '$mul' (not '$knn')", rank.containsKey("$mul"));
+        assertFalse("RRF rank should not contain '$knn' at top level", rank.containsKey("$knn"));
     }
 
     @Test
@@ -373,6 +516,13 @@ public class SearchApiUnitTest {
     public void testSearchResultImplFromNullIds() {
         ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
         dto.ids = null;
+        SearchResultImpl.from(dto);
+    }
+
+    @Test(expected = ChromaDeserializationException.class)
+    public void testSearchResultImplFromNullInnerIdsList() {
+        ChromaDtos.SearchResponse dto = new ChromaDtos.SearchResponse();
+        dto.ids = Arrays.<List<String>>asList((List<String>) null);
         SearchResultImpl.from(dto);
     }
 
@@ -574,6 +724,14 @@ public class SearchApiUnitTest {
         Rrf.builder().rank(null, 1.0);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testRrfAllZeroWeightsThrows() {
+        Rrf.builder()
+                .rank(Knn.queryText("a"), 0.0)
+                .rank(Knn.queryText("b"), 0.0)
+                .build();
+    }
+
     // ========== GroupBy validation improvements ==========
 
     @Test(expected = IllegalArgumentException.class)
@@ -608,15 +766,24 @@ public class SearchApiUnitTest {
 
     // ========== Wire format: Rrf normalize serialization ==========
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testRrfNormalizeSerialization() {
+    public void testRrfNormalizeWeights() {
+        // Two ranks with weights 3.0 and 1.0; normalize=true → 0.75 and 0.25
         Rrf rrf = Rrf.builder()
-                .rank(Knn.queryText("a"), 1.0)
+                .rank(Knn.queryText("a"), 3.0)
+                .rank(Knn.queryText("b"), 1.0)
                 .normalize(true)
                 .build();
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        assertEquals(true, rrfMap.get("normalize"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        Map<String, Object> sumMap = (Map<String, Object>) mulTerms.get(1);
+        List<Object> divTerms = (List<Object>) sumMap.get("$sum");
+        // Check normalized weights: 3/(3+1)=0.75 and 1/(3+1)=0.25
+        Map<String, Object> div0 = (Map<String, Object>) ((Map<String, Object>) divTerms.get(0)).get("$div");
+        assertEquals(0.75, (Double) ((Map<String, Object>) div0.get("left")).get("$val"), 1e-9);
+        Map<String, Object> div1 = (Map<String, Object>) ((Map<String, Object>) divTerms.get(1)).get("$div");
+        assertEquals(0.25, (Double) ((Map<String, Object>) div1.get("left")).get("$val"), 1e-9);
     }
 
     // ========== ReadLevel fromValue edge cases ==========
@@ -627,17 +794,19 @@ public class SearchApiUnitTest {
         assertEquals(ReadLevel.INDEX_ONLY, ReadLevel.fromValue("  index_only  "));
     }
 
-    // ========== Rrf normalize=false absent from wire format ==========
+    // ========== Rrf single rank expands without $sum wrapper ==========
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testRrfNormalizeFalseNotSerialized() {
+    public void testRrfSingleRankNoSumWrapper() {
         Rrf rrf = Rrf.builder()
                 .rank(Knn.queryText("a"), 1.0)
-                .build(); // normalize defaults to false
+                .build();
         Map<String, Object> map = ChromaDtos.buildRrfRankMap(rrf);
-        Map<String, Object> rrfMap = (Map<String, Object>) map.get("$rrf");
-        assertFalse("normalize should not appear when false", rrfMap.containsKey("normalize"));
+        List<Object> mulTerms = (List<Object>) map.get("$mul");
+        // With a single rank, the inner term should be $div directly (no $sum wrapper)
+        Map<String, Object> inner = (Map<String, Object>) mulTerms.get(1);
+        assertTrue("single rank should produce $div directly, not $sum", inner.containsKey("$div"));
     }
 
 }

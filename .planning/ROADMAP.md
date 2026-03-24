@@ -16,7 +16,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Collection API Extensions** — Add Collection.fork, Collection.indexingStatus, and cloud feature parity audit.
 - [x] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels. (completed 2026-03-22)
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
-- [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata.
+- [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (gap closure in progress)
+- [ ] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs).
+- [ ] **Phase 7: Working Examples** — Add full working examples for all major features (similar to chroma-go examples/).
 
 ## Phase Details
 
@@ -93,11 +95,12 @@ Plans:
   2. Cloud schema/index tests cover distance space variants, HNSW/SPANN config, invalid transitions, round-trip assertions.
   3. Cloud array metadata tests cover string/number/bool arrays, round-trip retrieval, contains/not_contains filters.
   4. Test suite can run in CI with cloud credentials or be skipped gracefully without them.
-**Plans:** 1/2 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Schema/index + array metadata cloud tests, mixed-type array client validation
-- [ ] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
+- [x] 05-02-PLAN.md — Search parity cloud tests (KNN, RRF, GroupBy, batch, pagination, filters, projection, read levels)
+- [x] 05-03-PLAN.md — Gap closure: fix embedding projection assertion and WAL read-level test target
 
 ## Progress
 
@@ -111,4 +114,24 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 3/3 | Complete   | 2026-03-22 |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
-| 5. Cloud Integration Testing | 1/2 | In Progress|  |
+| 5. Cloud Integration Testing | 2/3 | In Progress|  |
+
+### Phase 6: Documentation Site
+
+**Goal:** Build a rich documentation site (similar to amikos-tech/chroma-go) covering all library features, API surfaces, and usage examples.
+**Requirements**: TBD
+**Depends on:** Phases 1-5 (documents features built in earlier phases)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 6 to break down)
+
+### Phase 7: Working Examples
+
+**Goal:** Add full working examples for all major features, organized by topic, runnable standalone — similar to amikos-tech/chroma-go examples/.
+**Requirements**: TBD
+**Depends on:** Phases 1-5 (examples demonstrate features built in earlier phases)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 7 to break down)

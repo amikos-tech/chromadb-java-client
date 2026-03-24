@@ -1707,7 +1707,6 @@ final class ChromaDtos {
     // --- Search serialization helpers ---
 
     private static final String WIRE_KNN = "$knn";
-    private static final String WIRE_RRF = "$rrf";
 
     static Map<String, Object> buildKnnRankMap(Knn knn) {
         Map<String, Object> knnMap = new LinkedHashMap<String, Object>();
@@ -1742,21 +1741,79 @@ final class ChromaDtos {
         return wrapper;
     }
 
+    /**
+     * Expands RRF into arithmetic rank expressions that the server understands.
+     * The server has no native {@code $rrf} operator — RRF is a client-side formula:
+     * {@code -(sum(weight_i / (k + rank_i)))}
+     *
+     * <p>When {@code normalize} is enabled, each weight is first divided by the sum of all
+     * weights before expansion (i.e., {@code w_i' = w_i / sum(w)}).</p>
+     *
+     * <p>Each term becomes: {@code $div { left: $val(weight), right: $sum[$val(k), $knn(...)] }}
+     * All terms are summed (single term: {@code $div} directly, no {@code $sum} wrapper),
+     * then negated (RRF: higher is better → Chroma: lower is better).</p>
+     */
     static Map<String, Object> buildRrfRankMap(Rrf rrf) {
-        Map<String, Object> rrfMap = new LinkedHashMap<String, Object>();
-        List<Map<String, Object>> ranksList = new ArrayList<Map<String, Object>>();
-        for (Rrf.RankWithWeight rw : rrf.getRanks()) {
-            Map<String, Object> entry = new LinkedHashMap<String, Object>();
-            entry.put("rank", buildKnnRankMap(rw.getKnn()));
-            entry.put("weight", rw.getWeight());
-            ranksList.add(entry);
+        List<Rrf.RankWithWeight> ranks = rrf.getRanks();
+        double[] weights = new double[ranks.size()];
+        for (int i = 0; i < ranks.size(); i++) {
+            weights[i] = ranks.get(i).getWeight();
         }
-        rrfMap.put("ranks", ranksList);
-        rrfMap.put("k", rrf.getK());
-        if (rrf.isNormalize()) rrfMap.put("normalize", true);
-        Map<String, Object> wrapper = new LinkedHashMap<String, Object>();
-        wrapper.put(WIRE_RRF, rrfMap);
-        return wrapper;
+        // Normalize weights if requested (divide each by the sum of all weights).
+        // Rrf.build() guarantees weightSum >= 1e-9, so sum should always be positive here.
+        if (rrf.isNormalize()) {
+            double sum = 0;
+            for (double w : weights) sum += w;
+            if (sum <= 1e-9) {
+                throw new IllegalStateException(
+                        "RRF weight sum is effectively zero (" + sum + "); this should have been rejected by Rrf.build()");
+            }
+            for (int i = 0; i < weights.length; i++) weights[i] /= sum;
+        }
+        // Build terms: weight_i / (k + rank_i)
+        List<Map<String, Object>> terms = new ArrayList<Map<String, Object>>();
+        for (int i = 0; i < ranks.size(); i++) {
+            Map<String, Object> valWeight = new LinkedHashMap<String, Object>();
+            valWeight.put("$val", weights[i]);
+
+            Map<String, Object> valK = new LinkedHashMap<String, Object>();
+            valK.put("$val", (double) rrf.getK());
+
+            Map<String, Object> knnMap = buildKnnRankMap(ranks.get(i).getKnn());
+
+            // denominator = $sum[$val(k), $knn]
+            List<Object> denomTerms = new ArrayList<Object>();
+            denomTerms.add(valK);
+            denomTerms.add(knnMap);
+            Map<String, Object> denominator = new LinkedHashMap<String, Object>();
+            denominator.put("$sum", denomTerms);
+
+            // term = $div { left: $val(weight), right: denominator }
+            Map<String, Object> divInner = new LinkedHashMap<String, Object>();
+            divInner.put("left", valWeight);
+            divInner.put("right", denominator);
+            Map<String, Object> divMap = new LinkedHashMap<String, Object>();
+            divMap.put("$div", divInner);
+
+            terms.add(divMap);
+        }
+        // sum = $sum[term_1, term_2, ...]
+        Map<String, Object> sumOrSingle;
+        if (terms.size() == 1) {
+            sumOrSingle = terms.get(0);
+        } else {
+            sumOrSingle = new LinkedHashMap<String, Object>();
+            sumOrSingle.put("$sum", terms);
+        }
+        // result = $mul[$val(-1), sum]  (negate: higher-is-better → lower-is-better)
+        Map<String, Object> negVal = new LinkedHashMap<String, Object>();
+        negVal.put("$val", -1.0);
+        List<Object> mulTerms = new ArrayList<Object>();
+        mulTerms.add(negVal);
+        mulTerms.add(sumOrSingle);
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        result.put("$mul", mulTerms);
+        return result;
     }
 
     static Map<String, Object> buildSearchItemMap(Search search, Where globalFilter) {

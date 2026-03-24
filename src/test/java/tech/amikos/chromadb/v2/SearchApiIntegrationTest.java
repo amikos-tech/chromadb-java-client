@@ -189,14 +189,9 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
     public void testRrfSearch() {
         assumeMinVersion("1.5.0");
         assumeCloud();
-        // RRF ($rrf) is not yet supported by the Chroma server — the endpoint returns
-        // "unknown variant '$rrf'" for both self-hosted and cloud deployments.
-        // This test documents the intended API contract and will be enabled once server
-        // support is added.
-        Assume.assumeTrue("Skipping: $rrf variant is not yet supported by Chroma server", false);
 
-        Knn knn1 = Knn.queryEmbedding(QUERY_HEADPHONES);
-        Knn knn2 = Knn.queryEmbedding(QUERY_SPEAKER);
+        Knn knn1 = Knn.queryEmbedding(QUERY_HEADPHONES).limit(50);
+        Knn knn2 = Knn.queryEmbedding(QUERY_SPEAKER).limit(50);
         Rrf rrf = Rrf.builder()
                 .rank(knn1, 0.7)
                 .rank(knn2, 0.3)
@@ -207,10 +202,23 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
                 .selectAll()
                 .limit(3)
                 .build();
-        SearchResult result = searchCollection.search().searches(s).execute();
-
-        assertNotNull(result);
-        assertFalse("RRF should return results", result.getIds().get(0).isEmpty());
+        try {
+            SearchResult result = searchCollection.search().searches(s).execute();
+            assertNotNull(result);
+            assertFalse("RRF should return results", result.getIds().get(0).isEmpty());
+        } catch (ChromaBadRequestException e) {
+            // Server does not understand arithmetic rank expressions
+            Assume.assumeTrue("RRF arithmetic ranks not supported on Chroma "
+                    + configuredChromaVersion() + " (" + e.getMessage() + ")", false);
+        } catch (ChromaServerException e) {
+            // Server returned 5xx — may not support arithmetic rank expressions
+            Assume.assumeTrue("RRF not supported on Chroma "
+                    + configuredChromaVersion() + " (server error: " + e.getMessage() + ")", false);
+        } catch (ChromaDeserializationException e) {
+            // Server returned an unexpected response format for RRF
+            Assume.assumeTrue("RRF response format not supported on Chroma "
+                    + configuredChromaVersion() + " (" + e.getMessage() + ")", false);
+        }
     }
 
     // ========== SEARCH-03: Field projection ==========
