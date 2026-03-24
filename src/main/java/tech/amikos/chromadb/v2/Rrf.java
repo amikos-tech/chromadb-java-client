@@ -151,7 +151,7 @@ public final class Rrf {
          * Builds the {@link Rrf} instance.
          *
          * @return an immutable {@code Rrf}
-         * @throws IllegalArgumentException if no ranks have been added
+         * @throws IllegalArgumentException if no ranks have been added, or if all weights are zero
          */
         public Rrf build() {
             if (ranks.isEmpty()) {

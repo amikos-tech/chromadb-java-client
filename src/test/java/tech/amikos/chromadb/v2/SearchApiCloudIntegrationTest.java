@@ -79,7 +79,7 @@ public class SearchApiCloudIntegrationTest {
         sharedCollectionName = "seed_" + UUID.randomUUID().toString().substring(0, 8);
         seedCollection = sharedClient.createCollection(sharedCollectionName);
 
-        // Add 15 records modeling a product catalog domain (per D-04, D-06 — server-side embeddings)
+        // Add 15 records with explicit 4D embeddings modeling a product catalog domain (per D-04, D-06)
         List<String> ids = Arrays.asList(
                 "prod-001", "prod-002", "prod-003", "prod-004", "prod-005",
                 "prod-006", "prod-007", "prod-008", "prod-009", "prod-010",
@@ -425,11 +425,9 @@ public class SearchApiCloudIntegrationTest {
             // Cannot switch from HNSW to SPANN — skip this test gracefully
             return;
         } catch (ChromaBadRequestException e) {
-            // SPANN may not be available on this cloud account/plan
-            return;
+            Assume.assumeTrue("SPANN not available on this cloud account/plan: " + e.getMessage(), false);
         } catch (ChromaNotFoundException e) {
-            // SPANN endpoint may not exist on this cloud version
-            return;
+            Assume.assumeTrue("SPANN endpoint not found on this cloud version: " + e.getMessage(), false);
         }
 
         Collection fetched = client.getCollection(col.getName());
@@ -476,8 +474,11 @@ public class SearchApiCloudIntegrationTest {
             // Expected: client-side validation prevents the switch
             assertTrue("Error message should mention index group switch",
                     isIndexGroupSwitchError(e));
-        } catch (ChromaException e) {
-            // Expected: server-side rejection is also acceptable
+        } catch (ChromaBadRequestException e) {
+            // Expected: server-side rejection for invalid index group transition
+            assertNotNull("Exception message must not be null", e.getMessage());
+        } catch (ChromaServerException e) {
+            // Some server versions return 5xx for unsupported transitions
             assertNotNull("Exception message must not be null", e.getMessage());
         }
     }
@@ -1343,12 +1344,13 @@ public class SearchApiCloudIntegrationTest {
 
     /**
      * Polls a condition until it passes or the timeout expires (similar to Go's require.Eventually).
-     * Retries on both {@link AssertionError} and transient {@link ChromaException} (e.g., connection
-     * timeouts or server errors during cloud replication windows).
+     * Retries on {@link AssertionError} and transient server/connection errors
+     * ({@link ChromaServerException}, {@link ChromaConnectionException}).
+     * Non-transient errors (4xx, deserialization) propagate immediately.
      *
      * @param timeout  maximum time to wait
      * @param tick     interval between attempts
-     * @param runnable assertion block that throws {@link AssertionError} or {@link ChromaException} on failure
+     * @param runnable assertion block
      */
     private static void assertEventually(Duration timeout, Duration tick, Runnable runnable) {
         long deadline = System.nanoTime() + timeout.toNanos();
@@ -1359,8 +1361,11 @@ public class SearchApiCloudIntegrationTest {
                 return; // passed
             } catch (AssertionError e) {
                 lastError = e;
-            } catch (ChromaException e) {
-                // Transient server/connection errors during cloud replication
+            } catch (ChromaConnectionException e) {
+                // Transient: network issue during cloud replication window
+                lastError = e;
+            } catch (ChromaServerException e) {
+                // Transient: server-side 5xx during replication window
                 lastError = e;
             }
             try {
