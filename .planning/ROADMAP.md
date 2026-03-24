@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels. (completed 2026-03-22)
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (gap closure in progress)
+- [ ] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs).
 
 ## Phase Details
 
@@ -113,3 +114,13 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 3. Search API | 3/3 | Complete   | 2026-03-22 |
 | 4. Embedding Ecosystem | 0/TBD | Pending | — |
 | 5. Cloud Integration Testing | 2/3 | In Progress|  |
+
+### Phase 6: Documentation Site
+
+**Goal:** Build a rich documentation site (similar to amikos-tech/chroma-go) covering all library features, API surfaces, and usage examples.
+**Requirements**: TBD
+**Depends on:** Phases 1-5 (documents features built in earlier phases)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 6 to break down)

@@ -146,6 +146,7 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 6 added: Tech Debt Cleanup (DOC-BUG-1, DOC-BUG-2, INFRA-1, INFRA-2, inert assumeMinVersion removal)
+- Phase 6 added: Documentation Site — rich docs with API surfaces, examples, and feature guides (similar to chroma-go)
 
 ### Pending Todos
 
