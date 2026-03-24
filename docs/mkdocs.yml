@@ -74,5 +74,13 @@ nav:
     - Transport Options: transport.md
     - Logging: logging.md
     - Migration from v1: migration.md
-  - Examples: java-examples/index.md
+  - Examples:
+    - java-examples/index.md
+    - Quickstart: java-examples/quickstart/index.md
+    - Authentication: java-examples/auth/index.md
+    - Collections: java-examples/collections/index.md
+    - Querying: java-examples/querying/index.md
+    - Search: java-examples/search/index.md
+    - Embeddings: java-examples/embeddings/index.md
+    - Cloud: java-examples/cloud/index.md
   - API Reference: api/index.md
