@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Search API** — Implement the Search endpoint with ranking expressions, field projection, groupBy, and read levels. (completed 2026-03-22)
 - [ ] **Phase 4: Embedding Ecosystem** — Add sparse/multimodal interfaces, reranking, new providers, and embedding registry.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (gap closure in progress)
-- [ ] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs).
+- [x] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs). (completed 2026-03-24)
 - [ ] **Phase 7: Working Examples** — Add full working examples for all major features (similar to chroma-go examples/).
 
 ## Phase Details
@@ -128,13 +128,13 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
   4. Custom domain java.chromadb.dev configured via CNAME file.
   5. Examples section stubbed with 7 topic directories for Phase 7.
   6. User visually approves the site via local `mkdocs serve`.
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — MkDocs scaffold, config, homepage, CI workflow, Javadoc plugin upgrade
 - [x] 06-02-PLAN.md — Core guide pages (client, auth, records, filtering, search, embeddings) with snippet files
 - [x] 06-03-PLAN.md — Advanced guide pages (cloud-features, schema, id-generators, transport, logging, migration) with snippet files
-- [ ] 06-04-PLAN.md — Examples section stubs, nav expansion, and visual verification checkpoint
+- [x] 06-04-PLAN.md — Examples section stubs, nav expansion, and visual verification checkpoint
 
 ### Phase 7: Working Examples
 

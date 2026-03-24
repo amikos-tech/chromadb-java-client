@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 06-documentation-site-02-PLAN.md
-last_updated: "2026-03-24T15:38:52.734Z"
+status: Phase complete — ready for verification
+stopped_at: "Completed 06-04 Task 1; checkpoint:human-verify at Task 2"
+last_updated: "2026-03-24T15:42:20.820Z"
 progress:
   total_phases: 14
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 31
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -73,6 +73,7 @@ Plan: 4 of 4
 | Phase 06-documentation-site P01 | 3 | 2 tasks | 24 files |
 | Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
+| Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,8 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: ChromaLoggers is package-private; logging docs expose only ChromaLogger interface and ChromaLogger.noop() as the public API surface
 - [Phase 06-documentation-site]: SearchExample uses Search.builder() + collection.search().searches(...) pattern to expose full Knn/Rrf/Search type hierarchy
 - [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
+- [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
+- [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
 
 ### Roadmap Evolution
 
@@ -169,6 +172,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:38:52.731Z
-Stopped at: Completed 06-documentation-site-02-PLAN.md
+Last session: 2026-03-24T15:42:20.817Z
+Stopped at: Completed 06-04 Task 1; checkpoint:human-verify at Task 2
 Resume file: None
