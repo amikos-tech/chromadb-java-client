@@ -1,0 +1,78 @@
+site_name: ChromaDB Java Client
+site_url: https://java.chromadb.dev
+repo_url: https://github.com/amikos-tech/chromadb-java-client
+copyright: "Amikos Tech OOD, 2024 (core ChromaDB contributors)"
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    primary: black
+  logo: assets/images/logo.png
+  favicon: assets/images/favicon.png
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.indexes
+extra:
+  homepage: https://www.trychroma.com
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/chroma-core/chroma
+    - icon: fontawesome/brands/github
+      link: https://github.com/amikos-tech
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+  consent:
+    title: Cookie consent
+    description: "We use cookies for analytics purposes. By continuing to use this website, you agree to their use."
+extra_css:
+  - assets/stylesheets/extra.css
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+      title: On this page
+      toc_depth: 3
+  - tables
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: assets/snippets/
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+plugins:
+  - tags
+  - search
+nav:
+  - Overview: index.md
+  - Guides:
+    - Client Setup: client.md
+    - Authentication: auth.md
+    - Records: records.md
+    - Filtering: filtering.md
+    - Search: search.md
+    - Embeddings: embeddings.md
+    - Cloud Features: cloud-features.md
+    - Schema & CMEK: schema.md
+    - ID Generators: id-generators.md
+    - Transport Options: transport.md
+    - Logging: logging.md
+    - Migration from v1: migration.md
+  - Examples: java-examples/index.md
+  - API Reference: api/index.md
