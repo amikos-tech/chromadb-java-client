@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: "Phase 05 shipped — PR #140"
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-24T14:47:19.603Z"
+status: Ready to execute
+stopped_at: Completed 06-documentation-site-01-PLAN.md
+last_updated: "2026-03-24T15:31:37.789Z"
 progress:
   total_phases: 14
   completed_phases: 11
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 31
+  completed_plans: 28
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 05 — cloud-integration-testing
+**Current focus:** Phase 06 — documentation-site
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
+Phase: 06 (documentation-site) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Plan: Not started
 | Phase 03-search-api P03 | 90 | 2 tasks | 7 files |
 | Phase 05-cloud-integration-testing P02 | 4 | 2 tasks | 1 files |
 | Phase 05 P03 | 5 | 1 tasks | 1 files |
+| Phase 06-documentation-site P01 | 3 | 2 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,9 @@ Recent decisions affecting current work:
 - [Phase 05-cloud-integration-testing]: CLOUD-01 search parity tests: GroupBy results via rows() only; ReadLevel WAL uses isolated collection without polling; RRF auto-skipped with Assume.assumeTrue false documenting server limitation; filter matrix 8 sub-scenarios inline; pagination client validation throws IllegalArgumentException before HTTP
 - [Phase 05-cloud-integration-testing]: Embedding projection assertion loosened to accept null or [[null]]: server returns [[null]] for unselected embeddings
 - [Phase 05-cloud-integration-testing]: WAL read-level test uses isolated 3D collection (col) instead of 4D seedCollection to avoid dimension mismatch
+- [Phase 06-documentation-site]: java-examples/index.md placed inside docs_dir (docs/docs/java-examples/) — MkDocs only serves content from docs_dir; placing outside caused strict-mode build failure
+- [Phase 06-documentation-site]: api/ nav entry uses api/index.md placeholder so mkdocs build --strict passes; actual Javadoc deployed by CI into api/ path over this placeholder
+- [Phase 06-documentation-site]: maven-javadoc-plugin upgraded from 2.9.1 to 3.11.2 with doclint=none and source=8 for modern HTML5 Javadoc output and Java 8 compatibility
 
 ### Roadmap Evolution
 
@@ -159,6 +163,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T14:47:19.600Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-documentation-site/06-CONTEXT.md
+Last session: 2026-03-24T15:31:37.786Z
+Stopped at: Completed 06-documentation-site-01-PLAN.md
+Resume file: None
