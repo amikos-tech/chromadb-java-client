@@ -188,6 +188,7 @@ public class SearchApiIntegrationTest extends AbstractChromaIntegrationTest {
     @Test
     public void testRrfSearch() {
         assumeMinVersion("1.5.0");
+        assumeCloud();
 
         Knn knn1 = Knn.queryEmbedding(QUERY_HEADPHONES).limit(50);
         Knn knn2 = Knn.queryEmbedding(QUERY_SPEAKER).limit(50);
