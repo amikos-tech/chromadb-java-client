@@ -61,4 +61,4 @@ The repository already contains substantial v2 implementation under `src/main/ja
 | Keep Java 8 + synchronous API as hard constraints for this milestone | Minimizes adoption friction and migration risk | — Pending |
 
 ---
-*Last updated: 2026-03-20 — Phase 1 complete (ERGO-01, ERGO-02). Row-based result access and WhereDocument DSL shipped. Next: Phase 2 (Collection API Extensions).*
+*Last updated: 2026-03-25 — Phase 6 complete (DOC-01 through DOC-06). Documentation site with 12 guide pages, MkDocs Material theme, CI deployment, and Javadoc integration shipped. Next: Phase 7 (Working Examples).*
