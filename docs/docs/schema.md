@@ -2,6 +2,11 @@
 
 Schema defines the vector index configuration, embedding function spec, and metadata types for a collection. CMEK provides customer-managed encryption keys.
 
+!!! warning "Chroma Cloud Only"
+    Schema and CMEK are **available in Chroma Cloud only**. Self-hosted Chroma does not
+    support the Schema API or CMEK encryption. For self-hosted HNSW tuning, use
+    `CollectionConfiguration` — see [HNSW Configuration](#hnsw-configuration) below.
+
 ## Basic Schema
 
 A schema is attached to a collection at creation time. The most common use case is setting the distance function for the embedding vector index.
@@ -71,4 +76,6 @@ HNSW parameters:
 `CollectionConfiguration` and `Schema` cannot be combined in the same `CreateCollectionOptions` call — use one or the other.
 
 !!! tip
-    Schema is primarily used with Chroma Cloud. Self-hosted deployments use simpler `CollectionConfiguration`.
+    Use `CollectionConfiguration` for self-hosted HNSW tuning. Use `Schema` (with optional CMEK)
+    for Chroma Cloud collections that need server-side embedding function specs, metadata types,
+    or encryption at rest.

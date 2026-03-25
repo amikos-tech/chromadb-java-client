@@ -19,6 +19,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Cloud Integration Testing** — Build cloud parity test suites for search, schema/index, and array metadata. (gap closure in progress)
 - [x] **Phase 6: Documentation Site** — Build a rich documentation site with API surfaces, examples, and feature guides (similar to chroma-go docs). (completed 2026-03-24)
 - [ ] **Phase 7: Working Examples** — Add full working examples for all major features (similar to chroma-go examples/).
+- [ ] **Phase 8: API DX Improvements** — Add Consumer lambda overloads for collection creation and Schema convenience factories (#143, #144).
+- [ ] **Phase 9: Logging Bridges** — Implement SLF4J and JUL bridges for ChromaLogger (#141, #142).
+- [ ] **Phase 10: Documentation Update** — Refresh docs site with DX improvements, logging bridges, and any API changes from Phases 8-9.
 
 ## Phase Details
 
@@ -145,3 +148,50 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 7 to break down)
+
+### Phase 8: API DX Improvements
+
+**Goal:** Reduce builder boilerplate in the most common API paths — collection creation gets Consumer lambda overloads, and Schema gets mid-level factory methods to flatten deep nesting.
+**Requirements**: TBD
+**Depends on:** Phase 6 (docs merged first)
+**Issues:** #143, #144
+**Success Criteria** (what must be TRUE):
+  1. User can call `client.getOrCreateCollection("name", opts -> opts.embeddingFunction(ef))` without explicit `.builder()/.build()`.
+  2. User can create a common HNSW schema with a single factory method instead of 5 nested builders.
+  3. Existing `.builder().build()` API remains unchanged for backwards compatibility.
+  4. All new overloads have unit tests.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 8 to break down)
+
+### Phase 9: Logging Bridges
+
+**Goal:** Provide out-of-the-box ChromaLogger implementations for SLF4J (covers Logback) and java.util.logging so users get transport-level logging without writing their own bridge.
+**Requirements**: TBD
+**Depends on:** Nothing (independent)
+**Issues:** #141, #142
+**Success Criteria** (what must be TRUE):
+  1. `Slf4jChromaLogger.create()` routes ChromaLogger events to SLF4J with structured fields.
+  2. `JulChromaLogger.create()` routes ChromaLogger events to java.util.logging.
+  3. SLF4J is an optional/provided dependency (not pulled transitively).
+  4. Both bridges have unit tests.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 9 to break down)
+
+### Phase 10: Documentation Update
+
+**Goal:** Refresh the documentation site with new API patterns from Phases 8-9 — Consumer overloads, Schema factories, logging bridge usage — and incorporate any corrections from user feedback.
+**Requirements**: TBD
+**Depends on:** Phases 8, 9
+**Success Criteria** (what must be TRUE):
+  1. Guide pages updated with Consumer lambda examples alongside existing builder examples.
+  2. Logging page updated with SLF4J and JUL bridge usage examples.
+  3. Schema page updated with convenience factory examples.
+  4. `mkdocs build --strict` passes.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 10 to break down)

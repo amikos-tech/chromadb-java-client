@@ -29,6 +29,10 @@ one record.
 
 ## Querying
 
+The `query()` method works with both self-hosted and Chroma Cloud deployments. For advanced
+search features (KNN ranking, RRF fusion, GroupBy, field projection), see the
+[Search API](search.md) (Chroma Cloud only).
+
 ### Query by Text
 
 ```java

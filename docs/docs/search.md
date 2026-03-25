@@ -4,8 +4,12 @@ The Search API provides advanced ranking (KNN, RRF), field projection, groupBy, 
 It uses the `collection.search()` builder and the `Search`, `Knn`, `Rrf`, `GroupBy`, and
 `ReadLevel` classes from the `tech.amikos.chromadb.v2` package.
 
-!!! note
-    The Search API requires Chroma >= 1.5. For basic querying on older versions, see
+!!! warning "Chroma Cloud Only"
+    The Search API is **available in Chroma Cloud only**. Self-hosted Chroma returns
+    `501 Not Implemented` for the `/search` endpoint. Future support for single-node
+    Chroma is planned but not yet available.
+
+    For basic similarity queries on self-hosted deployments, use `collection.query()` — see
     [Records](records.md).
 
 ## KNN Search
