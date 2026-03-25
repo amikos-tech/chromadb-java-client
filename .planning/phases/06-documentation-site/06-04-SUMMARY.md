@@ -60,7 +60,7 @@ completed: 2026-03-24
 - **Duration:** 5 min
 - **Started:** 2026-03-24T15:39:55Z
 - **Completed:** 2026-03-24T15:40:52Z
-- **Tasks:** 1 of 2 complete (Task 2 is a human-verify checkpoint)
+- **Tasks:** 2 of 2 complete
 - **Files modified:** 9
 
 ## Accomplishments
@@ -77,7 +77,7 @@ Each task was committed atomically:
 
 1. **Task 1: Create examples section stubs and update mkdocs.yml nav** - `b35d6c5` (feat)
 
-**Task 2 (checkpoint:human-verify):** Awaiting visual verification via `mkdocs serve`.
+2. **Task 2: Visual verification of complete documentation site** - `bb97d86` (fix) — Visual inspection found pymdownx.snippets base_path misconfiguration (code blocks rendered empty). Fixed base_path from `assets/snippets/` to `docs/docs/assets/snippets/`. All pages verified rendering correctly with populated code blocks.
 
 ## Files Created/Modified
 
@@ -98,7 +98,7 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+- **Snippet base_path fix**: Visual verification (Task 2) caught that `pymdownx.snippets` `base_path: assets/snippets/` was incorrect — it resolved to a nonexistent directory, causing all code blocks to render empty. Fixed to `docs/docs/assets/snippets/` which correctly resolves from the project root CWD.
 
 ## Known Stubs
 
@@ -121,7 +121,7 @@ None.
 
 - Phase 7 can add example content to any topic under docs/java-examples/{topic}/index.md without touching mkdocs.yml
 - All 7 topic directories exist and are wired into the nav
-- Awaiting Task 2 human-verify checkpoint (visual confirmation of site rendering)
+- Visual verification complete — all pages render correctly with populated code examples
 
 ---
 *Phase: 06-documentation-site*
