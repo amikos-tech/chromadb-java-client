@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: "Phase 06 shipped — PR #145"
-stopped_at: "Completed 06-04 Task 1; checkpoint:human-verify at Task 2"
-last_updated: "2026-04-01T10:06:39.889Z"
+stopped_at: Completed 04-02-PLAN.md (reranking interface and providers)
+last_updated: "2026-04-01T12:44:13.821Z"
 progress:
   total_phases: 14
   completed_phases: 12
   total_plans: 31
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -74,6 +74,7 @@ Plan: Not started
 | Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 | Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
+| Phase 04-embedding-ecosystem P02 | 3min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,7 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
 - [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
 - [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
+- [Phase 04-embedding-ecosystem]: WireMock tests use WithParam.baseAPI() injection instead of static field mutation -- defaults list captures DEFAULT_BASE_API at class-load time
 
 ### Roadmap Evolution
 
@@ -172,6 +174,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:42:20.817Z
-Stopped at: Completed 06-04 Task 1; checkpoint:human-verify at Task 2
+Last session: 2026-04-01T12:44:13.817Z
+Stopped at: Completed 04-02-PLAN.md (reranking interface and providers)
 Resume file: None
