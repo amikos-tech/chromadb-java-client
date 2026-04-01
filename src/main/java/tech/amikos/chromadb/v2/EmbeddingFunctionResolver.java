@@ -41,14 +41,13 @@ public final class EmbeddingFunctionResolver {
         }
         try {
             return EmbeddingFunctionRegistry.getDefault().resolveDense(spec);
+        } catch (UnsupportedEmbeddingProviderException e) {
+            throw new ChromaException(
+                    "Unsupported embedding provider '" + spec.getName()
+                    + "'. Pass your own EmbeddingFunction or use queryEmbeddings to supply vectors directly.",
+                    e
+            );
         } catch (ChromaException e) {
-            String msg = e.getMessage();
-            if (msg != null && msg.contains("Unsupported")) {
-                throw new ChromaException(
-                        "Unsupported embedding provider '" + spec.getName()
-                        + "'. Pass your own EmbeddingFunction or use queryEmbeddings to supply vectors directly."
-                );
-            }
             throw e;
         }
     }

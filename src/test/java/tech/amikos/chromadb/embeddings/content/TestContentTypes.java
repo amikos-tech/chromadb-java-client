@@ -37,6 +37,16 @@ public class TestContentTypes {
         Content.builder().build();
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testContentTextNullThrows() {
+        Content.text(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testContentBuilderNullPartThrows() {
+        Content.builder().part(null);
+    }
+
     @Test
     public void testPartTextFactory() {
         Part p = Part.text("t");
@@ -79,6 +89,11 @@ public class TestContentTypes {
         assertNull(s.getFilePath());
         assertNull(s.getBase64Data());
         assertNull(s.getBytes());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBinarySourceFromUrlNullThrows() {
+        BinarySource.fromUrl(null);
     }
 
     @Test

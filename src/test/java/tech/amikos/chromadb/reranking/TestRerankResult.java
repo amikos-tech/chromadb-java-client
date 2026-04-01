@@ -42,4 +42,9 @@ public class TestRerankResult {
         assertTrue(str.contains("index=2"));
         assertTrue(str.contains("score=0.85"));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNegativeIndexRejected() {
+        RerankResult.of(-1, 0.1);
+    }
 }

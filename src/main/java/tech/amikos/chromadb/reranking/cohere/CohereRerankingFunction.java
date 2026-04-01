@@ -5,6 +5,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import tech.amikos.chromadb.Constants;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.WithParam;
@@ -63,11 +64,11 @@ public class CohereRerankingFunction implements RerankingFunction {
 
     @Override
     public List<RerankResult> rerank(String query, List<String> documents) throws EFException {
+        String model = modelName();
+        validateInputs(query, documents, model);
         String baseApi = configParams.containsKey(Constants.EF_PARAMS_BASE_API)
                 ? configParams.get(Constants.EF_PARAMS_BASE_API).toString()
                 : DEFAULT_BASE_API;
-
-        String model = configParams.get(Constants.EF_PARAMS_MODEL).toString();
         RerankRequest rerankRequest = new RerankRequest(model, query, documents);
 
         Request request = new Request.Builder()
@@ -75,17 +76,28 @@ public class CohereRerankingFunction implements RerankingFunction {
                 .post(RequestBody.create(rerankRequest.json(), JSON))
                 .addHeader("Accept", "application/json")
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + configParams.get(Constants.EF_PARAMS_API_KEY).toString())
+                .addHeader("Authorization", "Bearer " + requireApiKey(model))
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            ResponseBody responseBody = response.body();
             if (!response.isSuccessful()) {
-                String body = response.body() != null ? response.body().string() : "";
+                String body = responseBody != null ? responseBody.string() : "";
                 throw new EFException("Cohere rerank failed: HTTP " + response.code() + " - " + body);
             }
 
-            String responseData = response.body().string();
+            if (responseBody == null) {
+                throw new EFException("Cohere rerank failed (model: " + model + "): response body was empty");
+            }
+
+            String responseData = responseBody.string();
+            if (responseData.trim().isEmpty()) {
+                throw new EFException("Cohere rerank failed (model: " + model + "): response body was empty");
+            }
             RerankResponse rerankResponse = gson.fromJson(responseData, RerankResponse.class);
+            if (rerankResponse == null || rerankResponse.results == null) {
+                throw new EFException("Cohere rerank failed (model: " + model + "): response did not contain results");
+            }
 
             List<RerankResult> results = new ArrayList<RerankResult>();
             for (RerankResponse.Result r : rerankResponse.results) {
@@ -103,7 +115,35 @@ public class CohereRerankingFunction implements RerankingFunction {
         } catch (EFException e) {
             throw e;
         } catch (IOException e) {
-            throw new EFException(e);
+            throw new EFException("Cohere rerank failed: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new EFException("Cohere rerank failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String modelName() {
+        Object model = configParams.get(Constants.EF_PARAMS_MODEL);
+        return model != null ? model.toString() : DEFAULT_MODEL_NAME;
+    }
+
+    private String requireApiKey(String model) throws EFException {
+        Object apiKey = configParams.get(Constants.EF_PARAMS_API_KEY);
+        String normalized = apiKey == null ? null : apiKey.toString().trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw new EFException("Cohere rerank failed (model: " + model + "): API key must not be null or empty");
+        }
+        return normalized;
+    }
+
+    private void validateInputs(String query, List<String> documents, String model) throws EFException {
+        if (query == null) {
+            throw new EFException("Cohere rerank failed (model: " + model + "): query must not be null");
+        }
+        if (documents == null) {
+            throw new EFException("Cohere rerank failed (model: " + model + "): documents must not be null");
+        }
+        if (documents.isEmpty()) {
+            throw new EFException("Cohere rerank failed (model: " + model + "): documents must not be empty");
         }
     }
 }

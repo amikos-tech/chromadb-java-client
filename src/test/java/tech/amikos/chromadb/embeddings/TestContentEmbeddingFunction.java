@@ -5,6 +5,7 @@ import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.embeddings.content.BinarySource;
 import tech.amikos.chromadb.embeddings.content.Content;
+import tech.amikos.chromadb.embeddings.content.Intent;
 import tech.amikos.chromadb.embeddings.content.Part;
 
 import java.util.ArrayList;
@@ -89,6 +90,7 @@ public class TestContentEmbeddingFunction {
         ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
             @Override
             public List<Embedding> embedContents(List<Content> contents) {
+                assertEquals(Intent.RETRIEVAL_QUERY, contents.get(0).getIntent());
                 List<Embedding> result = new ArrayList<Embedding>();
                 for (Content c : contents) {
                     result.add(Embedding.fromArray(new float[]{4.0f}));
@@ -108,6 +110,9 @@ public class TestContentEmbeddingFunction {
         ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
             @Override
             public List<Embedding> embedContents(List<Content> contents) {
+                for (Content content : contents) {
+                    assertEquals(Intent.RETRIEVAL_DOCUMENT, content.getIntent());
+                }
                 List<Embedding> result = new ArrayList<Embedding>();
                 for (Content c : contents) {
                     result.add(Embedding.fromArray(new float[]{5.0f}));
@@ -137,5 +142,32 @@ public class TestContentEmbeddingFunction {
         ContentToTextAdapter adapter = new ContentToTextAdapter(cef);
         List<Embedding> results = adapter.embedDocuments(new String[]{"a", "b"});
         assertEquals(2, results.size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testContentToTextAdapterRejectsNullWrappedFunction() {
+        new ContentToTextAdapter(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTextEmbeddingAdapterRejectsNullWrappedFunction() {
+        new TextEmbeddingAdapter(null);
+    }
+
+    @Test
+    public void testDefaultEmbedContentRejectsEmptyResult() throws Exception {
+        ContentEmbeddingFunction ef = new ContentEmbeddingFunction() {
+            @Override
+            public List<Embedding> embedContents(List<Content> contents) {
+                return Collections.emptyList();
+            }
+        };
+
+        try {
+            ef.embedContent(Content.text("hi"));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("embedContents returned no embeddings"));
+        }
     }
 }

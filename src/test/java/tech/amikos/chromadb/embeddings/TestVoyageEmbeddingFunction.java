@@ -9,6 +9,7 @@ import tech.amikos.chromadb.embeddings.voyage.VoyageEmbeddingFunction;
 import tech.amikos.chromadb.v2.ChromaException;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -136,6 +137,72 @@ public class TestVoyageEmbeddingFunction {
                     "Expected message to mention VOYAGE_API_KEY, got: " + e.getMessage(),
                     e.getMessage().contains("VOYAGE_API_KEY")
             );
+        }
+    }
+
+    @Test
+    public void testEmbedQueryRejectsNull() throws EFException {
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNull() throws EFException {
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments((List<String>) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsEmptyList() throws EFException {
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.<String>emptyList());
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be empty"));
+        }
+    }
+
+    @Test
+    public void testMissingApiKeyFailsFast() throws EFException {
+        VoyageEmbeddingFunction ef = new VoyageEmbeddingFunction(WithParam.baseAPI(wireMockUrl()));
+
+        try {
+            ef.embedDocuments(Arrays.asList("doc1"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("API key must not be null or empty"));
+        }
+    }
+
+    @Test
+    public void testEmptyResponseBodyFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/v1/embeddings"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("")));
+
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Arrays.asList("doc1"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("response body was empty"));
         }
     }
 }

@@ -16,7 +16,6 @@ public class BM25Tokenizer {
 
     private final Set<String> stopWords;
     private final int tokenMaxLength;
-    private final englishStemmer stemmer;
 
     /**
      * Creates a tokenizer with default stop words and token max length of 100.
@@ -34,7 +33,6 @@ public class BM25Tokenizer {
     public BM25Tokenizer(Set<String> stopWords, int tokenMaxLength) {
         this.stopWords = stopWords;
         this.tokenMaxLength = tokenMaxLength;
-        this.stemmer = new englishStemmer();
     }
 
     /**
@@ -62,7 +60,8 @@ public class BM25Tokenizer {
         String[] parts = trimmed.split("\\s+");
 
         // 4-6. Filter stop words, max length, and stem
-        List<String> result = new ArrayList<>();
+        englishStemmer stemmer = new englishStemmer();
+        List<String> result = new ArrayList<String>(parts.length);
         for (String token : parts) {
             if (token.isEmpty()) {
                 continue;

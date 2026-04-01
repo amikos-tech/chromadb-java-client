@@ -126,4 +126,72 @@ public class TestChromaCloudSpladeEmbeddingFunction {
                     e.getMessage().contains("CHROMA_API_KEY"));
         }
     }
+
+    @Test
+    public void testEmbedQueryRejectsNull() throws EFException {
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNull() throws EFException {
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments((List<String>) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsEmptyList() throws EFException {
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.<String>emptyList());
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be empty"));
+        }
+    }
+
+    @Test
+    public void testMissingApiKeyFailsFast() throws EFException {
+        ChromaCloudSpladeEmbeddingFunction ef = new ChromaCloudSpladeEmbeddingFunction(
+                WithParam.baseAPI(wireMockUrl())
+        );
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("API key must not be null or empty"));
+        }
+    }
+
+    @Test
+    public void testEmptyResponseBodyFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/api/v2/embed/splade"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("")));
+
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("response body was empty"));
+        }
+    }
 }

@@ -2,9 +2,11 @@ package tech.amikos.chromadb.embeddings.bm25;
 
 import org.junit.Test;
 import tech.amikos.chromadb.EFException;
+import tech.amikos.chromadb.v2.ChromaException;
 import tech.amikos.chromadb.v2.SparseVector;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -52,9 +54,13 @@ public class TestBM25EmbeddingFunction {
     }
 
     @Test
-    public void testNullTextReturnsEmptySparse() throws EFException {
-        SparseVector result = ef.embedQuery(null);
-        assertEquals("Null text should produce 0 indices", 0, result.getIndices().length);
+    public void testNullTextThrows() throws EFException {
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
     }
 
     @Test
@@ -95,6 +101,26 @@ public class TestBM25EmbeddingFunction {
         float[] values = result.getValues();
         for (float v : values) {
             assertTrue("BM25 scores should be positive: " + v, v > 0);
+        }
+    }
+
+    @Test
+    public void testNullDocumentsThrow() throws EFException {
+        try {
+            ef.embedDocuments(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmptyDocumentsThrow() throws EFException {
+        try {
+            ef.embedDocuments(Collections.<String>emptyList());
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be empty"));
         }
     }
 }

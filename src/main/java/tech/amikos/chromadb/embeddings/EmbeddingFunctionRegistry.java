@@ -11,6 +11,7 @@ import tech.amikos.chromadb.embeddings.voyage.VoyageEmbeddingFunction;
 import tech.amikos.chromadb.v2.ChromaException;
 import tech.amikos.chromadb.v2.EmbeddingFunctionResolver;
 import tech.amikos.chromadb.v2.EmbeddingFunctionSpec;
+import tech.amikos.chromadb.v2.UnsupportedEmbeddingProviderException;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -83,7 +84,7 @@ public final class EmbeddingFunctionRegistry {
      * @param factory the factory to create instances
      */
     public synchronized void registerDense(String name, DenseFactory factory) {
-        denseFactories.put(name.toLowerCase(Locale.ROOT), factory);
+        denseFactories.put(normalizeProviderName(name, "dense"), requireFactory(factory, "dense"));
     }
 
     /**
@@ -93,7 +94,7 @@ public final class EmbeddingFunctionRegistry {
      * @param factory the factory to create instances
      */
     public synchronized void registerSparse(String name, SparseFactory factory) {
-        sparseFactories.put(name.toLowerCase(Locale.ROOT), factory);
+        sparseFactories.put(normalizeProviderName(name, "sparse"), requireFactory(factory, "sparse"));
     }
 
     /**
@@ -103,7 +104,7 @@ public final class EmbeddingFunctionRegistry {
      * @param factory the factory to create instances
      */
     public synchronized void registerContent(String name, ContentFactory factory) {
-        contentFactories.put(name.toLowerCase(Locale.ROOT), factory);
+        contentFactories.put(normalizeProviderName(name, "content"), requireFactory(factory, "content"));
     }
 
     /**
@@ -119,10 +120,10 @@ public final class EmbeddingFunctionRegistry {
         if (spec == null) {
             return null;
         }
-        String name = spec.getName().trim().toLowerCase(Locale.ROOT);
+        String name = resolveProviderName(spec, "dense");
         DenseFactory factory = denseFactories.get(name);
         if (factory == null) {
-            throw new ChromaException("Unsupported embedding function provider '" + spec.getName()
+            throw new UnsupportedEmbeddingProviderException("Unsupported embedding function provider '" + spec.getName()
                     + "'. Registered dense providers: " + denseFactories.keySet());
         }
         try {
@@ -149,10 +150,10 @@ public final class EmbeddingFunctionRegistry {
         if (spec == null) {
             return null;
         }
-        String name = spec.getName().trim().toLowerCase(Locale.ROOT);
+        String name = resolveProviderName(spec, "sparse");
         SparseFactory factory = sparseFactories.get(name);
         if (factory == null) {
-            throw new ChromaException("Unsupported sparse embedding function provider '" + spec.getName()
+            throw new UnsupportedEmbeddingProviderException("Unsupported sparse embedding function provider '" + spec.getName()
                     + "'. Registered sparse providers: " + sparseFactories.keySet());
         }
         try {
@@ -183,7 +184,7 @@ public final class EmbeddingFunctionRegistry {
         if (spec == null) {
             return null;
         }
-        String name = spec.getName().trim().toLowerCase(Locale.ROOT);
+        String name = resolveProviderName(spec, "content");
 
         // Try content factory first
         ContentFactory cf = contentFactories.get(name);
@@ -193,6 +194,8 @@ public final class EmbeddingFunctionRegistry {
             } catch (ChromaException e) {
                 throw e;
             } catch (EFException e) {
+                throw new ChromaException("Failed to create content provider '" + name + "': " + e.getMessage(), e);
+            } catch (RuntimeException e) {
                 throw new ChromaException("Failed to create content provider '" + name + "': " + e.getMessage(), e);
             }
         }
@@ -206,12 +209,40 @@ public final class EmbeddingFunctionRegistry {
                 throw e;
             } catch (EFException e) {
                 throw new ChromaException("Failed to create content provider '" + name + "' (via dense fallback): " + e.getMessage(), e);
+            } catch (RuntimeException e) {
+                throw new ChromaException("Failed to create content provider '" + name + "' (via dense fallback): " + e.getMessage(), e);
             }
         }
 
-        throw new ChromaException("Unsupported content embedding provider '" + spec.getName()
+        throw new UnsupportedEmbeddingProviderException("Unsupported content embedding provider '" + spec.getName()
                 + "'. Registered content providers: " + contentFactories.keySet()
                 + ", dense providers (fallback): " + denseFactories.keySet());
+    }
+
+    private static String normalizeProviderName(String name, String type) {
+        if (name == null) {
+            throw new IllegalArgumentException(type + " provider name must not be null");
+        }
+        String normalized = name.trim().toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException(type + " provider name must not be blank");
+        }
+        return normalized;
+    }
+
+    private static String resolveProviderName(EmbeddingFunctionSpec spec, String type) {
+        try {
+            return normalizeProviderName(spec.getName(), type);
+        } catch (IllegalArgumentException e) {
+            throw new ChromaException("Failed to resolve " + type + " provider: " + e.getMessage(), e);
+        }
+    }
+
+    private static <T> T requireFactory(T factory, String type) {
+        if (factory == null) {
+            throw new IllegalArgumentException(type + " factory must not be null");
+        }
+        return factory;
     }
 
     private void registerBuiltinProviders() {

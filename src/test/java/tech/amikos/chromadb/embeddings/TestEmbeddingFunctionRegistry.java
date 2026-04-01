@@ -228,4 +228,127 @@ public class TestEmbeddingFunctionRegistry {
     public void testResolveNullContentReturnsNull() {
         assertNull(EmbeddingFunctionRegistry.getDefault().resolveContent(null));
     }
+
+    @Test
+    public void testCustomRegistryResolvesCaseInsensitiveName() {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        final EmbeddingFunction mockEf = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) { return null; }
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) { return null; }
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) { return null; }
+        };
+
+        registry.registerDense("MyProvider", new EmbeddingFunctionRegistry.DenseFactory() {
+            @Override
+            public EmbeddingFunction create(Map<String, Object> config) {
+                return mockEf;
+            }
+        });
+
+        assertSame(mockEf, registry.resolveDense(spec("MYPROVIDER")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRegisterDenseRejectsNullName() {
+        new EmbeddingFunctionRegistry().registerDense(null, new EmbeddingFunctionRegistry.DenseFactory() {
+            @Override
+            public EmbeddingFunction create(Map<String, Object> config) {
+                return null;
+            }
+        });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRegisterSparseRejectsNullFactory() {
+        new EmbeddingFunctionRegistry().registerSparse("provider", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRegisterContentRejectsBlankName() {
+        new EmbeddingFunctionRegistry().registerContent("   ", new EmbeddingFunctionRegistry.ContentFactory() {
+            @Override
+            public ContentEmbeddingFunction create(Map<String, Object> config) {
+                return null;
+            }
+        });
+    }
+
+    @Test
+    public void testResolveDenseWrapsEFException() {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        registry.registerDense("broken", new EmbeddingFunctionRegistry.DenseFactory() {
+            @Override
+            public EmbeddingFunction create(Map<String, Object> config) throws EFException {
+                throw new EFException("bad dense config");
+            }
+        });
+
+        try {
+            registry.resolveDense(spec("broken"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to create dense provider 'broken'"));
+            assertNotNull(e.getCause());
+        }
+    }
+
+    @Test
+    public void testResolveDenseWrapsRuntimeException() {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        registry.registerDense("broken", new EmbeddingFunctionRegistry.DenseFactory() {
+            @Override
+            public EmbeddingFunction create(Map<String, Object> config) {
+                throw new IllegalStateException("boom");
+            }
+        });
+
+        try {
+            registry.resolveDense(spec("broken"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to create dense provider 'broken'"));
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
+
+    @Test
+    public void testResolveContentWrapsRuntimeExceptionFromContentFactory() {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        registry.registerContent("broken", new EmbeddingFunctionRegistry.ContentFactory() {
+            @Override
+            public ContentEmbeddingFunction create(Map<String, Object> config) {
+                throw new IllegalStateException("boom");
+            }
+        });
+
+        try {
+            registry.resolveContent(spec("broken"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Failed to create content provider 'broken'"));
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
+
+    @Test
+    public void testResolveContentWrapsRuntimeExceptionFromDenseFallback() {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        registry.registerDense("broken", new EmbeddingFunctionRegistry.DenseFactory() {
+            @Override
+            public EmbeddingFunction create(Map<String, Object> config) {
+                throw new IllegalStateException("boom");
+            }
+        });
+
+        try {
+            registry.resolveContent(spec("broken"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("via dense fallback"));
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
 }

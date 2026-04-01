@@ -5,6 +5,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import tech.amikos.chromadb.Constants;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.SparseEmbeddingFunction;
@@ -71,25 +72,44 @@ public class ChromaCloudSpladeEmbeddingFunction implements SparseEmbeddingFuncti
 
     private CreateSparseEmbeddingResponse callApi(CreateSparseEmbeddingRequest req) throws EFException {
         String baseApi = configParams.get(Constants.EF_PARAMS_BASE_API).toString();
-        Object apiKey = configParams.get(Constants.EF_PARAMS_API_KEY);
+        String modelName = modelName();
+        String apiKey = requireApiKey(modelName);
 
         Request request = new Request.Builder()
                 .url(baseApi)
                 .post(RequestBody.create(req.toJson(), JSON))
                 .addHeader("Accept", "application/json")
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + (apiKey != null ? apiKey.toString() : ""))
+                .addHeader("Authorization", "Bearer " + apiKey)
                 .build();
         try (Response response = client.newCall(request).execute()) {
+            ResponseBody responseBody = response.body();
             if (!response.isSuccessful()) {
+                String body = responseBody != null ? responseBody.string() : "";
                 throw new ChromaException(
-                        "Chroma Cloud Splade embedding failed (model: "
-                                + configParams.get(Constants.EF_PARAMS_MODEL) + "): "
+                        "Chroma Cloud Splade embedding failed (model: " + modelName + "): "
                                 + response.code() + " " + response.message()
+                                + (body.isEmpty() ? "" : " - " + body)
                 );
             }
-            String responseData = response.body().string();
-            return gson.fromJson(responseData, CreateSparseEmbeddingResponse.class);
+            if (responseBody == null) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed (model: " + modelName + "): response body was empty"
+                );
+            }
+            String responseData = responseBody.string();
+            if (responseData.trim().isEmpty()) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed (model: " + modelName + "): response body was empty"
+                );
+            }
+            CreateSparseEmbeddingResponse parsed = gson.fromJson(responseData, CreateSparseEmbeddingResponse.class);
+            if (parsed == null) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed (model: " + modelName + "): response could not be parsed"
+                );
+            }
+            return parsed;
         } catch (ChromaException e) {
             throw e;
         } catch (IOException e) {
@@ -140,5 +160,20 @@ public class ChromaCloudSpladeEmbeddingFunction implements SparseEmbeddingFuncti
             );
         }
         return result;
+    }
+
+    private String modelName() {
+        Object model = configParams.get(Constants.EF_PARAMS_MODEL);
+        return model != null ? model.toString() : DEFAULT_MODEL_NAME;
+    }
+
+    private String requireApiKey(String modelName) {
+        Object apiKey = configParams.get(Constants.EF_PARAMS_API_KEY);
+        String normalized = apiKey == null ? null : apiKey.toString().trim();
+        if (normalized == null || normalized.isEmpty()) {
+            throw new ChromaException(
+                    "Chroma Cloud Splade embedding failed (model: " + modelName + "): API key must not be null or empty");
+        }
+        return normalized;
     }
 }

@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings.bm25;
 
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.SparseEmbeddingFunction;
+import tech.amikos.chromadb.v2.ChromaException;
 import tech.amikos.chromadb.v2.SparseVector;
 
 import java.nio.charset.Charset;
@@ -47,18 +48,31 @@ public class BM25EmbeddingFunction implements SparseEmbeddingFunction {
      * @param avgDocLen the expected average document length for BM25 normalization
      */
     public BM25EmbeddingFunction(BM25Tokenizer tokenizer, float avgDocLen) {
+        if (tokenizer == null) {
+            throw new IllegalArgumentException("tokenizer must not be null");
+        }
         this.tokenizer = tokenizer;
         this.avgDocLen = avgDocLen;
     }
 
     @Override
     public SparseVector embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new ChromaException("BM25 embedding failed: query must not be null");
+        }
         return embedSingle(query);
     }
 
     @Override
     public List<SparseVector> embedDocuments(List<String> documents) throws EFException {
-        List<SparseVector> results = new ArrayList<>();
+        if (documents == null) {
+            throw new ChromaException("BM25 embedding failed: documents must not be null");
+        }
+        if (documents.isEmpty()) {
+            throw new ChromaException("BM25 embedding failed: documents must not be empty");
+        }
+
+        List<SparseVector> results = new ArrayList<SparseVector>(documents.size());
         for (String doc : documents) {
             results.add(embedSingle(doc));
         }

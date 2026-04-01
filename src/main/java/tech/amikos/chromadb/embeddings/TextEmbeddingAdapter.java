@@ -16,7 +16,7 @@ import java.util.List;
  * <p>For each {@link Content}, extracts the first text {@link Part} and delegates to the
  * wrapped embedding function. Throws {@link EFException} if any content has no text part.</p>
  */
-public class TextEmbeddingAdapter implements ContentEmbeddingFunction {
+public final class TextEmbeddingAdapter implements ContentEmbeddingFunction {
 
     private final EmbeddingFunction wrapped;
 

@@ -39,7 +39,11 @@ public interface ContentEmbeddingFunction {
      * @throws EFException if embedding fails
      */
     default Embedding embedContent(Content content) throws EFException {
-        return embedContents(Collections.singletonList(content)).get(0);
+        List<Embedding> embeddings = embedContents(Collections.singletonList(content));
+        if (embeddings == null || embeddings.isEmpty()) {
+            throw new EFException("embedContents returned no embeddings");
+        }
+        return embeddings.get(0);
     }
 
     /**

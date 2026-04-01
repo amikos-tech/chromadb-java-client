@@ -80,4 +80,61 @@ public class TestCohereRerankingFunction {
         verify(postRequestedFor(urlEqualTo("/v2/rerank"))
                 .withHeader("Authorization", equalTo("Bearer test-key")));
     }
+
+    @Test
+    public void testMissingApiKeyFailsFast() throws EFException {
+        CohereRerankingFunction reranker = new CohereRerankingFunction(WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank("query", Arrays.asList("doc0"));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("API key must not be null or empty"));
+        }
+    }
+
+    @Test
+    public void testNullQueryRejected() throws EFException {
+        CohereRerankingFunction reranker = new CohereRerankingFunction(
+                WithParam.apiKey("test-key"), WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank(null, Arrays.asList("doc0"));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
+    }
+
+    @Test
+    public void testNullDocumentsRejected() throws EFException {
+        CohereRerankingFunction reranker = new CohereRerankingFunction(
+                WithParam.apiKey("test-key"), WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank("query", null);
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testMissingResultsRejected() throws EFException {
+        stubFor(post(urlEqualTo("/v2/rerank"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{}")));
+
+        CohereRerankingFunction reranker = new CohereRerankingFunction(
+                WithParam.apiKey("test-key"), WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank("query", Arrays.asList("doc0"));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("response did not contain results"));
+        }
+    }
 }

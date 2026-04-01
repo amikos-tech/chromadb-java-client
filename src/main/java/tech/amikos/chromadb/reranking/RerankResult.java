@@ -23,6 +23,9 @@ public final class RerankResult {
      * @return a new RerankResult
      */
     public static RerankResult of(int index, double score) {
+        if (index < 0) {
+            throw new IllegalArgumentException("index must be >= 0");
+        }
         return new RerankResult(index, score);
     }
 
