@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: API DX Improvements** — Add Consumer lambda overloads for collection creation and Schema convenience factories (#143, #144).
 - [ ] **Phase 9: Logging Bridges** — Implement SLF4J and JUL bridges for ChromaLogger (#141, #142).
 - [ ] **Phase 10: Documentation Update** — Refresh docs site with DX improvements, logging bridges, and any API changes from Phases 8-9.
+- [ ] **Phase 11: Local/Embedded Client** — Add local/embedded client mode with JNI/JNA bindings or managed server lifecycle (#111).
 
 ## Phase Details
 
@@ -195,3 +196,20 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 10 to break down)
+
+### Phase 11: Local/Embedded Client
+
+**Goal:** Add a local/embedded client mode that runs Chroma without requiring a separate server, similar to Go client's `NewLocalClient`.
+**Depends on:** Nothing (independent — can be developed in parallel with other phases)
+**Requirements:** TBD
+**Issues:** #111
+**Success Criteria** (what must be TRUE):
+  1. `ChromaClient.local()` builder API exists with `persistDirectory` configuration.
+  2. At least one runtime mode works (JNI/JNA embedded or managed server lifecycle).
+  3. Persistence to disk supported with configurable path.
+  4. Unit and integration tests verify local client CRUD operations match server client behavior.
+  5. Graceful lifecycle management (startup, shutdown, cleanup).
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 11 to break down)
