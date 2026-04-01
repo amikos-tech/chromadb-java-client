@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: Ready to plan
+status: "Phase 06 shipped — PR #145"
 stopped_at: "Completed 06-04 Task 1; checkpoint:human-verify at Task 2"
-last_updated: "2026-03-25T09:48:12.505Z"
+last_updated: "2026-04-01T10:06:39.889Z"
 progress:
   total_phases: 14
   completed_phases: 12
