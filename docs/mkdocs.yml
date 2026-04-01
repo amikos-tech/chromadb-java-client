@@ -7,8 +7,6 @@ theme:
   custom_dir: overrides
   palette:
     primary: black
-  logo: assets/images/logo.png
-  favicon: assets/images/favicon.png
   font:
     text: Roboto
     code: Roboto Mono
@@ -26,12 +24,6 @@ extra:
       link: https://github.com/chroma-core/chroma
     - icon: fontawesome/brands/github
       link: https://github.com/amikos-tech
-  analytics:
-    provider: google
-    property: G-XXXXXXXXXX
-  consent:
-    title: Cookie consent
-    description: "We use cookies for analytics purposes. By continuing to use this website, you agree to their use."
 extra_css:
   - assets/stylesheets/extra.css
 markdown_extensions:
@@ -65,6 +57,7 @@ nav:
     - Client Setup: client.md
     - Authentication: auth.md
     - Records: records.md
+    - Error Handling: error-handling.md
     - Filtering: filtering.md
     - Search: search.md
     - Embeddings: embeddings.md

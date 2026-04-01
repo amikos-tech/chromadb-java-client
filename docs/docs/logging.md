@@ -6,17 +6,9 @@ The client uses a structured `ChromaLogger` interface for transport-level events
 
 `ChromaLogger` (`tech.amikos.chromadb.v2.ChromaLogger`) is a structured logging interface. Implement it to bridge client events to your application's logging stack.
 
-```java
-public interface ChromaLogger {
-    void debug(String event, Map<String, Object> fields);
-    void info(String event, Map<String, Object> fields);
-    void warn(String event, Map<String, Object> fields);
-    void error(String event, Map<String, Object> fields, Throwable throwable);
-    default boolean isNoop() { return false; }
-}
-```
-
-`fields` is a best-effort metadata map. The `isNoop()` method allows transport code to skip log-field construction when logging is disabled (the default no-op implementation returns `true`).
+The interface exposes `debug(event, fields)`, `info(event, fields)`, `warn(event, fields)`, and
+`error(event, fields, throwable)`. `fields` is a best-effort metadata map, and `isNoop()` lets the
+transport layer skip log-field construction when logging is disabled.
 
 ## No-op Logger (Default)
 

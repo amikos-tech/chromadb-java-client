@@ -28,7 +28,7 @@ implementation 'io.github.amikos-tech:chromadb-java-client:0.2.0'
 ## Quick Start
 
 ```java
---8<-- "QuickstartExample.java"
+--8<-- "QuickstartExample.java:full"
 ```
 
 ## Features

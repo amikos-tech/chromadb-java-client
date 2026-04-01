@@ -73,7 +73,9 @@ HNSW parameters:
 | efConstruction | `hnswConstructionEf(int)` | Build-time candidate list size; higher = better recall (default: 100) |
 | efSearch | `hnswSearchEf(int)` | Query-time candidate list size; higher = better recall (default: 10) |
 
-`CollectionConfiguration` and `Schema` cannot be combined in the same `CreateCollectionOptions` call — use one or the other.
+The client does not currently reject `CreateCollectionOptions` that set both
+`configuration(...)` and `schema(...)`. For predictable behavior, prefer one or the other unless
+you have verified how your Chroma deployment handles the combination.
 
 !!! tip
     Use `CollectionConfiguration` for self-hosted HNSW tuning. Use `Schema` (with optional CMEK)

@@ -89,7 +89,7 @@ The `client.setDefaultHeaders()` approach with manual header construction has be
 
     collection.add()
             .documents("doc1", "doc2")
-            .metadatas(meta1, meta2)
+            .metadatas(java.util.Arrays.<java.util.Map<String, Object>>asList(meta1, meta2))
             .ids("id-1", "id-2")
             .execute();
     ```

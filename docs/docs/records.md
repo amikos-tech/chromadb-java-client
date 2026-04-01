@@ -31,7 +31,7 @@ one record.
 
 The `query()` method works with both self-hosted and Chroma Cloud deployments. For advanced
 search features (KNN ranking, RRF fusion, GroupBy, field projection), see the
-[Search API](search.md) (Chroma Cloud only).
+[Search API](search.md) (requires Chroma >= 1.5).
 
 ### Query by Text
 
@@ -120,3 +120,7 @@ provides `getId()`, `getDocument()`, `getMetadata()`, `getEmbedding()`. Cast to
 !!! tip
     `rows(0)` returns results for the first query text/embedding. Use `rows(1)` for the second
     input when multiple query texts are provided.
+
+!!! note
+    See [Error Handling](error-handling.md) for the unchecked exception hierarchy and common
+    recovery patterns for record operations.

@@ -1,7 +1,7 @@
 import tech.amikos.chromadb.v2.*;
 
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 // --8<-- [start:add-docs]
@@ -14,7 +14,7 @@ meta2.put("type", "spy");
 collection.add()
         .documents("Hello, my name is John. I am a Data Scientist.",
                    "Hello, my name is Bond. I am a Spy.")
-        .metadatas(meta1, meta2)
+        .metadatas(Arrays.<Map<String, Object>>asList(meta1, meta2))
         .ids("id-1", "id-2")
         .execute();
 // --8<-- [end:add-docs]

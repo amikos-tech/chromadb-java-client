@@ -66,3 +66,7 @@ Verify that the server is reachable and retrieve its version:
 
 !!! note
     See [Authentication](auth.md) for auth provider options.
+
+!!! note
+    See [Error Handling](error-handling.md) for the client exception hierarchy and example
+    recovery patterns.

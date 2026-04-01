@@ -1,6 +1,6 @@
 # Cloud Features
 
-Chroma Cloud provides managed infrastructure with features not available in self-hosted deployments.
+Chroma Cloud provides managed infrastructure and features that differ from self-hosted deployments.
 
 ## Connecting to Chroma Cloud
 
@@ -43,9 +43,9 @@ The tenant and database values can be found in the [Chroma Cloud dashboard](http
 | `collection.modifyName()` | Yes | Yes | |
 | `collection.modifyMetadata()` | Yes | Yes | |
 | `collection.modifyConfiguration()` | Yes | Yes | |
-| `collection.search()` | No | Yes | KNN, RRF, GroupBy, field projection — see [Search](search.md) |
+| `collection.search()` | >= 1.5 | Yes | KNN, RRF, GroupBy, field projection - see [Search](search.md) |
 | Schema API | No | Yes | Vector index config, EF spec, metadata types — see [Schema](schema.md) |
-| CMEK | No | Yes | Customer-managed encryption keys (GCP KMS, AWS) — see [Schema](schema.md#cmek-customer-managed-encryption-keys) |
+| CMEK | No | Yes | Customer-managed encryption keys (GCP KMS) - see [Schema](schema.md#cmek-customer-managed-encryption-keys) |
 | `collection.fork()` | No | Yes | Copy-on-write; 256-fork-edge limit |
 | `collection.forkCount()` | No | Yes | |
 | `collection.indexingStatus()` | No | Yes | Requires Chroma >= 1.4.1 |
