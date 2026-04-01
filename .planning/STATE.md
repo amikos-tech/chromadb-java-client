@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: "Phase 06 shipped — PR #145"
-stopped_at: Completed 04-02-PLAN.md (reranking interface and providers)
-last_updated: "2026-04-01T12:44:13.821Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-04-01T12:48:45.857Z"
 progress:
   total_phases: 14
   completed_phases: 12
@@ -74,7 +74,7 @@ Plan: Not started
 | Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 | Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
-| Phase 04-embedding-ecosystem P02 | 3min | 2 tasks | 11 files |
+| Phase 04-embedding-ecosystem P03 | 8min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -156,7 +156,9 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
 - [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
 - [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
-- [Phase 04-embedding-ecosystem]: WireMock tests use WithParam.baseAPI() injection instead of static field mutation -- defaults list captures DEFAULT_BASE_API at class-load time
+- [Phase 04-embedding-ecosystem]: Jackson version aligned to 2.17.2 via dependencyManagement to resolve nd4j/GenAI SDK conflict
+- [Phase 04-embedding-ecosystem]: Voyage WireMock tests use WithParam.baseAPI() constructor injection instead of static field reflection
+- [Phase 04-embedding-ecosystem]: Gemini/Bedrock use lazy double-checked locking for SDK client init to avoid load at construction time
 
 ### Roadmap Evolution
 
@@ -174,6 +176,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-01T12:44:13.817Z
-Stopped at: Completed 04-02-PLAN.md (reranking interface and providers)
+Last session: 2026-04-01T12:48:45.854Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
