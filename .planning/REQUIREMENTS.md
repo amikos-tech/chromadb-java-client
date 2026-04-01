@@ -27,8 +27,8 @@ Requirements for the current milestone. Each maps to roadmap phases.
 
 ### Embedding Ecosystem
 
-- [ ] **EMB-05**: User can use sparse embedding functions (BM25, Chroma Cloud Splade) through a `SparseEmbeddingFunction` interface.
-- [ ] **EMB-06**: User can use multimodal embedding functions (image+text) through a `MultimodalEmbeddingFunction` interface.
+- [x] **EMB-05**: User can use sparse embedding functions (BM25, Chroma Cloud Splade) through a `SparseEmbeddingFunction` interface.
+- [x] **EMB-06**: User can use multimodal embedding functions (image+text) through a `MultimodalEmbeddingFunction` interface.
 - [ ] **EMB-07**: User can use at least 3 additional dense embedding providers (Gemini, Bedrock, Voyage prioritized) through the existing `EmbeddingFunction` contract.
 - [ ] **EMB-08**: User can rely on an `EmbeddingFunctionRegistry` to auto-wire embedding functions from server-side collection configuration.
 - [ ] **RERANK-01**: User can rerank query results using a `RerankingFunction` interface with at least one provider (Cohere or Jina).
@@ -66,8 +66,8 @@ Deferred to future milestones.
 | SEARCH-02 | Phase 3 | Complete |
 | SEARCH-03 | Phase 3 | Complete |
 | SEARCH-04 | Phase 3 | Complete |
-| EMB-05 | Phase 4 | Pending |
-| EMB-06 | Phase 4 | Pending |
+| EMB-05 | Phase 4 | Complete |
+| EMB-06 | Phase 4 | Complete |
 | EMB-07 | Phase 4 | Pending |
 | EMB-08 | Phase 4 | Pending |
 | RERANK-01 | Phase 4 | Pending |
