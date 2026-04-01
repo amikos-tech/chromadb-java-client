@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: "Phase 06 shipped — PR #145"
-stopped_at: Phase 04 context gathered
-last_updated: "2026-04-01T12:06:02.588Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-04-01T12:43:00.327Z"
 progress:
   total_phases: 14
   completed_phases: 12
   total_plans: 31
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -74,6 +74,7 @@ Plan: Not started
 | Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 | Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
+| Phase 04-embedding-ecosystem P01 | 3min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
 - [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
 - [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
+- [Phase 04-embedding-ecosystem]: SparseEmbeddingFunction is separate interface (not extending EmbeddingFunction) — sparse and dense have incompatible return types
+- [Phase 04-embedding-ecosystem]: Content value types in embeddings.content subpackage per D-09; ContentEmbeddingFunction uses static factory fromTextOnly() for adapter creation
 
 ### Roadmap Evolution
 
@@ -172,6 +175,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-01T12:06:02.585Z
-Stopped at: Phase 04 context gathered
-Resume file: .planning/phases/04-embedding-ecosystem/04-CONTEXT.md
+Last session: 2026-04-01T12:43:00.324Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
