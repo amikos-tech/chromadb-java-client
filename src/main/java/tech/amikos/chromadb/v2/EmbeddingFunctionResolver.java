@@ -30,7 +30,27 @@ public final class EmbeddingFunctionResolver {
      * @throws ChromaException if descriptor values are invalid/unsupported or provider initialization fails
      */
     static EmbeddingFunction resolve(EmbeddingFunctionSpec spec) {
-        return EmbeddingFunctionRegistry.getDefault().resolveDense(spec);
+        if (spec == null) return null;
+        if (!spec.isKnownType()) {
+            throw new ChromaException(
+                    "Unsupported embedding function type '" + spec.getType()
+                    + "' for provider '" + spec.getName()
+                    + "'. Only 'known' types can be auto-resolved. "
+                    + "Pass your own EmbeddingFunction or use queryEmbeddings to supply vectors directly."
+            );
+        }
+        try {
+            return EmbeddingFunctionRegistry.getDefault().resolveDense(spec);
+        } catch (ChromaException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Unsupported")) {
+                throw new ChromaException(
+                        "Unsupported embedding provider '" + spec.getName()
+                        + "'. Pass your own EmbeddingFunction or use queryEmbeddings to supply vectors directly."
+                );
+            }
+            throw e;
+        }
     }
 
     /**

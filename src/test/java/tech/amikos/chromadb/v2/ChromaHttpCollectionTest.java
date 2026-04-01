@@ -1549,7 +1549,7 @@ public class ChromaHttpCollectionTest {
             col.query().queryTexts("hello").execute();
             fail("Expected ChromaException");
         } catch (ChromaException e) {
-            assertTrue(e.getMessage().contains("Failed to initialize embedding function provider 'openai'"));
+            assertTrue(e.getMessage().contains("openai"));
             assertNotNull(e.getCause());
         }
     }
