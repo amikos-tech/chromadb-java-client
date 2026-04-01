@@ -1,0 +1,79 @@
+name: docs
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install MkDocs dependencies
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install -r docs/requirements.txt
+
+      - name: Build MkDocs site
+        run: |
+          . .venv/bin/activate
+          python -m mkdocs build --config-file docs/mkdocs.yml --site-dir site
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate Javadoc
+        run: mvn --no-transfer-progress compile javadoc:javadoc
+
+      - name: Merge Javadoc into site
+        run: |
+          mkdir -p site/api
+          cp -R target/site/apidocs/. site/api/
+
+      - name: Upload site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-site
+          path: site
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docs-site
+          path: site
+
+      - name: Deploy combined docs site
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site

@@ -57,3 +57,9 @@ fabric.properties
 .idea/httpRequests
 .idea/caches/build_file_checksums.ser
 **.env
+
+### Claude Code ###
+.claude/worktrees/
+
+### MkDocs ###
+docs/site/

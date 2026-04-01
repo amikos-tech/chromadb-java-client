@@ -1,0 +1,78 @@
+site_name: ChromaDB Java Client
+site_url: https://java.chromadb.dev
+repo_url: https://github.com/amikos-tech/chromadb-java-client
+copyright: "Amikos Tech OOD, 2024-2025 (core ChromaDB contributors)"
+theme:
+  name: material
+  palette:
+    primary: black
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.indexes
+extra:
+  homepage: https://www.trychroma.com
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/chroma-core/chroma
+    - icon: fontawesome/brands/github
+      link: https://github.com/amikos-tech
+extra_css:
+  - assets/stylesheets/extra.css
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+      title: On this page
+      toc_depth: 3
+  - tables
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: docs/docs/assets/snippets/ # relative to repo root (CWD), not this file
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+plugins:
+  - tags
+  - search
+nav:
+  - Overview: index.md
+  - Guides:
+    - Client Setup: client.md
+    - Authentication: auth.md
+    - Records: records.md
+    - Error Handling: error-handling.md
+    - Filtering: filtering.md
+    - Search: search.md
+    - Embeddings: embeddings.md
+    - Cloud Features: cloud-features.md
+    - Schema & CMEK: schema.md
+    - ID Generators: id-generators.md
+    - Transport Options: transport.md
+    - Logging: logging.md
+    - Migration from v1: migration.md
+  - Examples:
+    - java-examples/index.md
+    - Quickstart: java-examples/quickstart/index.md
+    - Authentication: java-examples/auth/index.md
+    - Collections: java-examples/collections/index.md
+    - Querying: java-examples/querying/index.md
+    - Search: java-examples/search/index.md
+    - Embeddings: java-examples/embeddings/index.md
+    - Cloud: java-examples/cloud/index.md
+  - API Reference: api/index.md

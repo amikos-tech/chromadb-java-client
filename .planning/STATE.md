@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: "Phase 05 shipped — PR #140"
-stopped_at: Completed 05-cloud-integration-testing-05-03-PLAN.md
-last_updated: "2026-03-23T13:51:04.103Z"
+status: "Phase 06 shipped — PR #145"
+stopped_at: "Completed 06-04 Task 1; checkpoint:human-verify at Task 2"
+last_updated: "2026-04-01T10:06:39.889Z"
 progress:
-  total_phases: 10
-  completed_phases: 9
-  total_plans: 24
-  completed_plans: 24
+  total_phases: 14
+  completed_phases: 12
+  total_plans: 31
+  completed_plans: 31
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-17)
 
 **Core value:** Java developers can integrate Chroma quickly and safely with a predictable, strongly-typed client that behaves consistently across environments.
-**Current focus:** Phase 05 — cloud-integration-testing
+**Current focus:** Phase 06 — documentation-site
 
 ## Current Position
 
-Phase: 05
+Phase: 07
 Plan: Not started
 
 ## Performance Metrics
@@ -70,6 +70,10 @@ Plan: Not started
 | Phase 03-search-api P03 | 90 | 2 tasks | 7 files |
 | Phase 05-cloud-integration-testing P02 | 4 | 2 tasks | 1 files |
 | Phase 05 P03 | 5 | 1 tasks | 1 files |
+| Phase 06-documentation-site P01 | 3 | 2 tasks | 24 files |
+| Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
+| Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
+| Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -142,6 +146,15 @@ Recent decisions affecting current work:
 - [Phase 05-cloud-integration-testing]: CLOUD-01 search parity tests: GroupBy results via rows() only; ReadLevel WAL uses isolated collection without polling; RRF auto-skipped with Assume.assumeTrue false documenting server limitation; filter matrix 8 sub-scenarios inline; pagination client validation throws IllegalArgumentException before HTTP
 - [Phase 05-cloud-integration-testing]: Embedding projection assertion loosened to accept null or [[null]]: server returns [[null]] for unselected embeddings
 - [Phase 05-cloud-integration-testing]: WAL read-level test uses isolated 3D collection (col) instead of 4D seedCollection to avoid dimension mismatch
+- [Phase 06-documentation-site]: java-examples/index.md placed inside docs_dir (docs/docs/java-examples/) — MkDocs only serves content from docs_dir; placing outside caused strict-mode build failure
+- [Phase 06-documentation-site]: api/ nav entry uses api/index.md placeholder so mkdocs build --strict passes; actual Javadoc deployed by CI into api/ path over this placeholder
+- [Phase 06-documentation-site]: maven-javadoc-plugin upgraded from 2.9.1 to 3.11.2 with doclint=none and source=8 for modern HTML5 Javadoc output and Java 8 compatibility
+- [Phase 06-documentation-site]: Migration page uses pymdownx.tabbed for v1/v2 side-by-side examples — v1 code is the designated exception per D-11; all other pages are v2-only
+- [Phase 06-documentation-site]: ChromaLoggers is package-private; logging docs expose only ChromaLogger interface and ChromaLogger.noop() as the public API surface
+- [Phase 06-documentation-site]: SearchExample uses Search.builder() + collection.search().searches(...) pattern to expose full Knn/Rrf/Search type hierarchy
+- [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
+- [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
+- [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
 
 ### Roadmap Evolution
 
@@ -159,6 +172,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T13:27:48.062Z
-Stopped at: Completed 05-cloud-integration-testing-05-03-PLAN.md
+Last session: 2026-03-24T15:42:20.817Z
+Stopped at: Completed 06-04 Task 1; checkpoint:human-verify at Task 2
 Resume file: None
