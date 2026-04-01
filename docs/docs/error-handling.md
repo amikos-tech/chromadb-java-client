@@ -15,6 +15,7 @@ bubble up to your application's error boundary.
 | `ChromaForbiddenException` | Authenticated, but not allowed to perform the operation |
 | `ChromaNotFoundException` | Missing tenant, database, collection, or unsupported endpoint |
 | `ChromaConflictException` | Resource already exists |
+| `ChromaClientException` | Other client-side 4xx errors not covered by a specific subclass (for example 429 rate limiting) |
 | `ChromaServerException` | Server-side 5xx failure |
 
 ## Recoverable Patterns

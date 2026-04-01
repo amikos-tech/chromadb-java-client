@@ -4,7 +4,6 @@ repo_url: https://github.com/amikos-tech/chromadb-java-client
 copyright: "Amikos Tech OOD, 2024 (core ChromaDB contributors)"
 theme:
   name: material
-  custom_dir: overrides
   palette:
     primary: black
   font:
