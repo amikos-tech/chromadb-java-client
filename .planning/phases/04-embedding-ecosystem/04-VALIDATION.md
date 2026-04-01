@@ -38,11 +38,11 @@ created: 2026-04-01
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| TBD | 01 | 1 | EMB-05 | unit | `mvn test -Dtest=TestSparseEmbeddingFunction` | ❌ W0 | ⬜ pending |
-| TBD | 01 | 1 | EMB-06 | unit | `mvn test -Dtest=TestContentEmbeddingFunction` | ❌ W0 | ⬜ pending |
-| TBD | 02 | 1 | EMB-07 | unit | `mvn test -Dtest=TestGeminiEmbeddingFunction,TestBedrockEmbeddingFunction,TestVoyageEmbeddingFunction` | ❌ W0 | ⬜ pending |
-| TBD | 02 | 1 | RERANK-01 | unit | `mvn test -Dtest=TestCohereRerankFunction,TestJinaRerankFunction` | ❌ W0 | ⬜ pending |
-| TBD | 03 | 2 | EMB-08 | unit | `mvn test -Dtest=TestEmbeddingFunctionRegistry` | ❌ W0 | ⬜ pending |
+| TBD | 01 | 1 | EMB-05, EMB-06 | unit | `mvn test -Dtest=TestSparseEmbeddingFunction,TestContentEmbeddingFunction` | ❌ W0 | ⬜ pending |
+| TBD | 02 | 1 | RERANK-01 | unit | `mvn test -Dtest=TestCohereRerankingFunction,TestJinaRerankingFunction` | ❌ W0 | ⬜ pending |
+| TBD | 03 | 1 | EMB-07 | unit | `mvn test -Dtest=TestGeminiEmbeddingFunction,TestBedrockEmbeddingFunction,TestVoyageEmbeddingFunction` | ❌ W0 | ⬜ pending |
+| TBD | 04 | 2 | EMB-05 | unit | `mvn test -Dtest=TestBM25EmbeddingFunction,TestChromaCloudSpladeEmbeddingFunction` | ❌ W0 | ⬜ pending |
+| TBD | 05 | 2 | EMB-08 | unit | `mvn test -Dtest=TestEmbeddingFunctionRegistry` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
