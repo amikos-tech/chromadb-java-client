@@ -1,7 +1,7 @@
 site_name: ChromaDB Java Client
 site_url: https://java.chromadb.dev
 repo_url: https://github.com/amikos-tech/chromadb-java-client
-copyright: "Amikos Tech OOD, 2024 (core ChromaDB contributors)"
+copyright: "Amikos Tech OOD, 2024-2025 (core ChromaDB contributors)"
 theme:
   name: material
   palette:
@@ -41,7 +41,7 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets:
-      base_path: docs/docs/assets/snippets/
+      base_path: docs/docs/assets/snippets/ # relative to repo root (CWD), not this file
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
