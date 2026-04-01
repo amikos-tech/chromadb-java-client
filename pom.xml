@@ -122,6 +122,22 @@
             <version>1.27.0</version>
         </dependency>
 
+        <!-- Gemini embeddings (optional: user must add to their project) -->
+        <dependency>
+            <groupId>com.google.genai</groupId>
+            <artifactId>google-genai</artifactId>
+            <version>1.2.0</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AWS Bedrock embeddings (optional: user must add to their project) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>bedrockruntime</artifactId>
+            <version>2.34.0</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
