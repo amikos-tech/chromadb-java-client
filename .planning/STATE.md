@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
 status: "Phase 06 shipped — PR #145"
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-04-01T12:48:45.857Z"
+stopped_at: Completed 04-04-PLAN.md (BM25 & ChromaCloudSplade sparse providers)
+last_updated: "2026-04-01T12:59:42.481Z"
 progress:
   total_phases: 14
   completed_phases: 12
-  total_plans: 31
-  completed_plans: 32
+  total_plans: 36
+  completed_plans: 35
 ---
 
 # Project State
@@ -75,6 +75,7 @@ Plan: Not started
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 | Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
 | Phase 04-embedding-ecosystem P03 | 8min | 2 tasks | 9 files |
+| Phase 04-embedding-ecosystem PP04 | 6min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,8 @@ Recent decisions affecting current work:
 - [Phase 04-embedding-ecosystem]: Jackson version aligned to 2.17.2 via dependencyManagement to resolve nd4j/GenAI SDK conflict
 - [Phase 04-embedding-ecosystem]: Voyage WireMock tests use WithParam.baseAPI() constructor injection instead of static field reflection
 - [Phase 04-embedding-ecosystem]: Gemini/Bedrock use lazy double-checked locking for SDK client init to avoid load at construction time
+- [Phase 04-embedding-ecosystem]: englishStemmer class name is lowercase in snowball-stemmer 1.3.0.581.1
+- [Phase 04-embedding-ecosystem]: BM25StopWords contains 179 NLTK English stop words (not 174); ChromaCloudSplade uses Bearer token auth
 
 ### Roadmap Evolution
 
@@ -176,6 +179,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-01T12:48:45.854Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-04-01T12:59:42.478Z
+Stopped at: Completed 04-04-PLAN.md (BM25 & ChromaCloudSplade sparse providers)
 Resume file: None

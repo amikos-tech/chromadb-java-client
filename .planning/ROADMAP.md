@@ -90,8 +90,8 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Sparse/Content interfaces, content value types, and bidirectional adapters
-- [ ] 04-02-PLAN.md — RerankingFunction interface with Cohere and Jina providers
+- [x] 04-01-PLAN.md — Sparse/Content interfaces, content value types, and bidirectional adapters
+- [x] 04-02-PLAN.md — RerankingFunction interface with Cohere and Jina providers
 - [ ] 04-03-PLAN.md — Dense providers: Gemini, Bedrock, Voyage with Maven deps
 - [ ] 04-04-PLAN.md — BM25 and ChromaCloudSplade sparse providers
 - [ ] 04-05-PLAN.md — EmbeddingFunctionRegistry with auto-wiring and ChromaHttpCollection integration
