@@ -1,83 +1,45 @@
 package tech.amikos.chromadb.v2;
 
-import tech.amikos.chromadb.EFException;
-import tech.amikos.chromadb.embeddings.DefaultEmbeddingFunction;
 import tech.amikos.chromadb.embeddings.EmbeddingFunction;
+import tech.amikos.chromadb.embeddings.EmbeddingFunctionRegistry;
 import tech.amikos.chromadb.embeddings.WithParam;
-import tech.amikos.chromadb.embeddings.cohere.CohereEmbeddingFunction;
 import tech.amikos.chromadb.embeddings.hf.HuggingFaceEmbeddingFunction;
-import tech.amikos.chromadb.embeddings.ollama.OllamaEmbeddingFunction;
-import tech.amikos.chromadb.embeddings.openai.OpenAIEmbeddingFunction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Builds runtime embedding-function instances from configuration/schema descriptors. */
-final class EmbeddingFunctionResolver {
+/**
+ * Builds runtime embedding-function instances from configuration/schema descriptors.
+ *
+ * <p>Delegates to {@link EmbeddingFunctionRegistry#getDefault()} for provider resolution.
+ * The static helper methods ({@link #buildParams}, {@link #buildHuggingFaceParams}) are
+ * public so the registry can reuse the parameter-building logic.</p>
+ */
+public final class EmbeddingFunctionResolver {
 
     private EmbeddingFunctionResolver() {}
 
     /**
      * Resolves a runtime embedding function from a descriptor.
      *
-     * <p>Returns {@code null} when {@code spec} is {@code null}. For non-null descriptors this method
-     * either returns an initialized embedding function or throws {@link ChromaException} with context.
-     * Unsupported descriptor type/provider values fail fast with actionable guidance.</p>
+     * <p>Delegates to {@link EmbeddingFunctionRegistry#getDefault()}.{@link
+     * EmbeddingFunctionRegistry#resolveDense(EmbeddingFunctionSpec) resolveDense(spec)}.</p>
      *
      * @throws ChromaException if descriptor values are invalid/unsupported or provider initialization fails
      */
     static EmbeddingFunction resolve(EmbeddingFunctionSpec spec) {
-        if (spec == null) {
-            return null;
-        }
-        String rawProviderName = spec.getName();
-        if (rawProviderName == null || rawProviderName.trim().isEmpty()) {
-            throw new ChromaException(
-                    "Embedding function provider name is missing. "
-                            + "Use queryEmbeddings(...) or set a valid embedding_function descriptor."
-            );
-        }
-        String type = spec.getType();
-        if (type != null && !"known".equals(type.toLowerCase(Locale.ROOT))) {
-            throw unsupported("Unsupported embedding function type '" + type + "' for provider '" + rawProviderName + "'");
-        }
-
-        String provider = rawProviderName.trim().toLowerCase(Locale.ROOT);
-        try {
-            if ("default".equals(provider)) {
-                return new DefaultEmbeddingFunction();
-            }
-            if ("openai".equals(provider)) {
-                return new OpenAIEmbeddingFunction(buildParams(spec.getConfig(), OpenAIEmbeddingFunction.OPENAI_API_KEY_ENV));
-            }
-            if ("cohere".equals(provider)) {
-                return new CohereEmbeddingFunction(buildParams(spec.getConfig(), CohereEmbeddingFunction.COHERE_API_KEY_ENV));
-            }
-            if ("huggingface".equals(provider) || "hugging_face".equals(provider) || "hf".equals(provider)) {
-                return new HuggingFaceEmbeddingFunction(buildHuggingFaceParams(spec.getConfig()));
-            }
-            if ("ollama".equals(provider)) {
-                return new OllamaEmbeddingFunction(buildParams(spec.getConfig(), null));
-            }
-            throw unsupported("Unsupported embedding function provider '" + rawProviderName + "'");
-        } catch (ChromaException e) {
-            throw e;
-        } catch (EFException e) {
-            throw new ChromaException(
-                    "Failed to initialize embedding function provider '" + rawProviderName + "': " + e.getMessage(),
-                    e
-            );
-        } catch (RuntimeException e) {
-            throw new ChromaException(
-                    "Failed to initialize embedding function provider '" + rawProviderName + "': " + e.getMessage(),
-                    e
-            );
-        }
+        return EmbeddingFunctionRegistry.getDefault().resolveDense(spec);
     }
 
-    private static WithParam[] buildHuggingFaceParams(Map<String, Object> config) {
+    /**
+     * Builds a HuggingFace-specific parameter array from config map, including api_type handling.
+     *
+     * @param config the configuration map (may be null)
+     * @return parameter array for HuggingFaceEmbeddingFunction constructor
+     */
+    public static WithParam[] buildHuggingFaceParams(Map<String, Object> config) {
         List<WithParam> params = buildParamsList(config, HuggingFaceEmbeddingFunction.HF_API_KEY_ENV);
         if (config != null) {
             String apiType = firstString(config, "api_type", "apiType");
@@ -97,7 +59,14 @@ final class EmbeddingFunctionResolver {
         return params.toArray(new WithParam[params.size()]);
     }
 
-    private static WithParam[] buildParams(Map<String, Object> config, String defaultApiKeyEnv) {
+    /**
+     * Builds a parameter array from a config map with a default API key environment variable.
+     *
+     * @param config          the configuration map (may be null)
+     * @param defaultApiKeyEnv the default environment variable name for API key (may be null)
+     * @return parameter array suitable for embedding function constructors
+     */
+    public static WithParam[] buildParams(Map<String, Object> config, String defaultApiKeyEnv) {
         List<WithParam> params = buildParamsList(config, defaultApiKeyEnv);
         return params.toArray(new WithParam[params.size()]);
     }
@@ -130,7 +99,7 @@ final class EmbeddingFunctionResolver {
         return params;
     }
 
-    private static String firstString(Map<String, Object> map, String... keys) {
+    static String firstString(Map<String, Object> map, String... keys) {
         for (String key : keys) {
             if (!map.containsKey(key)) {
                 continue;
@@ -148,11 +117,5 @@ final class EmbeddingFunctionResolver {
             }
         }
         return null;
-    }
-
-    private static ChromaException unsupported(String message) {
-        return new ChromaException(
-                message + ". Use queryEmbeddings(...) or one of [default, openai, cohere, huggingface, ollama]."
-        );
     }
 }
