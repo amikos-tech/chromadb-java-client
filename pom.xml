@@ -149,6 +149,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- BM25: Snowball stemmer for English text stemming -->
+        <dependency>
+            <groupId>com.github.rholder</groupId>
+            <artifactId>snowball-stemmer</artifactId>
+            <version>1.3.0.581.1</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
