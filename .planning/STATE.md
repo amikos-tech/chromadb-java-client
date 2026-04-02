@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: "Phase 06 shipped — PR #145"
-stopped_at: "Completed 06-04 Task 1; checkpoint:human-verify at Task 2"
-last_updated: "2026-04-01T10:06:39.889Z"
+status: "Phase 04 shipped — PR #146"
+stopped_at: Completed 04-04-PLAN.md (BM25 & ChromaCloudSplade sparse providers)
+last_updated: "2026-04-02T07:03:38.118Z"
 progress:
   total_phases: 14
-  completed_phases: 12
-  total_plans: 31
-  completed_plans: 31
+  completed_phases: 13
+  total_plans: 36
+  completed_plans: 36
 ---
 
 # Project State
@@ -74,6 +74,8 @@ Plan: Not started
 | Phase 06-documentation-site P03 | 7 | 2 tasks | 11 files |
 | Phase 06-documentation-site P02 | 4 | 2 tasks | 12 files |
 | Phase 06-documentation-site P04 | 5 | 1 tasks | 9 files |
+| Phase 04-embedding-ecosystem P03 | 8min | 2 tasks | 9 files |
+| Phase 04-embedding-ecosystem PP04 | 6min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -155,6 +157,11 @@ Recent decisions affecting current work:
 - [Phase 06-documentation-site]: All guide pages use --8<-- named section snippet inclusions (no inline copy-pasted code blocks) per D-09
 - [Phase 06-documentation-site]: Examples stubs use 'coming soon' admonition with link to relevant guide page — Phase 7 fills content without touching nav config
 - [Phase 06-documentation-site]: mkdocs.yml Examples nav uses section syntax with java-examples/index.md as section index per navigation.indexes feature
+- [Phase 04-embedding-ecosystem]: Jackson version aligned to 2.17.2 via dependencyManagement to resolve nd4j/GenAI SDK conflict
+- [Phase 04-embedding-ecosystem]: Voyage WireMock tests use WithParam.baseAPI() constructor injection instead of static field reflection
+- [Phase 04-embedding-ecosystem]: Gemini/Bedrock use lazy double-checked locking for SDK client init to avoid load at construction time
+- [Phase 04-embedding-ecosystem]: englishStemmer class name is lowercase in snowball-stemmer 1.3.0.581.1
+- [Phase 04-embedding-ecosystem]: BM25StopWords contains 179 NLTK English stop words (not 174); ChromaCloudSplade uses Bearer token auth
 
 ### Roadmap Evolution
 
@@ -172,6 +179,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:42:20.817Z
-Stopped at: Completed 06-04 Task 1; checkpoint:human-verify at Task 2
+Last session: 2026-04-01T12:59:42.478Z
+Stopped at: Completed 04-04-PLAN.md (BM25 & ChromaCloudSplade sparse providers)
 Resume file: None

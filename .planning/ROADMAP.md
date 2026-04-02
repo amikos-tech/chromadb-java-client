@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 8: API DX Improvements** — Add Consumer lambda overloads for collection creation and Schema convenience factories (#143, #144).
 - [ ] **Phase 9: Logging Bridges** — Implement SLF4J and JUL bridges for ChromaLogger (#141, #142).
 - [ ] **Phase 10: Documentation Update** — Refresh docs site with DX improvements, logging bridges, and any API changes from Phases 8-9.
+- [ ] **Phase 11: Local/Embedded Client** — Add local/embedded client mode with JNI/JNA bindings or managed server lifecycle (#111).
 
 ## Phase Details
 
@@ -76,17 +77,24 @@ Plans:
 - [x] 03-03-PLAN.md — Create unit tests, integration tests, and update PublicInterfaceCompatibilityTest
 
 ### Phase 4: Embedding Ecosystem
-**Goal:** Expand the embedding ecosystem with sparse/multimodal interfaces, reranking functions, additional providers, and an auto-wiring registry.
+**Goal:** Expand the embedding ecosystem with sparse/content interfaces, reranking functions, additional dense providers, and an auto-wiring registry.
 **Depends on:** Nothing (independent of Phases 1-3)
 **Requirements:** [EMB-05, EMB-06, EMB-07, EMB-08, RERANK-01]
 **Issues:** #106, #107, #108, #109
 **Success Criteria** (what must be TRUE):
-  1. SparseEmbeddingFunction and MultimodalEmbeddingFunction interfaces exist with at least one provider each.
+  1. SparseEmbeddingFunction and ContentEmbeddingFunction interfaces exist with at least one provider each.
   2. RerankingFunction interface exists with at least one provider (Cohere or Jina).
   3. At least 3 new dense embedding providers implemented (prioritize Gemini, Bedrock, Voyage).
   4. EmbeddingFunctionRegistry supports registering and auto-wiring providers from server-side collection config.
   5. All providers have unit tests; integration tests where API keys are available.
-**Plans:** TBD
+**Plans:** 5 plans
+
+Plans:
+- [x] 04-01-PLAN.md — Sparse/Content interfaces, content value types, and bidirectional adapters
+- [x] 04-02-PLAN.md — RerankingFunction interface with Cohere and Jina providers
+- [ ] 04-03-PLAN.md — Dense providers: Gemini, Bedrock, Voyage with Maven deps
+- [ ] 04-04-PLAN.md — BM25 and ChromaCloudSplade sparse providers
+- [ ] 04-05-PLAN.md — EmbeddingFunctionRegistry with auto-wiring and ChromaHttpCollection integration
 
 ### Phase 5: Cloud Integration Testing
 **Goal:** Build deterministic cloud parity test suites that validate search, schema/index, and array metadata behavior against Chroma Cloud.
@@ -116,7 +124,7 @@ Phase 4 can execute in parallel with Phases 1-3 (independent).
 | 1. Result Ergonomics & WhereDocument | 2/3 | In Progress|  |
 | 2. Collection API Extensions | 2/2 | Complete | 2026-03-21 |
 | 3. Search API | 3/3 | Complete   | 2026-03-22 |
-| 4. Embedding Ecosystem | 0/TBD | Pending | — |
+| 4. Embedding Ecosystem | 0/5 | Planned | — |
 | 5. Cloud Integration Testing | 2/3 | In Progress|  |
 
 ### Phase 6: Documentation Site
@@ -195,3 +203,20 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 10 to break down)
+
+### Phase 11: Local/Embedded Client
+
+**Goal:** Add a local/embedded client mode that runs Chroma without requiring a separate server, similar to Go client's `NewLocalClient`.
+**Depends on:** Nothing (independent — can be developed in parallel with other phases)
+**Requirements:** TBD
+**Issues:** #111
+**Success Criteria** (what must be TRUE):
+  1. `ChromaClient.local()` builder API exists with `persistDirectory` configuration.
+  2. At least one runtime mode works (JNI/JNA embedded or managed server lifecycle).
+  3. Persistence to disk supported with configurable path.
+  4. Unit and integration tests verify local client CRUD operations match server client behavior.
+  5. Graceful lifecycle management (startup, shutdown, cleanup).
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 11 to break down)

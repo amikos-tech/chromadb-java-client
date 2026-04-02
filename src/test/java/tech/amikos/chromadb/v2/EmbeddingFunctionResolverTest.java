@@ -107,6 +107,8 @@ public class EmbeddingFunctionResolverTest {
         } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("consistent_hash"));
             assertTrue(e.getMessage().contains("queryEmbeddings"));
+            assertNotNull(e.getCause());
+            assertTrue(e.getCause() instanceof UnsupportedEmbeddingProviderException);
             return;
         }
         throw new AssertionError("Expected ChromaException");
