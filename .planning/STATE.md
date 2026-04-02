@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: milestone
-status: "Phase 06 shipped — PR #145"
+status: "Phase 04 shipped — PR #146"
 stopped_at: Completed 04-04-PLAN.md (BM25 & ChromaCloudSplade sparse providers)
-last_updated: "2026-04-01T12:59:42.481Z"
+last_updated: "2026-04-02T07:03:38.118Z"
 progress:
   total_phases: 14
-  completed_phases: 12
+  completed_phases: 13
   total_plans: 36
-  completed_plans: 35
+  completed_plans: 36
 ---
 
 # Project State
