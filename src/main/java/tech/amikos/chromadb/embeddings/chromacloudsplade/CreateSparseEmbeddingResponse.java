@@ -1,5 +1,6 @@
 package tech.amikos.chromadb.embeddings.chromacloudsplade;
 
+import tech.amikos.chromadb.v2.ChromaException;
 import tech.amikos.chromadb.v2.SparseVector;
 
 import java.util.ArrayList;
@@ -40,12 +41,44 @@ public class CreateSparseEmbeddingResponse {
         if (results == null) {
             return vectors;
         }
-        for (SparseResult r : results) {
+        for (int resultIndex = 0; resultIndex < results.size(); resultIndex++) {
+            SparseResult r = results.get(resultIndex);
+            if (r == null) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed: result at index " + resultIndex + " was null");
+            }
+            if (r.indices == null) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed: result at index " + resultIndex
+                                + " has no indices");
+            }
+            if (r.values == null) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed: result at index " + resultIndex
+                                + " has no values");
+            }
+            if (r.indices.size() != r.values.size()) {
+                throw new ChromaException(
+                        "Chroma Cloud Splade embedding failed: result at index " + resultIndex
+                                + " has mismatched indices and values sizes");
+            }
             int[] idx = new int[r.indices.size()];
             float[] vals = new float[r.values.size()];
             for (int i = 0; i < r.indices.size(); i++) {
-                idx[i] = r.indices.get(i);
-                vals[i] = r.values.get(i);
+                Integer index = r.indices.get(i);
+                Float value = r.values.get(i);
+                if (index == null) {
+                    throw new ChromaException(
+                            "Chroma Cloud Splade embedding failed: result at index " + resultIndex
+                                    + " has null index at position " + i);
+                }
+                if (value == null) {
+                    throw new ChromaException(
+                            "Chroma Cloud Splade embedding failed: result at index " + resultIndex
+                                    + " has null value at position " + i);
+                }
+                idx[i] = index;
+                vals[i] = value;
             }
             vectors.add(SparseVector.of(idx, vals));
         }

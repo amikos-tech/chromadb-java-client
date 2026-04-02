@@ -1,7 +1,7 @@
 package tech.amikos.chromadb.embeddings.bedrock;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import software.amazon.awssdk.core.SdkBytes;
@@ -42,7 +42,6 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
 
     private final Map<String, Object> configParams = new HashMap<String, Object>();
     private volatile BedrockRuntimeClient bedrockClient;
-    private final Gson gson = new Gson();
 
     private static final List<WithParam> defaults = Arrays.asList(
             WithParam.defaultModel(DEFAULT_MODEL_NAME)
@@ -85,18 +84,26 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
         }
     }
 
-    private BedrockRuntimeClient getClient() {
+    private BedrockRuntimeClient getClient() throws EFException {
         if (bedrockClient == null) {
             synchronized (this) {
                 if (bedrockClient == null) {
-                    String regionStr = configParams.containsKey(CONFIG_KEY_REGION)
-                            ? configParams.get(CONFIG_KEY_REGION).toString()
-                            : System.getenv(AWS_REGION_ENV) != null
-                            ? System.getenv(AWS_REGION_ENV)
-                            : DEFAULT_REGION;
-                    bedrockClient = BedrockRuntimeClient.builder()
-                            .region(Region.of(regionStr))
-                            .build();
+                    String regionStr = resolveRegion();
+                    if (regionStr == null || regionStr.trim().isEmpty()) {
+                        throw new EFException(
+                                "Failed to initialize Bedrock client: AWS region must not be null or blank");
+                    }
+                    try {
+                        bedrockClient = BedrockRuntimeClient.builder()
+                                .region(Region.of(regionStr))
+                                .build();
+                    } catch (RuntimeException e) {
+                        throw new EFException(
+                                "Failed to initialize Bedrock client for region '" + regionStr + "': "
+                                        + e.getMessage(),
+                                e
+                        );
+                    }
                 }
             }
         }
@@ -149,15 +156,7 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
                         .build();
 
                 InvokeModelResponse response = client.invokeModel(request);
-                String responseJson = response.body().asUtf8String();
-                JsonObject responseObj = JsonParser.parseString(responseJson).getAsJsonObject();
-                JsonArray embeddingArray = responseObj.getAsJsonArray("embedding");
-
-                float[] floatArray = new float[embeddingArray.size()];
-                for (int i = 0; i < embeddingArray.size(); i++) {
-                    floatArray[i] = embeddingArray.get(i).getAsFloat();
-                }
-                results.add(new Embedding(floatArray));
+                results.add(toEmbedding(response, modelName));
             }
             if (results.size() != documents.size()) {
                 throw new ChromaException(
@@ -175,12 +174,90 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
+        if (documents == null) {
+            return embedDocuments((List<String>) null);
+        }
         return embedDocuments(Arrays.asList(documents));
     }
 
     private String modelName() {
         Object model = configParams.get(Constants.EF_PARAMS_MODEL);
         return model != null ? model.toString() : DEFAULT_MODEL_NAME;
+    }
+
+    private String resolveRegion() {
+        if (configParams.containsKey(CONFIG_KEY_REGION)) {
+            Object configuredRegion = configParams.get(CONFIG_KEY_REGION);
+            return configuredRegion != null ? configuredRegion.toString() : null;
+        }
+        String envRegion = System.getenv(AWS_REGION_ENV);
+        return envRegion != null ? envRegion : DEFAULT_REGION;
+    }
+
+    private Embedding toEmbedding(InvokeModelResponse response, String modelName) {
+        if (response == null || response.body() == null) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response body was empty");
+        }
+        String responseJson = response.body().asUtf8String();
+        if (responseJson == null || responseJson.trim().isEmpty()) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response body was empty");
+        }
+
+        JsonObject responseObj = parseResponseObject(responseJson, modelName);
+        JsonElement embeddingElement = responseObj.get("embedding");
+        if (embeddingElement == null || embeddingElement.isJsonNull()) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response missing embedding array");
+        }
+        if (!embeddingElement.isJsonArray()) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response embedding field must be an array");
+        }
+        JsonArray embeddingArray = embeddingElement.getAsJsonArray();
+        if (embeddingArray.size() == 0) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response embedding array was empty");
+        }
+
+        float[] floatArray = new float[embeddingArray.size()];
+        for (int i = 0; i < embeddingArray.size(); i++) {
+            JsonElement value = embeddingArray.get(i);
+            if (value == null || value.isJsonNull()) {
+                throw new ChromaException(
+                        "Bedrock embedding failed (model: " + modelName
+                                + "): response embedding value at index " + i + " was null");
+            }
+            try {
+                floatArray[i] = value.getAsFloat();
+            } catch (RuntimeException e) {
+                throw new ChromaException(
+                        "Bedrock embedding failed (model: " + modelName
+                                + "): response embedding value at index " + i + " was not numeric",
+                        e
+                );
+            }
+        }
+        return new Embedding(floatArray);
+    }
+
+    private JsonObject parseResponseObject(String responseJson, String modelName) {
+        try {
+            JsonElement parsed = JsonParser.parseString(responseJson);
+            if (parsed == null || !parsed.isJsonObject()) {
+                throw new ChromaException(
+                        "Bedrock embedding failed (model: " + modelName + "): response must be a JSON object");
+            }
+            return parsed.getAsJsonObject();
+        } catch (ChromaException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new ChromaException(
+                    "Bedrock embedding failed (model: " + modelName + "): response could not be parsed",
+                    e
+            );
+        }
     }
 
     /**

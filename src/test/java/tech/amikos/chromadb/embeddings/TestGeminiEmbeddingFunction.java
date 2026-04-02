@@ -113,6 +113,22 @@ public class TestGeminiEmbeddingFunction {
     }
 
     @Test
+    public void testEmbedDocumentsArrayRejectsNullWithConfiguredModel() throws EFException {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+
+        try {
+            ef.embedDocuments((String[]) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-gemini-model"));
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
     public void testToEmbeddingRejectsMissingEmbeddingsWithChromaException() throws Exception {
         GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
                 WithParam.apiKey("test-key"),

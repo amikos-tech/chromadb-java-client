@@ -6,8 +6,10 @@ import tech.amikos.chromadb.Embedding;
 import tech.amikos.chromadb.embeddings.content.BinarySource;
 import tech.amikos.chromadb.embeddings.content.Content;
 import tech.amikos.chromadb.embeddings.content.Intent;
+import tech.amikos.chromadb.embeddings.content.Modality;
 import tech.amikos.chromadb.embeddings.content.Part;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -186,6 +188,18 @@ public class TestContentEmbeddingFunction {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testContentToTextAdapterRejectsNullDocumentsArray() throws Exception {
+        ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
+            @Override
+            public List<Embedding> embedContents(List<Content> contents) {
+                return Collections.emptyList();
+            }
+        };
+
+        new ContentToTextAdapter(cef).embedDocuments((String[]) null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testContentToTextAdapterRejectsNullWrappedFunction() {
         new ContentToTextAdapter(null);
     }
@@ -226,5 +240,37 @@ public class TestContentEmbeddingFunction {
         };
 
         new TextEmbeddingAdapter(dummyEf).embedContents(null);
+    }
+
+    @Test
+    public void testTextEmbeddingAdapterRejectsNullTextInTextPart() throws Exception {
+        EmbeddingFunction dummyEf = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) { return null; }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) { return Collections.emptyList(); }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) { return Collections.emptyList(); }
+        };
+
+        Constructor<Part> constructor = Part.class.getDeclaredConstructor(
+                Modality.class,
+                String.class,
+                BinarySource.class
+        );
+        constructor.setAccessible(true);
+        Part malformedTextPart = constructor.newInstance(Modality.TEXT, null, null);
+        Content malformedContent = Content.builder()
+                .part(malformedTextPart)
+                .build();
+
+        try {
+            new TextEmbeddingAdapter(dummyEf).embedContents(Collections.singletonList(malformedContent));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("Content text part must not be null"));
+        }
     }
 }

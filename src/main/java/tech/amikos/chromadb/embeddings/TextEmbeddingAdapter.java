@@ -47,9 +47,12 @@ public final class TextEmbeddingAdapter implements ContentEmbeddingFunction {
         return wrapped.embedDocuments(texts);
     }
 
-    private String extractText(Content content) {
+    private String extractText(Content content) throws EFException {
         for (Part part : content.getParts()) {
             if (part.getModality() == Modality.TEXT) {
+                if (part.getText() == null) {
+                    throw new EFException("Content text part must not be null");
+                }
                 return part.getText();
             }
         }

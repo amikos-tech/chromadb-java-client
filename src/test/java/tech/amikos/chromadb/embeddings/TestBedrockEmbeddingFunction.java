@@ -1,12 +1,17 @@
 package tech.amikos.chromadb.embeddings;
 
 import org.junit.Test;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.bedrock.BedrockEmbeddingFunction;
 import tech.amikos.chromadb.v2.ChromaException;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -98,6 +103,61 @@ public class TestBedrockEmbeddingFunction {
         } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("custom-bedrock-model"));
             assertTrue(e.getMessage().contains("document at index 1 must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsArrayRejectsNullWithConfiguredModel() throws EFException {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                WithParam.model("custom-bedrock-model")
+        );
+
+        try {
+            ef.embedDocuments((String[]) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-bedrock-model"));
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testInvalidRegionInitializationIsWrappedWithContext() throws EFException {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                BedrockEmbeddingFunction.region(null)
+        );
+
+        try {
+            ef.embedDocuments(Collections.singletonList("doc1"));
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("Failed to initialize Bedrock client"));
+            assertTrue(e.getMessage().contains("AWS region must not be null or blank"));
+        }
+    }
+
+    @Test
+    public void testToEmbeddingRejectsMissingEmbeddingArray() throws Exception {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                WithParam.model("custom-bedrock-model")
+        );
+        Method method = BedrockEmbeddingFunction.class.getDeclaredMethod(
+                "toEmbedding",
+                InvokeModelResponse.class,
+                String.class
+        );
+        method.setAccessible(true);
+
+        InvokeModelResponse response = InvokeModelResponse.builder()
+                .body(SdkBytes.fromString("{\"dimensions\":1024}", StandardCharsets.UTF_8))
+                .build();
+
+        try {
+            method.invoke(ef, response, "custom-bedrock-model");
+            fail("Expected ChromaException");
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            assertTrue(e.getCause() instanceof ChromaException);
+            assertTrue(e.getCause().getMessage().contains("response missing embedding array"));
         }
     }
 }

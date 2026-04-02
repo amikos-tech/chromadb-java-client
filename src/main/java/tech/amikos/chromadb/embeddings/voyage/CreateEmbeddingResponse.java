@@ -2,6 +2,7 @@ package tech.amikos.chromadb.embeddings.voyage;
 
 import com.google.gson.annotations.SerializedName;
 import tech.amikos.chromadb.Embedding;
+import tech.amikos.chromadb.v2.ChromaException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +30,26 @@ public class CreateEmbeddingResponse {
     public List<Embedding> toEmbeddings() {
         List<Embedding> embeddings = new ArrayList<Embedding>();
         if (data != null) {
-            for (DataItem item : data) {
+            for (int itemIndex = 0; itemIndex < data.size(); itemIndex++) {
+                DataItem item = data.get(itemIndex);
+                if (item == null) {
+                    throw new ChromaException(
+                            "Voyage embedding failed: response data item at index " + itemIndex + " was null");
+                }
+                if (item.embedding == null) {
+                    throw new ChromaException(
+                            "Voyage embedding failed: response data item at index " + itemIndex
+                                    + " has no embedding");
+                }
                 float[] floatArray = new float[item.embedding.size()];
                 for (int i = 0; i < item.embedding.size(); i++) {
-                    floatArray[i] = item.embedding.get(i);
+                    Float value = item.embedding.get(i);
+                    if (value == null) {
+                        throw new ChromaException(
+                                "Voyage embedding failed: response data item at index " + itemIndex
+                                        + " has null embedding value at position " + i);
+                    }
+                    floatArray[i] = value;
                 }
                 embeddings.add(new Embedding(floatArray));
             }

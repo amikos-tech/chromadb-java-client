@@ -370,4 +370,22 @@ public class TestEmbeddingFunctionRegistry {
             assertTrue(e.getMessage().contains("google-genai"));
         }
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testResolveContentReportsUnavailableOptionalProvider() throws Exception {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        Field field = EmbeddingFunctionRegistry.class.getDeclaredField("unavailableDenseProviders");
+        field.setAccessible(true);
+        Map<String, String> unavailable = (Map<String, String>) field.get(registry);
+        unavailable.put("google_genai", "requires optional dependency com.google.genai:google-genai on the classpath");
+
+        try {
+            registry.resolveContent(spec("google_genai"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("unavailable"));
+            assertTrue(e.getMessage().contains("google-genai"));
+        }
+    }
 }

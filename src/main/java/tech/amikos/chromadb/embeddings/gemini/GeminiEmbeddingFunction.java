@@ -137,6 +137,9 @@ public class GeminiEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
+        if (documents == null) {
+            return embedDocuments((List<String>) null);
+        }
         return embedDocuments(Arrays.asList(documents));
     }
 

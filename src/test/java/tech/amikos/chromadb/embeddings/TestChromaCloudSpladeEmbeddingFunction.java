@@ -213,4 +213,58 @@ public class TestChromaCloudSpladeEmbeddingFunction {
             assertNotNull(e.getCause());
         }
     }
+
+    @Test
+    public void testResponseResultWithoutIndicesFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/api/v2/embed/splade"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"results\":[{\"values\":[0.5]}]}")));
+
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("has no indices"));
+        }
+    }
+
+    @Test
+    public void testResponseResultWithoutValuesFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/api/v2/embed/splade"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"results\":[{\"indices\":[1]}]}")));
+
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("has no values"));
+        }
+    }
+
+    @Test
+    public void testResponseResultWithMismatchedSizesFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/api/v2/embed/splade"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"results\":[{\"indices\":[1,2],\"values\":[0.5]}]}")));
+
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("mismatched indices and values sizes"));
+        }
+    }
 }

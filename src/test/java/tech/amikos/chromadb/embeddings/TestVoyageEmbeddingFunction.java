@@ -177,6 +177,18 @@ public class TestVoyageEmbeddingFunction {
     }
 
     @Test
+    public void testEmbedDocumentsArrayRejectsNull() throws EFException {
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments((String[]) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
     public void testMissingApiKeyFailsFast() throws EFException {
         VoyageEmbeddingFunction ef = new VoyageEmbeddingFunction(WithParam.baseAPI(wireMockUrl()));
 
@@ -222,6 +234,24 @@ public class TestVoyageEmbeddingFunction {
         } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("Voyage embedding failed"));
             assertNotNull(e.getCause());
+        }
+    }
+
+    @Test
+    public void testResponseItemWithoutEmbeddingFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/v1/embeddings"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"data\":[{\"index\":0}],\"usage\":{\"total_tokens\":5}}")));
+
+        VoyageEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("doc1"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("has no embedding"));
         }
     }
 }
