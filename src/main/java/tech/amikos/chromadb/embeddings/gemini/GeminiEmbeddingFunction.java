@@ -83,53 +83,43 @@ public class GeminiEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        String modelName = modelName();
         if (query == null) {
             throw new ChromaException(
-                    "Gemini embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+                    "Gemini embedding failed (model: " + modelName + "): query must not be null");
         }
         return embedDocuments(Collections.singletonList(query)).get(0);
     }
 
     @Override
     public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+        String modelName = modelName();
         if (documents == null) {
             throw new ChromaException(
-                    "Gemini embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be null");
+                    "Gemini embedding failed (model: " + modelName + "): documents must not be null");
         }
         if (documents.isEmpty()) {
             throw new ChromaException(
-                    "Gemini embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be empty");
+                    "Gemini embedding failed (model: " + modelName + "): documents must not be empty");
         }
-        String modelName = configParams.get(Constants.EF_PARAMS_MODEL).toString();
+        for (int docIndex = 0; docIndex < documents.size(); docIndex++) {
+            if (documents.get(docIndex) == null) {
+                throw new ChromaException(
+                        "Gemini embedding failed (model: " + modelName
+                                + "): document at index " + docIndex + " must not be null");
+            }
+        }
         com.google.genai.Client client = (com.google.genai.Client) getClient();
         try {
             List<Embedding> results = new ArrayList<Embedding>();
-            for (String doc : documents) {
+            for (int docIndex = 0; docIndex < documents.size(); docIndex++) {
+                String doc = documents.get(docIndex);
                 com.google.genai.types.EmbedContentResponse response = client.models.embedContent(
                         modelName,
                         doc,
                         null
                 );
-                List<com.google.genai.types.ContentEmbedding> embeddings = response.embeddings()
-                        .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                            @Override
-                            public RuntimeException get() {
-                                return new RuntimeException("Gemini returned no embeddings");
-                            }
-                        });
-                com.google.genai.types.ContentEmbedding contentEmbedding = embeddings.get(0);
-                List<Float> values = contentEmbedding.values()
-                        .orElseThrow(new java.util.function.Supplier<RuntimeException>() {
-                            @Override
-                            public RuntimeException get() {
-                                return new RuntimeException("Gemini embedding has no values");
-                            }
-                        });
-                float[] floatArray = new float[values.size()];
-                for (int i = 0; i < values.size(); i++) {
-                    floatArray[i] = values.get(i);
-                }
-                results.add(new Embedding(floatArray));
+                results.add(toEmbedding(response, modelName));
             }
             if (results.size() != documents.size()) {
                 throw new ChromaException(
@@ -148,5 +138,31 @@ public class GeminiEmbeddingFunction implements EmbeddingFunction {
     @Override
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
         return embedDocuments(Arrays.asList(documents));
+    }
+
+    private String modelName() {
+        Object model = configParams.get(Constants.EF_PARAMS_MODEL);
+        return model != null ? model.toString() : DEFAULT_MODEL_NAME;
+    }
+
+    private Embedding toEmbedding(com.google.genai.types.EmbedContentResponse response, String modelName) {
+        List<com.google.genai.types.ContentEmbedding> embeddings = response.embeddings().orElse(null);
+        if (embeddings == null || embeddings.isEmpty()) {
+            throw new ChromaException(
+                    "Gemini embedding failed (model: " + modelName + "): Gemini returned no embeddings");
+        }
+
+        com.google.genai.types.ContentEmbedding contentEmbedding = embeddings.get(0);
+        List<Float> values = contentEmbedding.values().orElse(null);
+        if (values == null || values.isEmpty()) {
+            throw new ChromaException(
+                    "Gemini embedding failed (model: " + modelName + "): Gemini embedding has no values");
+        }
+
+        float[] floatArray = new float[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            floatArray[i] = values.get(i);
+        }
+        return new Embedding(floatArray);
     }
 }

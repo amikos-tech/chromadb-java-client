@@ -54,6 +54,7 @@ public final class EmbeddingFunctionRegistry {
     private final Map<String, DenseFactory> denseFactories = new LinkedHashMap<String, DenseFactory>();
     private final Map<String, SparseFactory> sparseFactories = new LinkedHashMap<String, SparseFactory>();
     private final Map<String, ContentFactory> contentFactories = new LinkedHashMap<String, ContentFactory>();
+    private final Map<String, String> unavailableDenseProviders = new LinkedHashMap<String, String>();
 
     /**
      * Creates an empty registry with no built-in providers.
@@ -122,6 +123,11 @@ public final class EmbeddingFunctionRegistry {
         }
         String name = resolveProviderName(spec, "dense");
         DenseFactory factory = denseFactories.get(name);
+        String unavailableReason = unavailableDenseProviders.get(name);
+        if (unavailableReason != null) {
+            throw new UnsupportedEmbeddingProviderException(
+                    "Embedding function provider '" + spec.getName() + "' is unavailable: " + unavailableReason);
+        }
         if (factory == null) {
             throw new UnsupportedEmbeddingProviderException("Unsupported embedding function provider '" + spec.getName()
                     + "'. Registered dense providers: " + denseFactories.keySet());
@@ -185,6 +191,11 @@ public final class EmbeddingFunctionRegistry {
             return null;
         }
         String name = resolveProviderName(spec, "content");
+        String unavailableReason = unavailableDenseProviders.get(name);
+        if (unavailableReason != null) {
+            throw new UnsupportedEmbeddingProviderException(
+                    "Content embedding provider '" + spec.getName() + "' is unavailable: " + unavailableReason);
+        }
 
         // Try content factory first
         ContentFactory cf = contentFactories.get(name);
@@ -294,7 +305,11 @@ public final class EmbeddingFunctionRegistry {
                 }
             });
         } catch (NoClassDefFoundError ignored) {
+            markDenseProviderUnavailable("google_genai",
+                    "requires optional dependency com.google.genai:google-genai on the classpath");
         } catch (ClassNotFoundException ignored) {
+            markDenseProviderUnavailable("google_genai",
+                    "requires optional dependency com.google.genai:google-genai on the classpath");
         }
 
         // Bedrock - guarded for optional SDK
@@ -308,7 +323,11 @@ public final class EmbeddingFunctionRegistry {
                 }
             });
         } catch (NoClassDefFoundError ignored) {
+            markDenseProviderUnavailable("amazon_bedrock",
+                    "requires optional dependency software.amazon.awssdk:bedrockruntime on the classpath");
         } catch (ClassNotFoundException ignored) {
+            markDenseProviderUnavailable("amazon_bedrock",
+                    "requires optional dependency software.amazon.awssdk:bedrockruntime on the classpath");
         }
 
         // Voyage
@@ -338,5 +357,9 @@ public final class EmbeddingFunctionRegistry {
                 return new ChromaCloudSpladeEmbeddingFunction(EmbeddingFunctionResolver.buildParams(config, ChromaCloudSpladeEmbeddingFunction.CHROMA_API_KEY_ENV));
             }
         });
+    }
+
+    private void markDenseProviderUnavailable(String name, String reason) {
+        unavailableDenseProviders.put(name.toLowerCase(Locale.ROOT), reason);
     }
 }

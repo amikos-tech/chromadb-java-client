@@ -45,7 +45,11 @@ public final class ContentToTextAdapter implements EmbeddingFunction {
             throw new IllegalArgumentException("documents must not be null");
         }
         List<Content> contents = new ArrayList<Content>(documents.size());
-        for (String doc : documents) {
+        for (int i = 0; i < documents.size(); i++) {
+            String doc = documents.get(i);
+            if (doc == null) {
+                throw new IllegalArgumentException("document at index " + i + " must not be null");
+            }
             contents.add(Content.builder()
                     .part(Part.text(doc))
                     .intent(Intent.RETRIEVAL_DOCUMENT)

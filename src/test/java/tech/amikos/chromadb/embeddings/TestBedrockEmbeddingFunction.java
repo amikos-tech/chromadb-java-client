@@ -3,8 +3,11 @@ package tech.amikos.chromadb.embeddings;
 import org.junit.Test;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.bedrock.BedrockEmbeddingFunction;
+import tech.amikos.chromadb.v2.ChromaException;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -51,5 +54,50 @@ public class TestBedrockEmbeddingFunction {
     @Test
     public void testAwsRegionEnvConstant() {
         assertEquals("AWS_REGION", BedrockEmbeddingFunction.AWS_REGION_ENV);
+    }
+
+    @Test
+    public void testEmbedQueryRejectsNullWithConfiguredModel() throws EFException {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                WithParam.model("custom-bedrock-model")
+        );
+
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-bedrock-model"));
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNullListWithConfiguredModel() throws EFException {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                WithParam.model("custom-bedrock-model")
+        );
+
+        try {
+            ef.embedDocuments((List<String>) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-bedrock-model"));
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNullElementWithIndex() throws EFException {
+        BedrockEmbeddingFunction ef = new BedrockEmbeddingFunction(
+                WithParam.model("custom-bedrock-model")
+        );
+
+        try {
+            ef.embedDocuments(Arrays.asList("doc1", null));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-bedrock-model"));
+            assertTrue(e.getMessage().contains("document at index 1 must not be null"));
+        }
     }
 }

@@ -10,6 +10,7 @@ import tech.amikos.chromadb.v2.ChromaException;
 import tech.amikos.chromadb.v2.EmbeddingFunctionSpec;
 import tech.amikos.chromadb.v2.SparseVector;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -349,6 +350,24 @@ public class TestEmbeddingFunctionRegistry {
         } catch (ChromaException e) {
             assertTrue(e.getMessage().contains("via dense fallback"));
             assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testResolveDenseReportsUnavailableOptionalProvider() throws Exception {
+        EmbeddingFunctionRegistry registry = new EmbeddingFunctionRegistry();
+        Field field = EmbeddingFunctionRegistry.class.getDeclaredField("unavailableDenseProviders");
+        field.setAccessible(true);
+        Map<String, String> unavailable = (Map<String, String>) field.get(registry);
+        unavailable.put("google_genai", "requires optional dependency com.google.genai:google-genai on the classpath");
+
+        try {
+            registry.resolveDense(spec("google_genai"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("unavailable"));
+            assertTrue(e.getMessage().contains("google-genai"));
         }
     }
 }

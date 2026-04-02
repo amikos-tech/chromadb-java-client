@@ -105,28 +105,37 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        String modelName = modelName();
         if (query == null) {
             throw new ChromaException(
-                    "Bedrock embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+                    "Bedrock embedding failed (model: " + modelName + "): query must not be null");
         }
         return embedDocuments(Collections.singletonList(query)).get(0);
     }
 
     @Override
     public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+        String modelName = modelName();
         if (documents == null) {
             throw new ChromaException(
-                    "Bedrock embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be null");
+                    "Bedrock embedding failed (model: " + modelName + "): documents must not be null");
         }
         if (documents.isEmpty()) {
             throw new ChromaException(
-                    "Bedrock embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be empty");
+                    "Bedrock embedding failed (model: " + modelName + "): documents must not be empty");
         }
-        String modelName = configParams.get(Constants.EF_PARAMS_MODEL).toString();
+        for (int docIndex = 0; docIndex < documents.size(); docIndex++) {
+            if (documents.get(docIndex) == null) {
+                throw new ChromaException(
+                        "Bedrock embedding failed (model: " + modelName
+                                + "): document at index " + docIndex + " must not be null");
+            }
+        }
         BedrockRuntimeClient client = getClient();
         try {
             List<Embedding> results = new ArrayList<Embedding>();
-            for (String doc : documents) {
+            for (int docIndex = 0; docIndex < documents.size(); docIndex++) {
+                String doc = documents.get(docIndex);
                 JsonObject requestBody = new JsonObject();
                 requestBody.addProperty("inputText", doc);
                 requestBody.addProperty("dimensions", 1024);
@@ -167,6 +176,11 @@ public class BedrockEmbeddingFunction implements EmbeddingFunction {
     @Override
     public List<Embedding> embedDocuments(String[] documents) throws EFException {
         return embedDocuments(Arrays.asList(documents));
+    }
+
+    private String modelName() {
+        Object model = configParams.get(Constants.EF_PARAMS_MODEL);
+        return model != null ? model.toString() : DEFAULT_MODEL_NAME;
     }
 
     /**

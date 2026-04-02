@@ -3,8 +3,13 @@ package tech.amikos.chromadb.embeddings;
 import org.junit.Test;
 import tech.amikos.chromadb.EFException;
 import tech.amikos.chromadb.embeddings.gemini.GeminiEmbeddingFunction;
+import tech.amikos.chromadb.v2.ChromaException;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -57,5 +62,106 @@ public class TestGeminiEmbeddingFunction {
     @Test
     public void testGeminiApiKeyEnvConstant() {
         assertEquals("GEMINI_API_KEY", GeminiEmbeddingFunction.GEMINI_API_KEY_ENV);
+    }
+
+    @Test
+    public void testEmbedQueryRejectsNullWithConfiguredModel() throws EFException {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+
+        try {
+            ef.embedQuery(null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-gemini-model"));
+            assertTrue(e.getMessage().contains("query must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNullListWithConfiguredModel() throws EFException {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+
+        try {
+            ef.embedDocuments((List<String>) null);
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-gemini-model"));
+            assertTrue(e.getMessage().contains("documents must not be null"));
+        }
+    }
+
+    @Test
+    public void testEmbedDocumentsRejectsNullElementWithIndex() throws EFException {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+
+        try {
+            ef.embedDocuments(Arrays.asList("doc1", null));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("custom-gemini-model"));
+            assertTrue(e.getMessage().contains("document at index 1 must not be null"));
+        }
+    }
+
+    @Test
+    public void testToEmbeddingRejectsMissingEmbeddingsWithChromaException() throws Exception {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+        Method method = GeminiEmbeddingFunction.class.getDeclaredMethod(
+                "toEmbedding",
+                com.google.genai.types.EmbedContentResponse.class,
+                String.class
+        );
+        method.setAccessible(true);
+
+        com.google.genai.types.EmbedContentResponse response = com.google.genai.types.EmbedContentResponse.builder()
+                .build();
+
+        try {
+            method.invoke(ef, response, "custom-gemini-model");
+            fail("Expected ChromaException");
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            assertTrue(e.getCause() instanceof ChromaException);
+            assertTrue(e.getCause().getMessage().contains("Gemini returned no embeddings"));
+        }
+    }
+
+    @Test
+    public void testToEmbeddingRejectsMissingValuesWithChromaException() throws Exception {
+        GeminiEmbeddingFunction ef = new GeminiEmbeddingFunction(
+                WithParam.apiKey("test-key"),
+                WithParam.model("custom-gemini-model")
+        );
+        Method method = GeminiEmbeddingFunction.class.getDeclaredMethod(
+                "toEmbedding",
+                com.google.genai.types.EmbedContentResponse.class,
+                String.class
+        );
+        method.setAccessible(true);
+
+        com.google.genai.types.ContentEmbedding contentEmbedding = com.google.genai.types.ContentEmbedding.builder()
+                .build();
+        com.google.genai.types.EmbedContentResponse response = com.google.genai.types.EmbedContentResponse.builder()
+                .embeddings(Collections.singletonList(contentEmbedding))
+                .build();
+
+        try {
+            method.invoke(ef, response, "custom-gemini-model");
+            fail("Expected ChromaException");
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            assertTrue(e.getCause() instanceof ChromaException);
+            assertTrue(e.getCause().getMessage().contains("Gemini embedding has no values"));
+        }
     }
 }

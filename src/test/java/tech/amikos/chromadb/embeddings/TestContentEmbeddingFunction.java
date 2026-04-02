@@ -168,6 +168,23 @@ public class TestContentEmbeddingFunction {
         new ContentToTextAdapter(cef).embedDocuments((List<String>) null);
     }
 
+    @Test
+    public void testContentToTextAdapterRejectsNullDocumentElement() throws Exception {
+        ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
+            @Override
+            public List<Embedding> embedContents(List<Content> contents) {
+                return Collections.emptyList();
+            }
+        };
+
+        try {
+            new ContentToTextAdapter(cef).embedDocuments(Arrays.asList("a", null));
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("document at index 1 must not be null"));
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testContentToTextAdapterRejectsNullWrappedFunction() {
         new ContentToTextAdapter(null);
