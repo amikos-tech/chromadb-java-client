@@ -114,18 +114,20 @@ public class ChromaCloudSpladeEmbeddingFunction implements SparseEmbeddingFuncti
             throw e;
         } catch (IOException e) {
             throw new EFException("Chroma Cloud Splade embedding failed: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new ChromaException("Chroma Cloud Splade embedding failed (model: " + modelName + "): " + e.getMessage(), e);
         }
     }
 
     @Override
     public SparseVector embedQuery(String query) throws EFException {
+        String modelName = modelName();
         if (query == null) {
             throw new ChromaException(
-                    "Chroma Cloud Splade embedding failed (model: "
-                            + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+                    "Chroma Cloud Splade embedding failed (model: " + modelName + "): query must not be null");
         }
         CreateSparseEmbeddingRequest req = new CreateSparseEmbeddingRequest()
-                .model(configParams.get(Constants.EF_PARAMS_MODEL).toString())
+                .model(modelName)
                 .texts(Collections.singletonList(query));
         CreateSparseEmbeddingResponse response = callApi(req);
         List<SparseVector> vectors = response.toSparseVectors();
@@ -137,25 +139,23 @@ public class ChromaCloudSpladeEmbeddingFunction implements SparseEmbeddingFuncti
 
     @Override
     public List<SparseVector> embedDocuments(List<String> documents) throws EFException {
+        String modelName = modelName();
         if (documents == null) {
             throw new ChromaException(
-                    "Chroma Cloud Splade embedding failed (model: "
-                            + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be null");
+                    "Chroma Cloud Splade embedding failed (model: " + modelName + "): documents must not be null");
         }
         if (documents.isEmpty()) {
             throw new ChromaException(
-                    "Chroma Cloud Splade embedding failed (model: "
-                            + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be empty");
+                    "Chroma Cloud Splade embedding failed (model: " + modelName + "): documents must not be empty");
         }
         CreateSparseEmbeddingRequest req = new CreateSparseEmbeddingRequest()
-                .model(configParams.get(Constants.EF_PARAMS_MODEL).toString())
+                .model(modelName)
                 .texts(documents);
         CreateSparseEmbeddingResponse response = callApi(req);
         List<SparseVector> result = response.toSparseVectors();
         if (result.size() != documents.size()) {
             throw new ChromaException(
-                    "Chroma Cloud Splade embedding failed (model: "
-                            + configParams.get(Constants.EF_PARAMS_MODEL) + "): "
+                    "Chroma Cloud Splade embedding failed (model: " + modelName + "): "
                             + "expected " + documents.size() + " embeddings, got " + result.size()
             );
         }

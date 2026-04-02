@@ -194,4 +194,23 @@ public class TestChromaCloudSpladeEmbeddingFunction {
             assertTrue(e.getMessage().contains("response body was empty"));
         }
     }
+
+    @Test
+    public void testMalformedJsonFailsDescriptively() throws EFException {
+        stubFor(post(urlEqualTo("/api/v2/embed/splade"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{not-json")));
+
+        ChromaCloudSpladeEmbeddingFunction ef = createFunction();
+
+        try {
+            ef.embedDocuments(Collections.singletonList("text"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("Chroma Cloud Splade embedding failed"));
+            assertNotNull(e.getCause());
+        }
+    }
 }

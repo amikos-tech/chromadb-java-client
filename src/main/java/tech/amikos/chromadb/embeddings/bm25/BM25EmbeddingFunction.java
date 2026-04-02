@@ -73,14 +73,21 @@ public class BM25EmbeddingFunction implements SparseEmbeddingFunction {
         }
 
         List<SparseVector> results = new ArrayList<SparseVector>(documents.size());
-        for (String doc : documents) {
+        for (int i = 0; i < documents.size(); i++) {
+            String doc = documents.get(i);
+            if (doc == null) {
+                throw new ChromaException("BM25 embedding failed: document at index " + i + " must not be null");
+            }
             results.add(embedSingle(doc));
         }
         return results;
     }
 
     private SparseVector embedSingle(String text) {
-        if (text == null || text.isEmpty()) {
+        if (text == null) {
+            throw new ChromaException("BM25 embedding failed: text must not be null");
+        }
+        if (text.isEmpty()) {
             return SparseVector.of(new int[0], new float[0]);
         }
 

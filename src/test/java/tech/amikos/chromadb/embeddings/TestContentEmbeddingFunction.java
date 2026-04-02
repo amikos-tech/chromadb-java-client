@@ -105,6 +105,18 @@ public class TestContentEmbeddingFunction {
         assertEquals(1, result.getDimensions());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testContentToTextAdapterRejectsNullQuery() throws Exception {
+        ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
+            @Override
+            public List<Embedding> embedContents(List<Content> contents) {
+                return Collections.singletonList(Embedding.fromArray(new float[]{4.0f}));
+            }
+        };
+
+        new ContentToTextAdapter(cef).embedQuery(null);
+    }
+
     @Test
     public void testContentToTextAdapterEmbedDocumentsList() throws Exception {
         ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
@@ -145,6 +157,18 @@ public class TestContentEmbeddingFunction {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testContentToTextAdapterRejectsNullDocuments() throws Exception {
+        ContentEmbeddingFunction cef = new ContentEmbeddingFunction() {
+            @Override
+            public List<Embedding> embedContents(List<Content> contents) {
+                return Collections.emptyList();
+            }
+        };
+
+        new ContentToTextAdapter(cef).embedDocuments((List<String>) null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testContentToTextAdapterRejectsNullWrappedFunction() {
         new ContentToTextAdapter(null);
     }
@@ -169,5 +193,21 @@ public class TestContentEmbeddingFunction {
         } catch (EFException e) {
             assertTrue(e.getMessage().contains("embedContents returned no embeddings"));
         }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTextEmbeddingAdapterRejectsNullContents() throws Exception {
+        EmbeddingFunction dummyEf = new EmbeddingFunction() {
+            @Override
+            public Embedding embedQuery(String query) { return null; }
+
+            @Override
+            public List<Embedding> embedDocuments(List<String> documents) { return Collections.emptyList(); }
+
+            @Override
+            public List<Embedding> embedDocuments(String[] documents) { return Collections.emptyList(); }
+        };
+
+        new TextEmbeddingAdapter(dummyEf).embedContents(null);
     }
 }

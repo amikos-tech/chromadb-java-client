@@ -114,24 +114,27 @@ public class VoyageEmbeddingFunction implements EmbeddingFunction {
             throw e;
         } catch (IOException e) {
             throw new EFException("Voyage embedding failed: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new ChromaException("Voyage embedding failed (model: " + modelName + "): " + e.getMessage(), e);
         }
     }
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        String modelName = modelName();
         if (query == null) {
             throw new ChromaException(
-                    "Voyage embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): query must not be null");
+                    "Voyage embedding failed (model: " + modelName + "): query must not be null");
         }
         CreateEmbeddingRequest req = new CreateEmbeddingRequest()
-                .model(configParams.get(Constants.EF_PARAMS_MODEL).toString())
+                .model(modelName)
                 .input(Collections.singletonList(query))
                 .inputType("query");
         CreateEmbeddingResponse response = callApi(req);
         List<Embedding> embeddings = response.toEmbeddings();
         if (embeddings.isEmpty()) {
             throw new ChromaException(
-                    "Voyage embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL)
+                    "Voyage embedding failed (model: " + modelName
                             + "): response did not contain embeddings");
         }
         return embeddings.get(0);
@@ -139,15 +142,15 @@ public class VoyageEmbeddingFunction implements EmbeddingFunction {
 
     @Override
     public List<Embedding> embedDocuments(List<String> documents) throws EFException {
+        String modelName = modelName();
         if (documents == null) {
             throw new ChromaException(
-                    "Voyage embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be null");
+                    "Voyage embedding failed (model: " + modelName + "): documents must not be null");
         }
         if (documents.isEmpty()) {
             throw new ChromaException(
-                    "Voyage embedding failed (model: " + configParams.get(Constants.EF_PARAMS_MODEL) + "): documents must not be empty");
+                    "Voyage embedding failed (model: " + modelName + "): documents must not be empty");
         }
-        String modelName = configParams.get(Constants.EF_PARAMS_MODEL).toString();
         CreateEmbeddingRequest req = new CreateEmbeddingRequest()
                 .model(modelName)
                 .input(documents)

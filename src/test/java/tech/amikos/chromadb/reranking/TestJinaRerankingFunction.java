@@ -136,4 +136,17 @@ public class TestJinaRerankingFunction {
             assertTrue(e.getMessage().contains("response did not contain results"));
         }
     }
+
+    @Test
+    public void testEmptyDocumentsRejected() throws EFException {
+        JinaRerankingFunction reranker = new JinaRerankingFunction(
+                WithParam.apiKey("test-key"), WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank("query", Arrays.<String>asList());
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("documents must not be empty"));
+        }
+    }
 }

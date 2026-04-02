@@ -29,8 +29,15 @@ public final class TextEmbeddingAdapter implements ContentEmbeddingFunction {
 
     @Override
     public List<Embedding> embedContents(List<Content> contents) throws EFException {
+        if (contents == null) {
+            throw new IllegalArgumentException("contents must not be null");
+        }
         List<String> texts = new ArrayList<String>(contents.size());
-        for (Content content : contents) {
+        for (int i = 0; i < contents.size(); i++) {
+            Content content = contents.get(i);
+            if (content == null) {
+                throw new IllegalArgumentException("content at index " + i + " must not be null");
+            }
             String text = extractText(content);
             if (text == null) {
                 throw new EFException("Content has no text part");

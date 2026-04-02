@@ -137,4 +137,17 @@ public class TestCohereRerankingFunction {
             assertTrue(e.getMessage().contains("response did not contain results"));
         }
     }
+
+    @Test
+    public void testEmptyDocumentsRejected() throws EFException {
+        CohereRerankingFunction reranker = new CohereRerankingFunction(
+                WithParam.apiKey("test-key"), WithParam.baseAPI(wireMockBaseUrl));
+
+        try {
+            reranker.rerank("query", Arrays.<String>asList());
+            fail("Expected EFException");
+        } catch (EFException e) {
+            assertTrue(e.getMessage().contains("documents must not be empty"));
+        }
+    }
 }

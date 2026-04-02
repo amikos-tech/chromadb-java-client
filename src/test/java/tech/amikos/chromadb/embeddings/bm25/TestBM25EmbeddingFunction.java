@@ -123,4 +123,19 @@ public class TestBM25EmbeddingFunction {
             assertTrue(e.getMessage().contains("documents must not be empty"));
         }
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullTokenizerRejected() {
+        new BM25EmbeddingFunction(null, 100.0f);
+    }
+
+    @Test
+    public void testNullDocumentElementThrows() throws EFException {
+        try {
+            ef.embedDocuments(Arrays.asList("doc1", null, "doc3"));
+            fail("Expected ChromaException");
+        } catch (ChromaException e) {
+            assertTrue(e.getMessage().contains("document at index 1 must not be null"));
+        }
+    }
 }

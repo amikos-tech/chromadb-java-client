@@ -30,6 +30,9 @@ public final class ContentToTextAdapter implements EmbeddingFunction {
 
     @Override
     public Embedding embedQuery(String query) throws EFException {
+        if (query == null) {
+            throw new IllegalArgumentException("query must not be null");
+        }
         return wrapped.embedContent(Content.builder()
                 .part(Part.text(query))
                 .intent(Intent.RETRIEVAL_QUERY)

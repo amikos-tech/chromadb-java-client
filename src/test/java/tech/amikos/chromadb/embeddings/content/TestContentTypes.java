@@ -103,6 +103,11 @@ public class TestContentTypes {
         assertNull(s.getUrl());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testBinarySourceFromFileNullThrows() {
+        BinarySource.fromFile(null);
+    }
+
     @Test
     public void testBinarySourceFromBase64() {
         BinarySource s = BinarySource.fromBase64("AQID");
@@ -120,6 +125,11 @@ public class TestContentTypes {
         first[0] = 99;
         // Verify source is unchanged
         assertArrayEquals(new byte[]{1, 2, 3}, s.getBytes());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBinarySourceFromBytesNullThrows() {
+        BinarySource.fromBytes(null);
     }
 
     @Test
